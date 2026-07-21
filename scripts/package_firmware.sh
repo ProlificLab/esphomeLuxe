@@ -3,7 +3,7 @@ set -euo pipefail
 
 CONFIG="${CONFIG:-luxe_microWW.yaml}"
 FIRMWARE="${FIRMWARE:-.esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.ota.bin}"
-OUTPUT_DIR="${OUTPUT_DIR:-.esphome/release}"
+OUTPUT_DIR="${OUTPUT_DIR:-release}"
 OTA_URL="${OTA_URL:-http://10.10.30.159:8123/local/muse-luxe/firmware.ota.bin}"
 
 version="${VERSION:-$(sed -n 's/^[[:space:]]*version: "\([^"]*\)"/\1/p' "$CONFIG" | head -n 1)}"

@@ -56,7 +56,7 @@ create source-only releases.
 
 Every CI build also runs `scripts/check_firmware_size.sh` and
 `scripts/package_firmware.sh`. The latter creates one versioned OTA image, its
-MD5/SHA-256 files and the matching manifest under `.esphome/release/`.
+MD5/SHA-256 files and the matching manifest under `release/`.
 
 Canary reboot recovery can be exercised from the pinned ESPHome container:
 

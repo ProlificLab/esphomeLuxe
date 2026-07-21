@@ -7,5 +7,7 @@
 # Device-specific build and recovery artifacts
 /artifacts/
 /LOCAL_NOTES.md
+/firmware-size.txt
+/release/
 __pycache__/
 *.py[cod]

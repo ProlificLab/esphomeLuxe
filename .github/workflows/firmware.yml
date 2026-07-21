@@ -34,8 +34,8 @@ jobs:
           path: |
             .esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.ota.bin
             .esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.map
-            .esphome/build/muse-luxe/firmware-size.txt
-            .esphome/release/*
+            firmware-size.txt
+            release/*
           retention-days: 7
 
   release-source:

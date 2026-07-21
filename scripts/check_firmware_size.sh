@@ -3,7 +3,7 @@ set -euo pipefail
 
 BUILD_DIR="${BUILD_DIR:-.esphome/build/muse-luxe}"
 FIRMWARE="${FIRMWARE:-$BUILD_DIR/.pioenvs/muse-luxe/firmware.ota.bin}"
-REPORT="${REPORT:-$BUILD_DIR/firmware-size.txt}"
+REPORT="${REPORT:-firmware-size.txt}"
 
 # The OTA partition is 1,984 KiB. hal.6 is the regression baseline until hal.7
 # is promoted; the lower target leaves room for user-facing features.
