@@ -7,3 +7,5 @@
 # Device-specific build and recovery artifacts
 /artifacts/
 /LOCAL_NOTES.md
+__pycache__/
+*.py[cod]

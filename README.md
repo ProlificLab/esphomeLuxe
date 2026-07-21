@@ -29,6 +29,9 @@ so the model is referenced rather than redistributed and this branch should be
 treated as a private evaluation build. The original Raspiaudio firmware remains
 the recovery path.
 
+The complete technical and product program is maintained in
+[ROADMAP.md](ROADMAP.md).
+
 ### Private build and local updates
 
 Copy `secrets.example.yaml` to the ignored `secrets.yaml`, replace all values,
@@ -36,7 +39,8 @@ then compile with the pinned ESPHome image:
 
 ```bash
 docker run --rm -v "$PWD":/config -w /config \
-  esphome/esphome:2025.10.5 compile luxe_microWW.yaml
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  compile luxe_microWW.yaml
 ```
 
 Production binaries contain device secrets and must not be attached to a public
@@ -49,6 +53,18 @@ PVE_HOST=user@proxmox-host scripts/deploy_local_update.sh
 The firmware updater reads this LAN-only manifest. GitHub Actions compiles with
 non-production example secrets to validate every branch and pull request; tags
 create source-only releases.
+
+Every CI build also runs `scripts/check_firmware_size.sh` and
+`scripts/package_firmware.sh`. The latter creates one versioned OTA image, its
+MD5/SHA-256 files and the matching manifest under `.esphome/release/`.
+
+Canary reboot recovery can be exercised from the pinned ESPHome container:
+
+```bash
+docker run --rm --entrypoint python -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  scripts/test_reboots.py --cycles 3
+```
 
 ## Introducing the New Version: luxe_microWW (with esphome 2025.4.0)
 
@@ -71,7 +87,9 @@ Discover the enhancements in the latest release!
    - **SSID**: Raspiaudio-Luxe
    - **Password**: 12345678 for the official build; the ProlificLab variant
      uses `fallback_ap_password` from the private `secrets.yaml`
-   2. Access `192.168.4.1` in your browser to configure your home Wi-Fi settings.
+  2. The private fork does not embed the captive-portal web UI. Provision Wi-Fi
+     over USB with Improv Serial; the fallback AP keeps OTA recovery available
+     at `192.168.4.1`.
 ### Interface
 **Led**
 1. Blue => waiting Wake Word

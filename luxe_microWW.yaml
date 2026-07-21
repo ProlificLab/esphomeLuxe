@@ -7,6 +7,8 @@ substitutions:
   P_playing: "2"
   P_listening: "3"
   P_answering: "4"
+  P_offline: "5"
+  P_error: "6"
   
 esphome:
   name: ${name}
@@ -18,18 +20,21 @@ esphome:
     board_build.arduino.memory_type: qio_opi
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1-hal.6"
+    version: "2025.3.1-hal.7-alpha.2"
   on_boot:
     priority: -100.0
     then:
       - output.turn_on: dac_mute
       - lambda: id(muteH) = true;
-      - lambda: id(phase) = 0;
-      - script.execute: update_led         
+      - script.execute:
+          id: set_phase
+          new_phase: ${P_starting}
+      - script.execute: initialize_device
 external_components:
-    - source: github://RASPIAUDIO/esphomeLuxe@192372ff59b560a74aa547dc26af609918fcc9d6
+    - source:
+        type: local
+        path: components
       components: [es8388]
-      refresh: 0s
         
 esp32:
   board: esp-wrover-kit  
@@ -38,7 +43,7 @@ esp32:
   partitions: luxe_partitions.csv
   framework:
     type: esp-idf
-    version: recommended
+    version: 5.4.2
     sdkconfig_options:
       CONFIG_ESP_CONSOLE_USB_CDC: "n"
       CONFIG_ESP_CONSOLE_UART_DEFAULT: "y"
@@ -55,6 +60,10 @@ micro_wake_word:
     - model: https://raw.githubusercontent.com/TaterTotterson/Tater-Wake-Words/740bd31af8f28b1700daf49c36444d278715d298/microWakeWordsV2/okay_hal.json
       id: okay_hal
   on_wake_word_detected:
+    - lambda: id(wake_word_count)++;
+    - sensor.template.publish:
+        id: wake_word_counter
+        state: !lambda return id(wake_word_count);
     - voice_assistant.start:
         wake_word: !lambda return wake_word;
 
@@ -75,10 +84,12 @@ update:
 http_request:  
     
 api:
+  id: api_id
   encryption:
     key: !secret api_encryption_key
 
 wifi:
+  id: wifi_id
 #  ssid: 
 #  password: 
   power_save_mode: none
@@ -86,10 +97,17 @@ wifi:
   ap:
      ssid: "Raspiaudio-luxe"
      password: !secret fallback_ap_password
+  on_disconnect:
+    - script.execute: enter_offline
 
-captive_portal:
-                
+# Wi-Fi provisioning remains available over USB; the fallback AP also keeps
+# OTA recovery reachable at 192.168.4.1 without embedding a web UI.
 improv_serial:  # Disable during debugging to free UART0 for logs
+
+safe_mode:
+  boot_is_good_after: 1min
+  num_attempts: 5
+  reboot_timeout: 10min
 
 logger:
   level: WARN
@@ -151,9 +169,39 @@ globals:
   - id: audio_started
     type: bool
     initial_value: 'false'
+  - id: initialized
+    type: bool
+    initial_value: 'false'
+  - id: voice_connected
+    type: bool
+    initial_value: 'false'
+  - id: voice_session_failed
+    type: bool
+    initial_value: 'false'
+  - id: ever_voice_connected
+    type: bool
+    initial_value: 'false'
   - id: last_volume_cmd
     type: float
     initial_value: '-1.0'
+  - id: wake_word_count
+    type: uint32_t
+    initial_value: '0'
+  - id: voice_success_count
+    type: uint32_t
+    initial_value: '0'
+  - id: voice_error_count
+    type: uint32_t
+    initial_value: '0'
+  - id: voice_timeout_count
+    type: uint32_t
+    initial_value: '0'
+  - id: voice_reconnect_count
+    type: uint32_t
+    initial_value: '0'
+  - id: voice_recovery_count
+    type: uint32_t
+    initial_value: '0'
         
 interval:
   - interval: 0.1sec   
@@ -263,6 +311,49 @@ sensor:
     entity_category: diagnostic
     update_interval: never
 
+  - platform: template
+    id: wake_word_counter
+    name: Wake Words
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_success_counter
+    name: Voice Successes
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_error_counter
+    name: Voice Errors
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_timeout_counter
+    name: Voice Timeouts
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_reconnect_counter
+    name: Voice Reconnects
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_recovery_counter
+    name: Voice Recoveries
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+
 text_sensor:
   - platform: debug
     reset_reason:
@@ -272,6 +363,28 @@ text_sensor:
     id: last_voice_error
     name: Last Voice Error
     entity_category: diagnostic
+  - platform: template
+    id: voice_state
+    name: Voice State
+    entity_category: diagnostic
+  - platform: template
+    id: voice_health
+    name: Voice Health
+    entity_category: diagnostic
+  - platform: template
+    id: last_recovery_reason
+    name: Last Recovery Reason
+    entity_category: diagnostic
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: safe_mode
+    name: Restart in Safe Mode
+    entity_category: diagnostic
+    disabled_by_default: true
 
 
 
@@ -346,7 +459,7 @@ binary_sensor:
     on_double_click:
        - if:
            condition: 
-              - lambda: 'return(id(phase) == 2);'
+              - lambda: 'return id(phase) == ${P_playing};'
            then:
               - media_player.stop:                     
 
@@ -415,7 +528,7 @@ media_player:
       num_channels: 1       
     files:
       - id: little_sound
-        file: https://github.com/RASPIAUDIO/esphomeLuxe/raw/refs/heads/main/wav/sounds_timer_finished.wav                
+        file: wav/sounds_timer_finished.wav
     on_announcement: 
       - micro_wake_word.stop:
       - wait_until:
@@ -427,18 +540,24 @@ media_player:
           id(audio_started) = false;
       - if:
            condition:
-                lambda: 'return(id(phase) != 2);'
+                lambda: 'return id(phase) != ${P_playing};'
            then:           
-              - lambda: |-
-                   if(id(phase) == 1)  id(phase) = 2;    
+              - if:
+                  condition:
+                    lambda: 'return id(phase) == ${P_waiting};'
+                  then:
+                    - script.execute:
+                        id: set_phase
+                        new_phase: ${P_playing}
               - script.execute: mute_off         
-              - script.execute: update_led    
                      
     on_idle:
       - script.stop: voice_timeout
       - if:
           condition:
-            lambda: 'return id(audio_active) && id(audio_started);'
+            lambda: |-
+              return (id(audio_active) && id(audio_started)) ||
+                     id(phase) == ${P_playing};
           then:
             - wait_until:
                and:
@@ -446,18 +565,10 @@ media_player:
                     media_player.is_announcing:
                 - not:
                     voice_assistant.is_running:    
-            - if:
-                condition:              
-                    lambda: 'return((id(phase) == 4) || (id(phase) == 2));'
-                then:
-                  - lambda: |-
-                       id(phase) = 1; 
-            - microphone.unmute: luxe_mic
-            - micro_wake_word.start:                                              
-            - script.execute: update_led
             - lambda: |-
                 id(audio_active) = false;
                 id(audio_started) = false;
+            - script.execute: enter_waiting
     on_play:
       - if:
           condition:
@@ -465,6 +576,13 @@ media_player:
           then:
             - output.turn_off: dac_mute
             - lambda: id(muteH) = false;
+      - if:
+          condition:
+            lambda: 'return id(initialized) && id(phase) == ${P_waiting};'
+          then:
+            - script.execute:
+                id: set_phase
+                new_phase: ${P_playing}
       
 select:
   - platform: template
@@ -501,14 +619,38 @@ voice_assistant:
   noise_suppression_level: 2
   auto_gain: 31dBFS
   volume_multiplier: 2.0
+
+  on_client_connected:
+    - lambda: |-
+        id(voice_connected) = true;
+        if (id(ever_voice_connected)) {
+          id(voice_reconnect_count)++;
+          id(voice_reconnect_counter).publish_state(id(voice_reconnect_count));
+        } else {
+          id(ever_voice_connected) = true;
+        }
+    - if:
+        condition:
+          lambda: |-
+            return id(initialized) &&
+                   (id(phase) == ${P_starting} ||
+                    id(phase) == ${P_offline} ||
+                    id(phase) == ${P_error});
+        then:
+          - script.execute: enter_waiting
+
+  on_client_disconnected:
+    - lambda: id(voice_connected) = false;
+    - script.execute: enter_offline
   
   on_listening: 
      - logger.log: "listening 3 => phase"                    
+     - lambda: id(voice_session_failed) = false;
      - script.execute: voice_timeout
      - micro_wake_word.stop:
-     - lambda: |-
-        id(phase) = 3;                            
-     - script.execute: update_led
+     - script.execute:
+         id: set_phase
+         new_phase: ${P_listening}
 
   on_stt_end:
      - light.turn_on:
@@ -529,35 +671,196 @@ voice_assistant:
     - lambda: |-
         id(audio_active) = true;
         id(audio_started) = false;
-    - lambda: |-
-        id(phase) = 4;
-    - script.execute: update_led
+    - script.execute:
+        id: set_phase
+        new_phase: ${P_answering}
+
+  on_end:
+    - if:
+        condition:
+          lambda: 'return !id(voice_session_failed);'
+        then:
+          - lambda: |-
+              id(voice_success_count)++;
+              id(voice_success_counter).publish_state(id(voice_success_count));
                      
   on_error:
     - script.stop: voice_timeout
-    - media_player.stop: luxe_media_player
-    - microphone.unmute: luxe_mic
-    - micro_wake_word.start:
+    - lambda: |-
+        id(audio_active) = false;
+        id(audio_started) = false;
+        id(voice_session_failed) = true;
+        id(voice_error_count)++;
+        id(voice_error_counter).publish_state(id(voice_error_count));
     - text_sensor.template.publish:
         id: last_voice_error
         state: !lambda |-
           return code + ": " + message;
-    - logger.log: "ERROR!!!!!!!!!!!!!!!!"  
-    - light.turn_on:
-        id: top_led
-        blue: 0%
-        red: 100%
-        green: 0%
-        effect: pulse          
+    - logger.log:
+        format: "Voice error: %s - %s"
+        args: [ 'code.c_str()', 'message.c_str()' ]
+        level: WARN
+    - script.execute:
+        id: set_phase
+        new_phase: ${P_error}
     - delay: 3s
-    - lambda: id(phase) = 1;    
-    - script.execute: update_led 
+    - script.execute:
+        id: recover_voice
+        reason: voice_error
   
 
 #########
 # Scripts
 
 script:   
+
+  - id: set_phase
+    mode: restart
+    parameters:
+      new_phase: int
+    then:
+      - lambda: id(phase) = new_phase;
+      - text_sensor.template.publish:
+          id: voice_state
+          state: !lambda |-
+            switch (new_phase) {
+              case ${P_starting}: return {"starting"};
+              case ${P_waiting}: return {"waiting"};
+              case ${P_playing}: return {"playing"};
+              case ${P_listening}: return {"listening"};
+              case ${P_answering}: return {"answering"};
+              case ${P_offline}: return {"offline"};
+              case ${P_error}: return {"error"};
+              default: return {"unknown"};
+            }
+      - text_sensor.template.publish:
+          id: voice_health
+          state: !lambda |-
+            switch (new_phase) {
+              case ${P_waiting}: return {"healthy"};
+              case ${P_playing}:
+              case ${P_listening}:
+              case ${P_answering}: return {"busy"};
+              case ${P_offline}: return {"offline"};
+              case ${P_error}: return {"degraded"};
+              default: return {"starting"};
+            }
+      - script.execute: update_led
+
+  - id: initialize_device
+    mode: single
+    then:
+      - delay: 5s
+      - lambda: id(my_es8388).setup();
+      - lambda: |-
+          id(initialized) = true;
+          id(wake_word_counter).publish_state(id(wake_word_count));
+          id(voice_success_counter).publish_state(id(voice_success_count));
+          id(voice_error_counter).publish_state(id(voice_error_count));
+          id(voice_timeout_counter).publish_state(id(voice_timeout_count));
+          id(voice_reconnect_counter).publish_state(id(voice_reconnect_count));
+          id(voice_recovery_counter).publish_state(id(voice_recovery_count));
+      - micro_wake_word.stop:
+      - microphone.mute: luxe_mic
+      - lambda: |-
+          id(audio_active) = true;
+          id(audio_started) = false;
+      - media_player.speaker.play_on_device_media_file:
+          media_file: little_sound
+          announcement: false
+      - script.execute: startup_failsafe
+
+  - id: startup_failsafe
+    mode: restart
+    then:
+      - delay: 8s
+      - if:
+          condition:
+            lambda: 'return id(phase) == ${P_starting};'
+          then:
+            - lambda: |-
+                id(audio_active) = false;
+                id(audio_started) = false;
+            - script.execute: enter_waiting
+
+  - id: enter_waiting
+    mode: restart
+    then:
+      - script.stop: voice_timeout
+      - if:
+          condition:
+            lambda: 'return id(voice_connected);'
+          then:
+            - voice_assistant.stop:
+            - microphone.unmute: luxe_mic
+            - micro_wake_word.start:
+            - lambda: |-
+                id(audio_active) = false;
+                id(audio_started) = false;
+            - script.execute:
+                id: set_phase
+                new_phase: ${P_waiting}
+          else:
+            - script.execute: enter_offline
+
+  - id: enter_offline
+    mode: restart
+    then:
+      - script.stop: voice_timeout
+      - voice_assistant.stop:
+      - micro_wake_word.stop:
+      - microphone.mute: luxe_mic
+      - lambda: |-
+          id(audio_active) = false;
+          id(audio_started) = false;
+      - script.execute:
+          id: set_phase
+          new_phase: ${P_offline}
+
+  - id: recover_voice
+    mode: restart
+    parameters:
+      reason: string
+    then:
+      - script.stop: voice_timeout
+      - lambda: |-
+          id(audio_active) = false;
+          id(audio_started) = false;
+          id(voice_recovery_count)++;
+          id(voice_recovery_counter).publish_state(id(voice_recovery_count));
+      - text_sensor.template.publish:
+          id: last_recovery_reason
+          state: !lambda return reason;
+      - voice_assistant.stop:
+      - media_player.stop: luxe_media_player
+      - delay: 250ms
+      - script.execute: enter_waiting
+
+  - id: start_manual_listening
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(voice_connected);'
+          then:
+            - voice_assistant.stop:
+            - micro_wake_word.stop:
+            - wait_until:
+                condition:
+                  not:
+                    micro_wake_word.is_running:
+                timeout: 2s
+            - script.execute: mute_off
+            - microphone.unmute: luxe_mic
+            - lambda: |-
+                id(audio_active) = false;
+                id(audio_started) = false;
+            - script.execute:
+                id: set_phase
+                new_phase: ${P_listening}
+            - voice_assistant.start:
+          else:
+            - script.execute: enter_offline
 
   # Recover locally if a voice/TTS exchange never reaches the normal idle path.
   - id: voice_timeout
@@ -571,13 +874,13 @@ script:
               - not:
                   micro_wake_word.is_running:
           then:
-            - voice_assistant.stop:
-            - media_player.stop: luxe_media_player
-            - delay: 250ms
-            - microphone.unmute: luxe_mic
-            - micro_wake_word.start:
-            - lambda: id(phase) = 1;
-            - script.execute: update_led
+            - lambda: |-
+                id(voice_session_failed) = true;
+                id(voice_timeout_count)++;
+                id(voice_timeout_counter).publish_state(id(voice_timeout_count));
+            - script.execute:
+                id: recover_voice
+                reason: voice_timeout
 
 
   - id: jack_detect_high
@@ -605,72 +908,22 @@ script:
           condition:
             lambda: 'return id(mute);'
           then:
-            - logger.log: "Manual listen -> unmute and go to waiting"
             - script.execute: mute_off
-            - voice_assistant.stop:
-            - wait_until:
-                not:
-                  voice_assistant.is_running:
-            - micro_wake_word.start:
-            - lambda: |-
-                 id(audio_active) = false;
-                 id(audio_started) = false;
-                 id(phase) = 1;
-            - script.execute: update_led
+            - script.execute: enter_waiting
           else:
             - if:
                 condition:
-                  lambda: 'return id(phase) == 2;'
+                  lambda: 'return id(phase) == ${P_playing};'
                 then:
-                  - logger.log: "Manual listen -> mute current playback"
                   - script.execute: mute_on
                 else:
                   - if:
                       condition:
-                        lambda: 'return id(phase) == 1;'
+                        lambda: 'return id(phase) == ${P_waiting};'
                       then:
-                        - logger.log: "Manual listen -> switch waiting to listening"
-                        - voice_assistant.stop:
-                        - wait_until:
-                            not:
-                              voice_assistant.is_running:
-                        - script.execute: mute_off
-                        - microphone.unmute: luxe_mic
-                        - micro_wake_word.stop:
-                        - lambda: |-
-                             id(audio_active) = false;
-                             id(audio_started) = false;
-                             id(phase) = 3;
-                        - script.execute: update_led
-                        - voice_assistant.start:
+                        - script.execute: start_manual_listening
                       else:
-                        - if:
-                            condition:
-                              lambda: 'return id(phase) == 3;'
-                            then:
-                              - logger.log: "Manual listen -> switch listening to waiting"
-                              - voice_assistant.stop:
-                              - wait_until:
-                                  not:
-                                    voice_assistant.is_running:
-                              - micro_wake_word.start:
-                              - lambda: |-
-                                   id(audio_active) = false;
-                                   id(audio_started) = false;
-                                   id(phase) = 1;
-                              - script.execute: update_led
-                            else:
-                              - logger.log: "Manual listen -> fallback to waiting"
-                              - voice_assistant.stop:
-                              - wait_until:
-                                  not:
-                                    voice_assistant.is_running:
-                              - micro_wake_word.start:
-                              - lambda: |-
-                                   id(audio_active) = false;
-                                   id(audio_started) = false;
-                                   id(phase) = 1;
-                              - script.execute: update_led
+                        - script.execute: enter_waiting
 
 
   - id: update_led
@@ -682,11 +935,13 @@ script:
              - lambda: id(last_led_phase) = id(phase);
              - logger.log: "==>>>update_led" 
              - lambda: |-
-                   if(id(phase) == 0)id(start).execute();
-                   if(id(phase) == 1)id(waiting).execute();  
-                   if(id(phase) == 2)id(external_player).execute();                      
-                   if(id(phase) == 3)id(listening).execute();
-                   if(id(phase) == 4)id(answering).execute();
+                   if(id(phase) == ${P_starting}) id(start).execute();
+                   if(id(phase) == ${P_waiting}) id(waiting).execute();
+                   if(id(phase) == ${P_playing}) id(external_player).execute();
+                   if(id(phase) == ${P_listening}) id(listening).execute();
+                   if(id(phase) == ${P_answering}) id(answering).execute();
+                   if(id(phase) == ${P_offline}) id(offline).execute();
+                   if(id(phase) == ${P_error}) id(error).execute();
                          
   - id: start           
     then:
@@ -696,20 +951,6 @@ script:
           red: 80%
           green: 0%
           blue: 80%             
-     - delay: 5sec
-     - lambda: id(my_es8388).setup();
-     - output.turn_off: dac_mute
-     - lambda: id(phase) = 1;
-     - micro_wake_word.stop:
-     - wait_until:
-         not:
-           micro_wake_word.is_running:
-     - microphone.mute: luxe_mic
-     - delay: 200ms
-     - media_player.speaker.play_on_device_media_file:
-          media_file: little_sound
-          announcement: false      
-     - script.execute: update_led
      
   - id: waiting
     then:
@@ -720,8 +961,6 @@ script:
           green: 0%
           blue: 100% 
           brightness: 100% 
-     - voice_assistant.stop:              
-     - micro_wake_word.start:                       
        
 
   - id: listening
@@ -752,6 +991,26 @@ script:
           red: 80%
           green: 40%
           blue: 0%                      
+
+  - id: offline
+    then:
+     - light.turn_on:
+          id: top_led
+          effect: slow_pulse
+          red: 100%
+          green: 35%
+          blue: 0%
+          brightness: 45%
+
+  - id: error
+    then:
+     - light.turn_on:
+          id: top_led
+          effect: pulse
+          red: 100%
+          green: 0%
+          blue: 0%
+          brightness: 100%
                       
                         
   - id: mute_on
