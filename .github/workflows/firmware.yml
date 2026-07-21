@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - name: Prepare non-production secrets
         run: cp secrets.example.yaml secrets.yaml
       - name: Compile firmware
@@ -36,6 +38,16 @@ jobs:
         run: scripts/report_firmware_symbols.sh
       - name: Package firmware and manifest
         run: scripts/package_firmware.sh
+      - name: Generate changelog and dependency diff
+        env:
+          RELEASE_BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: |
+          args=()
+          if [[ -n "$RELEASE_BASE_REF" ]]; then
+            args+=(--base "$RELEASE_BASE_REF")
+          fi
+          python3 scripts/report_release_changes.py "${args[@]}"
+          python3 scripts/test_release_report.py
       - name: Verify release metadata and stable rollback guard
         run: |
           version="$(jq -r .version release/manifest-development.json)"
@@ -64,6 +76,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - name: Create source release
         env:
           GH_TOKEN: ${{ github.token }}

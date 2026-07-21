@@ -27,6 +27,16 @@ allow_variable="ALLOW_$(printf '%s' "$CHANNEL" | tr '[:lower:]' '[:upper:]')"
 env "$allow_variable=1" CHANNEL="$CHANNEL" OUTPUT_DIR="$OUTPUT_DIR" \
   "$SCRIPT_DIR/package_firmware.sh"
 
+report_args=(
+  --target "${RELEASE_TARGET_REF:-HEAD}"
+  --output-markdown "$OUTPUT_DIR/CHANGELOG.md"
+  --output-json "$OUTPUT_DIR/dependency-diff.json"
+)
+if [[ -n "${RELEASE_BASE_REF:-}" ]]; then
+  report_args+=(--base "$RELEASE_BASE_REF")
+fi
+python3 "$SCRIPT_DIR/report_release_changes.py" "${report_args[@]}"
+
 version="$(jq -r .version "$OUTPUT_DIR/manifest-$CHANNEL.json")"
 artifact="$OUTPUT_DIR/muse-luxe-$version.ota.bin"
 manifest="$OUTPUT_DIR/manifest-$CHANNEL.json"
