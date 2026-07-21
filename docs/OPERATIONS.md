@@ -41,5 +41,14 @@ reason to grant `admin`, expose raw entities to Assist or use port `5000`.
 Account revocation, database backups and component rollback are documented in
 `docs/FRIGATE_READONLY.md`.
 
+## Local interpreter recovery
+
+Triple click, privacy mode and the ten-minute timer all terminate continuous
+interpretation and restore the prior pipeline. If that fails, turn off
+`switch.raspiaudio_muse_luxe_continuous_conversation`, call
+`script.muse_stop_interpreter`, and verify the Voice Context Resets counter
+increments. Remove the HA package before rolling firmware back below
+`hal.9.0-alpha.2`; see `docs/INTERPRETER.md` for the full order.
+
 Do not erase NVS, reset HA storage or overwrite unrelated Proxmox disks as a
 first-line diagnostic action.

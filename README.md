@@ -40,6 +40,7 @@ Operational documentation:
 - [Development, beta and stable channels](docs/RELEASES.md)
 - [Read-only OPNsense telemetry](docs/OPNSENSE_READONLY.md)
 - [Authenticated Frigate camera telemetry](docs/FRIGATE_READONLY.md)
+- [Local bounded French-English interpreter](docs/INTERPRETER.md)
 
 Wake-word A/B testing uses the isolated Okay Nabu configuration and protocol in
 [`docs/calibration.md`](docs/calibration.md); it is never part of the primary
@@ -203,6 +204,13 @@ allowlist, listens only for `fire_alarm` by default, rate-limits announcements
 and asks for human/sensor verification. It cannot trigger a siren or another
 critical action. Real audio detection must be enabled separately per consented
 Frigate camera after checking that stream's audio role and retention policy.
+
+`muse_interpreter.yaml` adds the second `hal.9.3` experiment: two local,
+tool-free French-English pipelines with a ten-minute session, explicit
+direction, physical/privacy/timeout exits and deterministic restoration. The
+firmware clears its conversation identifier on every exit so interpreter text
+cannot flow into a later house request. Provisioning and rollback are described
+in `docs/INTERPRETER.md`.
 
 ## Introducing the New Version: luxe_microWW
 

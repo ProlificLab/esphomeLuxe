@@ -15,6 +15,14 @@ if "$SCRIPT_DIR/check_house_intelligence_safety.sh" \
   exit 1
 fi
 
+awk 'BEGIN { removed=0 } !removed && /{% endif %}/ { removed=1; next } { print }' \
+  "$PACKAGE" > "$TEMP_DIR/unbalanced-template.yaml"
+if "$SCRIPT_DIR/check_house_intelligence_safety.sh" \
+  "$TEMP_DIR/unbalanced-template.yaml" >/dev/null 2>&1; then
+  echo "House-intelligence guard accepted an unbalanced Jinja template." >&2
+  exit 1
+fi
+
 cp "$PACKAGE" "$TEMP_DIR/arbitrary-script.yaml"
 printf '\nscript:\n  unsafe:\n    sequence:\n      - action: script.shutdown_host\n' \
   >> "$TEMP_DIR/arbitrary-script.yaml"

@@ -1,0 +1,24 @@
+language: fr
+intents:
+  MuseInterpreterStart:
+    data:
+      - sentences:
+          - "(démarre|active|lance) [le] mode interprète {direction}"
+          - "(démarre|active|lance) [l']interprète {direction}"
+  MuseInterpreterStop:
+    data:
+      - sentences:
+          - "(arrête|désactive|quitte) [le] mode interprète"
+          - "(arrête|désactive|quitte) [l']interprète"
+  MuseInterpreterStatus:
+    data:
+      - sentences:
+          - "quel est l'état [du] [mode] interprète"
+          - "est-ce que [le] [mode] interprète est actif"
+lists:
+  direction:
+    values:
+      - in: "français (anglais|vers anglais)"
+        out: fr_to_en
+      - in: "anglais (français|vers français)"
+        out: en_to_fr

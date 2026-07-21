@@ -68,3 +68,11 @@ and enforce the Home Assistant registry policy. The procedure deliberately
 uses authenticated port `8971`, disables all Frigate control domains and hides
 raw entities from Assist. Follow `docs/FRIGATE_READONLY.md` for validation and
 credential rotation; do not substitute Frigate's internal port `5000`.
+
+## Local interpreter
+
+Follow `docs/INTERPRETER.md`, then run
+`PVE_HOST=root@192.168.1.10 scripts/provision_interpreter.sh`. Deploy the
+`hal.9.0-alpha.2` canary firmware before enabling the package in daily use, as
+the package requires its context-reset API action. Keep the interpreter alpha
+and opt-in until bilingual microphone and pronunciation tests pass.

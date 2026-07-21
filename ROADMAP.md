@@ -204,6 +204,11 @@ exposee au LLM et alertes Frigate dedupliquees.
 - Choix des langues par voix ou bouton et LED d'ecoute continue.
 - Aucun historique par defaut apres la session.
 
+Etat `hal.9.3-ha-alpha.2`: deux pipelines locaux francais-anglais utilisent
+Canary/Whisper, Granite et Piper sans outil domotique. La session est bornee a
+dix minutes, restaure le pipeline precedent et efface explicitement le contexte
+ESPHome a la sortie. La qualification acoustique bilingue physique reste ouverte.
+
 #### Radio et secours hors ligne
 
 - Lire depuis microSD sons, consignes, routines et medias essentiels sans HA.

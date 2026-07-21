@@ -127,6 +127,13 @@ sensor:
     entity_category: diagnostic
     update_interval: never
   - platform: template
+    id: voice_context_reset_counter
+    name: Voice Context Resets
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
     id: active_timer_counter
     name: Active Timers
     accuracy_decimals: 0

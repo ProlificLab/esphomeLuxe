@@ -418,6 +418,7 @@ script:
           {% if offline %}
             Caméras indisponibles: {{ offline | join(', ') | replace('_', ' ') }}.
           {% endif %}
+        {% endif %}
     sequence:
       - action: script.muse_announce
         data:

@@ -59,6 +59,8 @@ jobs:
           scripts/test_routine_safety.sh
           scripts/check_house_intelligence_safety.sh
           scripts/test_house_intelligence_safety.sh
+          python3 scripts/check_interpreter_safety.py
+          python3 scripts/test_interpreter_safety.py
           python3 scripts/test_proxmox_permissions.py
           python3 scripts/check_opnsense_readonly.py \
             opnsense/muse-readonly/controllers/OPNsense/Muse/Api/StatusController.php \

@@ -4,6 +4,14 @@ api:
   id: api_id
   encryption:
     key: !secret api_encryption_key
+  actions:
+    - action: clear_conversation_context
+      then:
+        - lambda: |-
+            id(va).reset_conversation_id();
+            id(voice_context_reset_count)++;
+            id(voice_context_reset_counter).publish_state(
+              id(voice_context_reset_count));
 
 wifi:
   id: wifi_id
@@ -86,6 +94,9 @@ globals:
     type: uint32_t
     initial_value: '0'
   - id: voice_recovery_count
+    type: uint32_t
+    initial_value: '0'
+  - id: voice_context_reset_count
     type: uint32_t
     initial_value: '0'
   - id: active_timer_count

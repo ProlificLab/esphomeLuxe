@@ -87,6 +87,8 @@ def main() -> None:
     if len(camera_ids) != 11:
         raise RuntimeError(f"Expected exactly 11 Frigate cameras, got {camera_ids}")
     current = states(access_token())
+    if "script.muse_narrate_house_status" not in current:
+        raise RuntimeError("The combined house narrator script is missing or disabled")
     unavailable = [
         entity_id
         for entity_id in camera_ids

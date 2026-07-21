@@ -25,6 +25,15 @@ for marker in "${required_markers[@]}"; do
   fi
 done
 
+if_count="$(grep -o '{% if' "$PACKAGE" | wc -l | tr -d ' ')"
+endif_count="$(grep -o '{% endif %}' "$PACKAGE" | wc -l | tr -d ' ')"
+for_count="$(grep -o '{% for' "$PACKAGE" | wc -l | tr -d ' ')"
+endfor_count="$(grep -o '{% endfor %}' "$PACKAGE" | wc -l | tr -d ' ')"
+if [[ "$if_count" != "$endif_count" || "$for_count" != "$endfor_count" ]]; then
+  echo "House-intelligence Jinja blocks are unbalanced: if=$if_count/$endif_count for=$for_count/$endfor_count" >&2
+  exit 1
+fi
+
 templated_action_pattern="^[[:space:]]*-[[:space:]]+action:[[:space:]]*[\"']?\\{\\{"
 if grep -En "$templated_action_pattern" "$PACKAGE"; then
   echo "Templated service actions are forbidden in house intelligence." >&2
