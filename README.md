@@ -9,19 +9,46 @@ Welcome to the Raspiaudio Muse Luxe Voice Satellite project! This guide will hel
 The `codex/muse-luxe-hal-stability` branch carries a small experimental set of
 changes for a locally managed Muse Luxe:
 
-- adds the community microWakeWord V2 model for "Okay Hal" while retaining the
-  official wake-word choices;
+- adds the community microWakeWord V2 model for "Okay Hal" while retaining
+  Okay Nabu as the recovery wake word;
 - reduces runtime logging to preserve ESP32 inference headroom;
 - increases the speaker buffer from 100 ms to 300 ms to tolerate short network
   and TTS delivery stalls;
 - restores the microphone and wake-word engine after a voice-pipeline error;
-- aborts and recovers voice exchanges that remain stuck for 45 seconds.
+- aborts and recovers voice exchanges that remain stuck for 45 seconds;
+- runs the ESP32 at 240 MHz and keeps only Okay Hal plus Okay Nabu to preserve
+  inference and flash headroom;
+- exposes reset, heap, PSRAM, loop-time, CPU, uptime, Wi-Fi, and last voice-error
+  diagnostics to Home Assistant;
+- protects the native API and OTA endpoint with local secrets;
+- corrects invalid low-voltage battery readings instead of reporting 100%.
 
 The upstream source commit and community model URL are pinned for reproducible
 builds. The community model repository does not currently declare a license,
 so the model is referenced rather than redistributed and this branch should be
 treated as a private evaluation build. The original Raspiaudio firmware remains
 the recovery path.
+
+### Private build and local updates
+
+Copy `secrets.example.yaml` to the ignored `secrets.yaml`, replace all values,
+then compile with the pinned ESPHome image:
+
+```bash
+docker run --rm -v "$PWD":/config -w /config \
+  esphome/esphome:2025.10.5 compile luxe_microWW.yaml
+```
+
+Production binaries contain device secrets and must not be attached to a public
+GitHub release. Publish them to Home Assistant's local web directory instead:
+
+```bash
+PVE_HOST=user@proxmox-host scripts/deploy_local_update.sh
+```
+
+The firmware updater reads this LAN-only manifest. GitHub Actions compiles with
+non-production example secrets to validate every branch and pull request; tags
+create source-only releases.
 
 ## Introducing the New Version: luxe_microWW (with esphome 2025.4.0)
 
@@ -42,7 +69,8 @@ Discover the enhancements in the latest release!
   **an alternative method** for Wifi init is available
   1. Connect to the device's access point with these credentials:
    - **SSID**: Raspiaudio-Luxe
-   - **Password**: 12345678
+   - **Password**: 12345678 for the official build; the ProlificLab variant
+     uses `fallback_ap_password` from the private `secrets.yaml`
    2. Access `192.168.4.1` in your browser to configure your home Wi-Fi settings.
 ### Interface
 **Led**
@@ -69,7 +97,9 @@ If you want to use it in good conditions you will have to change one parameter i
 
 ### Source Code
 
-Explore and contribute to the project on GitHub: [esphomeLuxe Repository](https://github.com/RASPIAUDIO/esphomeLuxe). For recompilation, ensure to perform a full build clean in ESPHome first.
+Explore the [ProlificLab fork](https://github.com/ProlificLab/esphomeLuxe) and
+the [Raspiaudio upstream repository](https://github.com/RASPIAUDIO/esphomeLuxe).
+For recompilation, perform a full ESPHome build clean first.
 
 ### Forum & Support
 

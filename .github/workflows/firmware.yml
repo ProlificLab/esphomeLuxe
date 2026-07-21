@@ -1,0 +1,44 @@
+name: Firmware source validation
+
+on:
+  push:
+    branches: [main, codex/muse-luxe-hal-stability]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Prepare non-production secrets
+        run: cp secrets.example.yaml secrets.yaml
+      - name: Compile firmware
+        run: >-
+          docker run --rm
+          -v "$PWD":/config
+          -w /config
+          esphome/esphome:2025.10.5
+          compile luxe_microWW.yaml
+      - name: Upload test build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: muse-luxe-test-firmware
+          path: .esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.ota.bin
+          retention-days: 7
+
+  release-source:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: compile
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Create source release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"

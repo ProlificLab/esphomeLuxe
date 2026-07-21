@@ -18,7 +18,7 @@ esphome:
     board_build.arduino.memory_type: qio_opi
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1-hal.5"
+    version: "2025.3.1-hal.6"
   on_boot:
     priority: -100.0
     then:
@@ -33,6 +33,7 @@ external_components:
         
 esp32:
   board: esp-wrover-kit  
+  cpu_frequency: 240MHz
   flash_size: 4MB
   partitions: luxe_partitions.csv
   framework:
@@ -51,10 +52,6 @@ micro_wake_word:
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
       id: okay_nabu
-    - model: hey_jarvis
-      id: hey_jarvis
-    - model: hey_mycroft
-      id: hey_mycroft
     - model: https://raw.githubusercontent.com/TaterTotterson/Tater-Wake-Words/740bd31af8f28b1700daf49c36444d278715d298/microWakeWordsV2/okay_hal.json
       id: okay_hal
   on_wake_word_detected:
@@ -64,6 +61,7 @@ micro_wake_word:
 ota:                 
   - platform: esphome
     id: ota_esphome
+    password: !secret ota_password
   - platform: http_request
     id: ota_http_request
  
@@ -72,11 +70,13 @@ update:
     id: update_http_request
     name: Firmware
 #    source: https://raw.githubusercontent.com/RASPIAUDIO/raspiaudio.github.io/main/MuseRadio/Homeassistant/manifest_update.json
-    source: https://raw.githubusercontent.com/RASPIAUDIO/esphomeLuxe/main/manifest_update.json     
+    source: !secret update_manifest_url
     
 http_request:  
     
 api:
+  encryption:
+    key: !secret api_encryption_key
 
 wifi:
 #  ssid: 
@@ -85,7 +85,7 @@ wifi:
   output_power: 15
   ap:
      ssid: "Raspiaudio-luxe"
-     password: "12345678"
+     password: !secret fallback_ap_password
 
 captive_portal:
                 
@@ -97,6 +97,9 @@ logger:
   hardware_uart: UART0
   logs:
     media_player: WARN
+
+debug:
+  update_interval: 60s
 
 ##########
 # Hardware Configuration
@@ -190,6 +193,30 @@ interval:
           
 
 sensor:
+  - platform: debug
+    free:
+      name: Heap Free
+      entity_category: diagnostic
+    block:
+      name: Heap Max Block
+      entity_category: diagnostic
+    loop_time:
+      name: Loop Time
+      entity_category: diagnostic
+    psram:
+      name: Free PSRAM
+      entity_category: diagnostic
+    cpu_frequency:
+      name: CPU Frequency
+      entity_category: diagnostic
+  - platform: wifi_signal
+    name: WiFi Signal
+    update_interval: 30s
+    entity_category: diagnostic
+  - platform: uptime
+    name: Uptime
+    update_interval: 60s
+    entity_category: diagnostic
   - platform: adc
     pin: GPIO33
     name: Battery voltage
@@ -214,7 +241,17 @@ sensor:
         then:
           - sensor.template.publish:
               id: battery_percent
-              state: !lambda "return x ;"
+              state: !lambda |-
+                if (x < 3.0f || x > 4.35f) return NAN;
+                static const float volts[] = {3.0f, 3.5f, 3.7f, 3.8f, 3.9f, 4.0f, 4.1f, 4.2f};
+                static const float percents[] = {0.0f, 2.0f, 7.0f, 18.0f, 40.0f, 65.0f, 90.0f, 100.0f};
+                for (size_t i = 1; i < 8; i++) {
+                  if (x <= volts[i]) {
+                    const float ratio = (x - volts[i - 1]) / (volts[i] - volts[i - 1]);
+                    return percents[i - 1] + ratio * (percents[i] - percents[i - 1]);
+                  }
+                }
+                return 100.0f;
 
   - platform: template
     name: Battery
@@ -224,34 +261,17 @@ sensor:
     accuracy_decimals: 0
     state_class: measurement
     entity_category: diagnostic
-    update_interval: 15s
-    filters:
-         - calibrate_polynomial:
-              degree: 3
-              datapoints:
-                  - 4.20 -> 100.0
-                  - 4.13 -> 97.1
-                  - 4.10 -> 94.2
-                  - 4.07 -> 88.4
-                  - 4.05 -> 82.7
-                  - 4.04 -> 76.9
-                  - 4.04 -> 71.1
-                  - 4.01 -> 65.3
-                  - 3.99 -> 59.5
-                  - 3.95 -> 53.8
-                  - 3.93 -> 48.0
-                  - 3.91 -> 42.2
-                  - 3.88 -> 36.4
-                  - 3.86 -> 30.6
-                  - 3.84 -> 24.9
-                  - 3.82 -> 19.1
-                  - 3.76 -> 13.3
-                  - 3.73 -> 10.4
-                  - 3.70 -> 7.5
-                  - 3.64 -> 4.6
-                  - 3.50 -> 1.7
-                  - 3.00 -> 0.0
-         - lambda: return clamp(x, 0.0f, 100.0f);   
+    update_interval: never
+
+text_sensor:
+  - platform: debug
+    reset_reason:
+      name: Reset Reason
+      entity_category: diagnostic
+  - platform: template
+    id: last_voice_error
+    name: Last Voice Error
+    entity_category: diagnostic
 
 
 
@@ -462,16 +482,13 @@ select:
       lambda: |-
         if (x == "Slightly sensitive") {
           id(okay_nabu).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH on DipCo
-          id(hey_jarvis).set_probability_cutoff(247);   // 0.97 -> 0.563 FAPH on DipCo
-          id(hey_mycroft).set_probability_cutoff(253);  // 0.99 -> 0.567 FAPH on DipCo
+          id(okay_hal).set_probability_cutoff(252);     // 0.99, fewer false accepts
         } else if (x == "Moderately sensitive") {
           id(okay_nabu).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH on DipCo
-          id(hey_jarvis).set_probability_cutoff(235);   // 0.92 -> 0.939 FAPH on DipCo
-          id(hey_mycroft).set_probability_cutoff(242);  // 0.95 -> 1.502 FAPH on DipCo
+          id(okay_hal).set_probability_cutoff(247);     // 0.97, model default
         } else if (x == "Very sensitive") {
           id(okay_nabu).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
-          id(hey_jarvis).set_probability_cutoff(212);   // 0.83 -> 1.502 FAPH on DipCo
-          id(hey_mycroft).set_probability_cutoff(237);  // 0.93 -> 1.878 FAPH on DipCo
+          id(okay_hal).set_probability_cutoff(230);     // 0.90, more permissive
         }
 
 
@@ -521,6 +538,10 @@ voice_assistant:
     - media_player.stop: luxe_media_player
     - microphone.unmute: luxe_mic
     - micro_wake_word.start:
+    - text_sensor.template.publish:
+        id: last_voice_error
+        state: !lambda |-
+          return code + ": " + message;
     - logger.log: "ERROR!!!!!!!!!!!!!!!!"  
     - light.turn_on:
         id: top_led
