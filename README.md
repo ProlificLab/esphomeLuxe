@@ -151,10 +151,11 @@ message is retained locally until presence, explicit forced delivery, or
 expiry. A second request is rejected instead of silently replacing the pending
 message.
 
-This alpha intentionally does not claim live room-to-room audio or playback
-transfer: both need a second satellite, and playback transfer additionally
-needs Music Assistant, which is not currently installed on the target HA
-instance.
+Music Assistant `2.9.9` stable is installed on the target HA instance. The
+allowlisted Muse is exposed as `media_player.raspiaudio_muse_luxe_2`; guarded
+local announcements and an opt-in manual queue-transfer script are provided by
+`home-assistant/packages/muse_music_assistant.yaml`. Live room-to-room audio and
+multi-player transfer remain unvalidated until a second satellite is deployed.
 
 `home-assistant/packages/muse_house_intelligence.yaml` starts the read-only
 `hal.9.2` layer. It exposes a normalized energy state with raw Victron facts,
@@ -225,11 +226,11 @@ Discover the enhancements in the latest release!
      
    
 ### Music Assistant
-If you want to use it in good conditions you will have to change one parameter in Music Assistant.
-1. Select your player's parameters (Raspiaudio Muse Luxe)
-2. Select Open Settings => Avanced settings => Output codec to use for streaming audio to the player
-3. There choose .wav
-4. Save
+The tested stable setup and recovery behavior are documented in
+`docs/MUSIC_ASSISTANT.md`. The Home Assistant player provider is restricted to
+the Muse and uses `announce_volume_strategy=none`; the HA package sets and
+restores announcement volume because this ESPHome player cannot do that
+natively through Music Assistant.
 
 
 ### Source Code

@@ -1,0 +1,167 @@
+input_boolean:
+  muse_audio_follow_enabled:
+    name: Muse manual audio transfer enabled
+    icon: mdi:account-music-outline
+
+input_text:
+  muse_audio_transfer_status:
+    name: Muse audio transfer status
+    initial: idle
+    max: 32
+    icon: mdi:list-status
+
+script:
+  muse_music_announcement:
+    alias: Muse - Music Assistant announcement
+    description: >-
+      Bounded announcement through Music Assistant. Only assets from the local
+      Muse directory are accepted so a conversational agent cannot fetch an
+      arbitrary URL.
+    mode: queued
+    max: 10
+    fields:
+      url:
+        name: Local announcement URL
+        required: true
+        selector:
+          text:
+      target:
+        name: Music Assistant player
+        required: false
+        selector:
+          entity:
+            filter:
+              domain: media_player
+      volume:
+        name: Announcement volume
+        required: false
+        default: 35
+        selector:
+          number:
+            min: 5
+            max: 80
+            step: 1
+    variables:
+      target_player: >-
+        {{ target | default('media_player.raspiaudio_muse_luxe_2', true) }}
+      announcement_url: "{{ url | string }}"
+      announcement_volume: "{{ volume | default(35) | int }}"
+      previous_volume: "{{ state_attr(target_player, 'volume_level') }}"
+    sequence:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ not announcement_url.startswith(
+                'http://10.10.30.159:8123/local/muse-luxe/'
+              ) }}
+        then:
+          - stop: Announcement URL is outside the local Muse directory
+            error: true
+      - action: media_player.volume_set
+        target:
+          entity_id: "{{ target_player }}"
+        data:
+          volume_level: "{{ announcement_volume / 100 }}"
+      - action: music_assistant.play_announcement
+        target:
+          entity_id: "{{ target_player }}"
+        data:
+          url: "{{ announcement_url }}"
+      - wait_template: >-
+          {{ states(target_player) in ['playing', 'buffering'] }}
+        timeout: "00:00:15"
+        continue_on_timeout: true
+      - wait_template: "{{ is_state(target_player, 'idle') }}"
+        timeout: "00:05:00"
+        continue_on_timeout: true
+      - if:
+          - condition: template
+            value_template: "{{ previous_volume is not none }}"
+        then:
+          - action: media_player.volume_set
+            target:
+              entity_id: "{{ target_player }}"
+            data:
+              volume_level: "{{ previous_volume | float }}"
+
+  muse_transfer_audio:
+    alias: Muse - transfer audio manually
+    description: >-
+      Explicit Music Assistant queue transfer. Automatic presence-based
+      following is deliberately disabled until the household opts in.
+    mode: single
+    fields:
+      source_player:
+        name: Source Music Assistant player
+        required: true
+        selector:
+          entity:
+            filter:
+              domain: media_player
+      target_player:
+        name: Target Music Assistant player
+        required: true
+        selector:
+          entity:
+            filter:
+              domain: media_player
+      auto_play:
+        name: Resume on target
+        required: false
+        default: true
+        selector:
+          boolean:
+    variables:
+      source: "{{ source_player | string }}"
+      destination: "{{ target_player | string }}"
+      should_play: "{{ auto_play | default(true) | bool }}"
+      known_players: >-
+        {{ states.media_player | map(attribute='entity_id') | list }}
+    sequence:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_transfer_status
+        data:
+          value: requested
+      - if:
+          - condition: state
+            entity_id: input_boolean.muse_audio_follow_enabled
+            state: "off"
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_audio_transfer_status
+            data:
+              value: blocked_disabled
+          - stop: Manual audio transfer is disabled
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ source == destination
+                 or source not in known_players
+                 or destination not in known_players }}
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_audio_transfer_status
+            data:
+              value: blocked_invalid
+          - stop: Source and destination must be different available players
+            error: true
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_transfer_status
+        data:
+          value: transferring
+      - action: music_assistant.transfer_queue
+        target:
+          entity_id: "{{ destination }}"
+        data:
+          source_player: "{{ source }}"
+          auto_play: "{{ should_play }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_transfer_status
+        data:
+          value: transferred

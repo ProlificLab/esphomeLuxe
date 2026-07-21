@@ -21,3 +21,18 @@
 7. Keep every opt-in alert disabled until its synthetic and physical tests pass.
 
 Never point the production update entity at an alpha manifest.
+
+## Music Assistant
+
+Use the stable Home Assistant app, not beta or nightly. After completing its
+local account setup, confirm only the Supervisor-discovered Home Assistant
+integration flow with `scripts/confirm_music_assistant_integration.py`. The
+script refuses manual and OAuth flows so no HA password or long-lived token is
+stored in the repository.
+
+Add only explicitly selected Home Assistant players to the Music Assistant
+player provider. For the current canary, the allowlist contains only
+`media_player.raspiaudio_muse_luxe`. Publish
+`home-assistant/packages/muse_music_assistant.yaml`, validate the HA
+configuration, and restart HA before running the end-to-end test described in
+`docs/MUSIC_ASSISTANT.md`.
