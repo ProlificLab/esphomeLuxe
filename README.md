@@ -4,6 +4,25 @@
 
 Welcome to the Raspiaudio Muse Luxe Voice Satellite project! This guide will help you get started with your device, including setup instructions, source code information, and support options.
 
+## ProlificLab stability variant
+
+The `codex/muse-luxe-hal-stability` branch carries a small experimental set of
+changes for a locally managed Muse Luxe:
+
+- adds the community microWakeWord V2 model for "Okay Hal" while retaining the
+  official wake-word choices;
+- reduces runtime logging to preserve ESP32 inference headroom;
+- increases the speaker buffer from 100 ms to 300 ms to tolerate short network
+  and TTS delivery stalls;
+- restores the microphone and wake-word engine after a voice-pipeline error;
+- aborts and recovers voice exchanges that remain stuck for 45 seconds.
+
+The upstream source commit and community model URL are pinned for reproducible
+builds. The community model repository does not currently declare a license,
+so the model is referenced rather than redistributed and this branch should be
+treated as a private evaluation build. The original Raspiaudio firmware remains
+the recovery path.
+
 ## Introducing the New Version: luxe_microWW (with esphome 2025.4.0)
 
 Discover the enhancements in the latest release!

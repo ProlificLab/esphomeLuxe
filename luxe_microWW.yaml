@@ -18,7 +18,7 @@ esphome:
     board_build.arduino.memory_type: qio_opi
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1"    
+    version: "2025.3.1-hal.5"
   on_boot:
     priority: -100.0
     then:
@@ -27,7 +27,7 @@ esphome:
       - lambda: id(phase) = 0;
       - script.execute: update_led         
 external_components:
-    - source: github://RASPIAUDIO/esphomeLuxe@main
+    - source: github://RASPIAUDIO/esphomeLuxe@192372ff59b560a74aa547dc26af609918fcc9d6
       components: [es8388]
       refresh: 0s
         
@@ -49,13 +49,14 @@ micro_wake_word:
   microphone: luxe_mic
   stop_after_detection: false
   models:
-    - model: okay_nabu
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
       id: okay_nabu
     - model: hey_jarvis
       id: hey_jarvis
     - model: hey_mycroft
       id: hey_mycroft
+    - model: https://raw.githubusercontent.com/TaterTotterson/Tater-Wake-Words/740bd31af8f28b1700daf49c36444d278715d298/microWakeWordsV2/okay_hal.json
+      id: okay_hal
   on_wake_word_detected:
     - voice_assistant.start:
         wake_word: !lambda return wake_word;
@@ -91,7 +92,7 @@ captive_portal:
 improv_serial:  # Disable during debugging to free UART0 for logs
 
 logger:
-  level: DEBUG
+  level: WARN
   baud_rate: 115200
   hardware_uart: UART0
   logs:
@@ -377,7 +378,7 @@ speaker:
     sample_rate: 48000
     bits_per_sample: 16bit
     num_channels: 2
-    buffer_duration: 100ms     
+    buffer_duration: 300ms
     
 media_player:
   - platform: speaker
@@ -414,6 +415,7 @@ media_player:
               - script.execute: update_led    
                      
     on_idle:
+      - script.stop: voice_timeout
       - if:
           condition:
             lambda: 'return id(audio_active) && id(audio_started);'
@@ -485,6 +487,7 @@ voice_assistant:
   
   on_listening: 
      - logger.log: "listening 3 => phase"                    
+     - script.execute: voice_timeout
      - micro_wake_word.stop:
      - lambda: |-
         id(phase) = 3;                            
@@ -514,6 +517,10 @@ voice_assistant:
     - script.execute: update_led
                      
   on_error:
+    - script.stop: voice_timeout
+    - media_player.stop: luxe_media_player
+    - microphone.unmute: luxe_mic
+    - micro_wake_word.start:
     - logger.log: "ERROR!!!!!!!!!!!!!!!!"  
     - light.turn_on:
         id: top_led
@@ -530,6 +537,26 @@ voice_assistant:
 # Scripts
 
 script:   
+
+  # Recover locally if a voice/TTS exchange never reaches the normal idle path.
+  - id: voice_timeout
+    mode: restart
+    then:
+      - delay: 45s
+      - if:
+          condition:
+            or:
+              - voice_assistant.is_running:
+              - not:
+                  micro_wake_word.is_running:
+          then:
+            - voice_assistant.stop:
+            - media_player.stop: luxe_media_player
+            - delay: 250ms
+            - microphone.unmute: luxe_mic
+            - micro_wake_word.start:
+            - lambda: id(phase) = 1;
+            - script.execute: update_led
 
 
   - id: jack_detect_high
