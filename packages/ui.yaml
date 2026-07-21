@@ -64,14 +64,44 @@ binary_sensor:
         input: true
         pullup: true
     name: Mute
-    on_click:
-      - script.execute: manual_listen
-    on_double_click:
-       - if:
-           condition:
-              - lambda: 'return id(phase) == ${P_playing};'
-           then:
-              - media_player.stop:
+    filters:
+      - delayed_on_off: 20ms
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at least 400ms
+        then:
+          - if:
+              condition:
+                lambda: 'return id(continuous_conversation);'
+              then:
+                - script.execute: stop_continuous_conversation
+              else:
+                - script.execute: start_continuous_conversation
+          - homeassistant.event:
+              event: esphome.muse_luxe_gesture
+              data:
+                gesture: triple_click
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at least 400ms
+        then:
+          - script.execute: stop_everything
+      - timing:
+          - ON for at least 1s
+        then:
+          - script.execute: toggle_privacy
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 400ms
+        then:
+          - script.execute: toggle_audio_mute
 
 light:
   - platform: esp32_rmt_led_strip

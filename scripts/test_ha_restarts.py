@@ -96,6 +96,13 @@ async def run(args: argparse.Namespace) -> None:
                 "voice_state", "waiting", args.waiting_timeout
             )
             await restart_task
+            if args.expect_playing:
+                playing_at = await wait_for_value(
+                    "voice_state", "playing", args.playing_timeout
+                )
+                idle_at = await wait_for_value(
+                    "voice_state", "waiting", args.announcement_timeout
+                )
         except Exception:
             restart_task.cancel()
             await asyncio.gather(restart_task, return_exceptions=True)
@@ -109,6 +116,12 @@ async def run(args: argparse.Namespace) -> None:
             f"{offline_at - started:.2f}s recovery={recovery:.2f}s total={total:.2f}s",
             flush=True,
         )
+        if args.expect_playing:
+            print(
+                f"PASS announcement playing_after={playing_at - started:.2f}s "
+                f"idle_after={idle_at - started:.2f}s",
+                flush=True,
+            )
         if cycle < args.cycles:
             await asyncio.sleep(args.cooldown)
 
@@ -148,6 +161,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--waiting-timeout", type=float, default=45)
     parser.add_argument("--target-recovery", type=float, default=10)
     parser.add_argument("--ssh-timeout", type=float, default=30)
+    parser.add_argument("--expect-playing", action="store_true")
+    parser.add_argument("--playing-timeout", type=float, default=90)
+    parser.add_argument("--announcement-timeout", type=float, default=90)
     return parser.parse_args()
 
 

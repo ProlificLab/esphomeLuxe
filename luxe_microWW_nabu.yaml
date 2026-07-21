@@ -8,6 +8,7 @@ substitutions:
   P_answering: "4"
   P_offline: "5"
   P_error: "6"
+  P_privacy: "7"
   wake_word_model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
   wake_word_id: okay_nabu
   wake_word_cutoff_slight: "217"
@@ -36,7 +37,7 @@ esphome:
     board_build.arduino.memory_type: qio_opi
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1-hal.8-alpha.2-nabu"
+    version: "2025.3.1-hal.9.0-alpha.1-nabu"
   on_boot:
     priority: -100.0
     then:

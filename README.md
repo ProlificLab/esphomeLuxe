@@ -9,8 +9,8 @@ Welcome to the Raspiaudio Muse Luxe Voice Satellite project! This guide will hel
 The `codex/muse-luxe-hal-stability` branch carries a small experimental set of
 changes for a locally managed Muse Luxe:
 
-- adds the community microWakeWord V2 model for "Okay Hal" while retaining
-  Okay Nabu as the recovery wake word;
+- adds the community microWakeWord V2 model for "Okay Hal" and keeps Okay Nabu
+  in a separate calibration-only image;
 - reduces runtime logging to preserve ESP32 inference headroom;
 - increases the speaker buffer from 100 ms to 300 ms to tolerate short network
   and TTS delivery stalls;
@@ -107,6 +107,32 @@ docker run --rm --network host --entrypoint python \
   -v "$PWD":/config -w /config \
   esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
   scripts/test_timeout_injection.py
+```
+
+### Home Assistant package
+
+`home-assistant/packages/muse_luxe.yaml` provides queued and urgent Piper TTS,
+day/night volumes, whole-home targeting and bounded privacy wrappers. Publish
+it, enable package loading once, validate the configuration and restart HA:
+
+```bash
+PVE_HOST=user@proxmox-host HA_DESTINATION_ROOT=/config/packages \
+  scripts/publish_ha_file.sh home-assistant/packages/muse_luxe.yaml muse_luxe.yaml
+PVE_HOST=user@proxmox-host RESTART_HA=1 scripts/enable_ha_packages.sh
+```
+
+`hal.9.0-alpha.1` also adds named-timer telemetry and a local completion sound,
+a five-minute bounded continuous conversation, and deterministic center-button
+gestures: single click toggles audio mute, double click stops, long press toggles
+privacy, and triple click toggles continuous conversation. Privacy is restored
+after reboot; only a hardware microphone power cut can provide a strong physical
+privacy guarantee.
+
+Canary mode and privacy-persistence tests use the encrypted ESPHome API:
+
+```bash
+uv run --with aioesphomeapi --with pyyaml scripts/test_hal9_modes.py
+uv run --with aioesphomeapi --with pyyaml scripts/test_privacy_reboot.py
 ```
 
 ## Introducing the New Version: luxe_microWW

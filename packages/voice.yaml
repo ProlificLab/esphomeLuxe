@@ -46,6 +46,7 @@ voice_assistant:
   noise_suppression_level: 2
   auto_gain: 31dBFS
   volume_multiplier: 2.0
+  conversation_timeout: 5min
 
   on_client_connected:
     - lambda: |-
@@ -113,12 +114,17 @@ voice_assistant:
 
   on_error:
     - script.stop: voice_timeout
+    - script.stop: conversation_session_timeout
     - lambda: |-
         id(audio_active) = false;
         id(audio_started) = false;
         id(voice_session_failed) = true;
+        id(continuous_conversation) = false;
         id(voice_error_count)++;
         id(voice_error_counter).publish_state(id(voice_error_count));
+    - switch.template.publish:
+        id: continuous_conversation_switch
+        state: OFF
     - text_sensor.template.publish:
         id: last_voice_error
         state: !lambda |-
@@ -134,6 +140,43 @@ voice_assistant:
     - script.execute:
         id: recover_voice
         reason: voice_error
+
+  on_timer_started:
+    - script.execute: refresh_timer_status
+  on_timer_cancelled:
+    - script.execute: refresh_timer_status
+  on_timer_updated:
+    - script.execute: refresh_timer_status
+  on_timer_tick:
+    - script.execute: refresh_timer_status
+  on_timer_finished:
+    - script.execute: refresh_timer_status
+    - media_player.speaker.play_on_device_media_file:
+        media_file: little_sound
+        announcement: true
+
+switch:
+  - platform: template
+    id: privacy_mode_switch
+    name: Privacy Mode
+    icon: mdi:microphone-off
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - script.execute: enter_privacy
+    turn_off_action:
+      - lambda: id(privacy_mode) = false;
+      - script.execute: enter_waiting
+
+  - platform: template
+    id: continuous_conversation_switch
+    name: Continuous Conversation
+    icon: mdi:account-voice
+    lambda: return id(continuous_conversation);
+    turn_on_action:
+      - script.execute: start_continuous_conversation
+    turn_off_action:
+      - script.execute: stop_continuous_conversation
 
 
 #########

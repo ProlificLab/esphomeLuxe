@@ -126,6 +126,20 @@ sensor:
     state_class: total_increasing
     entity_category: diagnostic
     update_interval: never
+  - platform: template
+    id: active_timer_counter
+    name: Active Timers
+    accuracy_decimals: 0
+    icon: mdi:timer-outline
+    update_interval: never
+  - platform: template
+    id: nearest_timer_remaining
+    name: Nearest Timer Remaining
+    device_class: duration
+    unit_of_measurement: s
+    accuracy_decimals: 0
+    icon: mdi:timer-sand
+    update_interval: never
 
 text_sensor:
   - platform: debug
@@ -148,6 +162,10 @@ text_sensor:
     id: last_recovery_reason
     name: Last Recovery Reason
     entity_category: diagnostic
+  - platform: template
+    id: active_timer_name
+    name: Active Timer Name
+    icon: mdi:timer-edit-outline
 
 button:
   - platform: restart
