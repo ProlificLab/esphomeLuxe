@@ -1,0 +1,160 @@
+# Muse Luxe diagnostics package. Included by luxe_microWW.yaml.
+
+logger:
+  level: WARN
+  baud_rate: 115200
+  hardware_uart: UART0
+  logs:
+    media_player: WARN
+
+debug:
+  update_interval: 60s
+
+##########
+# Hardware Configuration
+
+sensor:
+  - platform: debug
+    free:
+      name: Heap Free
+      entity_category: diagnostic
+    block:
+      name: Heap Max Block
+      entity_category: diagnostic
+    loop_time:
+      name: Loop Time
+      entity_category: diagnostic
+    psram:
+      name: Free PSRAM
+      entity_category: diagnostic
+    cpu_frequency:
+      name: CPU Frequency
+      entity_category: diagnostic
+  - platform: wifi_signal
+    name: WiFi Signal
+    update_interval: 30s
+    entity_category: diagnostic
+  - platform: uptime
+    name: Uptime
+    update_interval: 60s
+    entity_category: diagnostic
+  - platform: adc
+    pin: GPIO33
+    name: Battery voltage
+    device_class: voltage
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    state_class: measurement
+    entity_category: diagnostic
+    update_interval: 15s
+    attenuation: auto
+    filters:
+      - multiply: 2
+      - calibrate_linear:
+          - 0.0 -> 0.0
+          # Map measured full charge to real value to compensate divider/ADC bias
+          - 4.58 -> 4.20
+      - exponential_moving_average:
+             alpha: 0.2
+             send_every: 2
+      - delta: 0.002
+    on_value:
+        then:
+          - sensor.template.publish:
+              id: battery_percent
+              state: !lambda |-
+                if (x < 3.0f || x > 4.35f) return NAN;
+                static const float volts[] = {3.0f, 3.5f, 3.7f, 3.8f, 3.9f, 4.0f, 4.1f, 4.2f};
+                static const float percents[] = {0.0f, 2.0f, 7.0f, 18.0f, 40.0f, 65.0f, 90.0f, 100.0f};
+                for (size_t i = 1; i < 8; i++) {
+                  if (x <= volts[i]) {
+                    const float ratio = (x - volts[i - 1]) / (volts[i] - volts[i - 1]);
+                    return percents[i - 1] + ratio * (percents[i] - percents[i - 1]);
+                  }
+                }
+                return 100.0f;
+
+  - platform: template
+    name: Battery
+    id: battery_percent
+    device_class: battery
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    state_class: measurement
+    entity_category: diagnostic
+    update_interval: never
+
+  - platform: template
+    id: wake_word_counter
+    name: Wake Words
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_success_counter
+    name: Voice Successes
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_error_counter
+    name: Voice Errors
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_timeout_counter
+    name: Voice Timeouts
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_reconnect_counter
+    name: Voice Reconnects
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    id: voice_recovery_counter
+    name: Voice Recoveries
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+
+text_sensor:
+  - platform: debug
+    reset_reason:
+      name: Reset Reason
+      entity_category: diagnostic
+  - platform: template
+    id: last_voice_error
+    name: Last Voice Error
+    entity_category: diagnostic
+  - platform: template
+    id: voice_state
+    name: Voice State
+    entity_category: diagnostic
+  - platform: template
+    id: voice_health
+    name: Voice Health
+    entity_category: diagnostic
+  - platform: template
+    id: last_recovery_reason
+    name: Last Recovery Reason
+    entity_category: diagnostic
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: safe_mode
+    name: Restart in Safe Mode
+    entity_category: diagnostic
+    disabled_by_default: true

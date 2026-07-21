@@ -1,0 +1,138 @@
+# Muse Luxe audio package. Included by luxe_microWW.yaml.
+
+interval:
+  - interval: 0.1sec
+    then:
+      - if:
+          condition:
+             - speaker.is_stopped:
+          then:
+             - if:
+                condition:
+                  - not:
+                     - lambda: 'return(id(muteH));'
+                then:
+                  - output.turn_on: dac_mute
+                  - lambda: id(muteH) = true;
+                  - logger.log: "====> hardware mute"
+
+      - if:
+          condition:
+             - speaker.is_playing:
+          then:
+             - if:
+                condition:
+                  - lambda: 'return(id(muteH));'
+                then:
+                  - output.turn_off: dac_mute
+                  - lambda: id(muteH) = false;
+                  - logger.log: "====> hardware unmute"
+
+      - if:
+          condition:
+            and:
+              - lambda: 'return id(audio_active) && !id(audio_started);'
+              - speaker.is_playing:
+          then:
+            - lambda: id(audio_started) = true;
+
+
+i2s_audio:
+    id: i2s0
+    i2s_lrclk_pin: GPIO25
+    i2s_bclk_pin: GPIO5
+    i2s_mclk_pin: GPIO0
+
+microphone:
+  - platform: i2s_audio
+    id: luxe_mic
+    i2s_audio_id: i2s0
+    sample_rate: 16000
+    i2s_din_pin: GPIO35
+    bits_per_sample: 16bit
+    channel: stereo
+    adc_type: external
+
+
+speaker:
+  - platform: i2s_audio
+    id: luxe_speaker
+    i2s_audio_id: i2s0
+    i2s_dout_pin: GPIO26
+    dac_type: external
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    num_channels: 2
+    buffer_duration: 300ms
+
+
+media_player:
+  - platform: speaker
+    name: None
+    id: luxe_media_player
+    internal: false
+#    task_stack_in_psram: true
+#    volume_min: 0.5
+#    volume_max: 0.8
+    announcement_pipeline:
+      speaker: luxe_speaker
+      format: WAV
+      sample_rate: 48000
+      num_channels: 1
+    files:
+      - id: little_sound
+        file: wav/sounds_timer_finished.wav
+    on_announcement:
+      - micro_wake_word.stop:
+      - wait_until:
+          not:
+            micro_wake_word.is_running:
+      - microphone.mute: luxe_mic
+      - lambda: |-
+          id(audio_active) = true;
+          id(audio_started) = false;
+      - if:
+           condition:
+                lambda: 'return id(phase) != ${P_playing};'
+           then:
+              - if:
+                  condition:
+                    lambda: 'return id(phase) == ${P_waiting};'
+                  then:
+                    - script.execute:
+                        id: set_phase
+                        new_phase: ${P_playing}
+              - script.execute: mute_off
+
+    on_idle:
+      - script.stop: voice_timeout
+      - if:
+          condition:
+            lambda: |-
+              return (id(audio_active) && id(audio_started)) ||
+                     id(phase) == ${P_playing};
+          then:
+            - wait_until:
+               and:
+                - not:
+                    media_player.is_announcing:
+                - not:
+                    voice_assistant.is_running:
+            - lambda: |-
+                id(audio_active) = false;
+                id(audio_started) = false;
+            - script.execute: enter_waiting
+    on_play:
+      - if:
+          condition:
+            lambda: 'return !id(mute);'
+          then:
+            - output.turn_off: dac_mute
+            - lambda: id(muteH) = false;
+      - if:
+          condition:
+            lambda: 'return id(initialized) && id(phase) == ${P_waiting};'
+          then:
+            - script.execute:
+                id: set_phase
+                new_phase: ${P_playing}

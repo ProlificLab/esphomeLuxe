@@ -1,0 +1,140 @@
+# Muse Luxe voice package. Included by luxe_microWW.yaml.
+
+micro_wake_word:
+  id: mww
+  microphone: luxe_mic
+  stop_after_detection: false
+  models:
+    - model: https://raw.githubusercontent.com/TaterTotterson/Tater-Wake-Words/740bd31af8f28b1700daf49c36444d278715d298/microWakeWordsV2/okay_hal.json
+      id: okay_hal
+  on_wake_word_detected:
+    - lambda: id(wake_word_count)++;
+    - sensor.template.publish:
+        id: wake_word_counter
+        state: !lambda return id(wake_word_count);
+    - voice_assistant.start:
+        wake_word: !lambda return wake_word;
+
+select:
+  - platform: template
+    name: "Wake word sensitivity"
+    optimistic: true
+    initial_option: Slightly sensitive
+    restore_value: true
+    entity_category: config
+    options:
+      - Slightly sensitive
+      - Moderately sensitive
+      - Very sensitive
+    on_value:
+      # Adjust model probability thresholds to tune wake word sensitivity
+      lambda: |-
+        if (x == "Slightly sensitive") {
+          id(okay_hal).set_probability_cutoff(252);     // 0.99, fewer false accepts
+        } else if (x == "Moderately sensitive") {
+          id(okay_hal).set_probability_cutoff(247);     // 0.97, model default
+        } else if (x == "Very sensitive") {
+          id(okay_hal).set_probability_cutoff(230);     // 0.90, more permissive
+        }
+
+voice_assistant:
+  id: va
+  microphone: luxe_mic
+  media_player: luxe_media_player
+  micro_wake_word: mww
+  use_wake_word: false
+  noise_suppression_level: 2
+  auto_gain: 31dBFS
+  volume_multiplier: 2.0
+
+  on_client_connected:
+    - lambda: |-
+        id(voice_connected) = true;
+        if (id(ever_voice_connected)) {
+          id(voice_reconnect_count)++;
+          id(voice_reconnect_counter).publish_state(id(voice_reconnect_count));
+        } else {
+          id(ever_voice_connected) = true;
+        }
+    - if:
+        condition:
+          lambda: |-
+            return id(initialized) &&
+                   (id(phase) == ${P_starting} ||
+                    id(phase) == ${P_offline} ||
+                    id(phase) == ${P_error});
+        then:
+          - script.execute: enter_waiting
+
+  on_client_disconnected:
+    - lambda: id(voice_connected) = false;
+    - script.execute: enter_offline
+
+  on_listening:
+     - logger.log: "listening 3 => phase"
+     - lambda: id(voice_session_failed) = false;
+     - script.execute: voice_timeout
+     - micro_wake_word.stop:
+     - script.execute:
+         id: set_phase
+         new_phase: ${P_listening}
+
+  on_stt_end:
+     - light.turn_on:
+        id: top_led
+        blue: 60%
+        red: 20%
+        green: 20%
+        effect: pulse
+
+
+  on_tts_start:
+    - logger.log: "answering  4 => phase"
+    - micro_wake_word.stop:
+    - wait_until:
+        not:
+          micro_wake_word.is_running:
+    - microphone.mute: luxe_mic
+    - lambda: |-
+        id(audio_active) = true;
+        id(audio_started) = false;
+    - script.execute:
+        id: set_phase
+        new_phase: ${P_answering}
+
+  on_end:
+    - if:
+        condition:
+          lambda: 'return !id(voice_session_failed);'
+        then:
+          - lambda: |-
+              id(voice_success_count)++;
+              id(voice_success_counter).publish_state(id(voice_success_count));
+
+  on_error:
+    - script.stop: voice_timeout
+    - lambda: |-
+        id(audio_active) = false;
+        id(audio_started) = false;
+        id(voice_session_failed) = true;
+        id(voice_error_count)++;
+        id(voice_error_counter).publish_state(id(voice_error_count));
+    - text_sensor.template.publish:
+        id: last_voice_error
+        state: !lambda |-
+          return code + ": " + message;
+    - logger.log:
+        format: "Voice error: %s - %s"
+        args: [ 'code.c_str()', 'message.c_str()' ]
+        level: WARN
+    - script.execute:
+        id: set_phase
+        new_phase: ${P_error}
+    - delay: 3s
+    - script.execute:
+        id: recover_voice
+        reason: voice_error
+
+
+#########
+# Scripts

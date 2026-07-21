@@ -9,11 +9,15 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Etape | Etat |
 | --- | --- |
 | Reference `hal.6` | Archivee et conservee comme rollback publie |
-| Resilience `hal.7` | `hal.7-alpha.2` sur l'enceinte canari |
+| Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | Compteurs de base integres pour qualifier `hal.7` |
 | Fonctions `hal.9` | Planifiees, non implementees |
 | Distribution `hal.10` | CI epinglee; canaux et documentation a poursuivre |
+
+L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
+Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
+en permanence le cout flash de deux modeles.
 
 ## Principes
 

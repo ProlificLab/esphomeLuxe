@@ -32,6 +32,9 @@ the recovery path.
 The complete technical and product program is maintained in
 [ROADMAP.md](ROADMAP.md).
 
+The main configuration is intentionally small and composes the seven files in
+`packages/`: hardware, audio, voice, UI, recovery, diagnostics and updates.
+
 ### Private build and local updates
 
 Copy `secrets.example.yaml` to the ignored `secrets.yaml`, replace all values,
@@ -54,9 +57,10 @@ The firmware updater reads this LAN-only manifest. GitHub Actions compiles with
 non-production example secrets to validate every branch and pull request; tags
 create source-only releases.
 
-Every CI build also runs `scripts/check_firmware_size.sh` and
-`scripts/package_firmware.sh`. The latter creates one versioned OTA image, its
-MD5/SHA-256 files and the matching manifest under `release/`.
+Every CI build also runs `scripts/check_firmware_size.sh`,
+`scripts/report_firmware_symbols.sh` and `scripts/package_firmware.sh`. The
+release directory contains a versioned OTA image, MD5/SHA-256 files, the
+matching manifest, the section sizes and the 120 largest symbols.
 
 Canary reboot recovery can be exercised from the pinned ESPHome container:
 
@@ -66,13 +70,25 @@ docker run --rm --entrypoint python -v "$PWD":/config -w /config \
   scripts/test_reboots.py --cycles 3
 ```
 
-## Introducing the New Version: luxe_microWW (with esphome 2025.4.0)
+Repeated announcement recovery can be tested after publishing the WAV through
+Home Assistant:
+
+```bash
+PVE_HOST=user@proxmox-host scripts/publish_ha_file.sh \
+  wav/sounds_timer_finished.wav muse-luxe/test-audio.wav
+docker run --rm --entrypoint python -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  scripts/test_audio_endurance.py --cycles 10
+```
+
+## Introducing the New Version: luxe_microWW
 
 Discover the enhancements in the latest release!
 
 ### Features:
 
-- **Micro Wake Words**: Now supports multiple wake words like "okay_nabu".
+- **Micro Wake Word**: The primary image uses "Okay Hal"; alternate wake-word
+  models are kept in separate calibration builds to preserve OTA headroom.
 - **Full interface with Home Assistant Assist**
 - **MP3/AAC player**: Media Browser, My media,...
 

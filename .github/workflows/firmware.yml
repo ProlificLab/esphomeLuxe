@@ -25,6 +25,8 @@ jobs:
           compile luxe_microWW.yaml
       - name: Enforce firmware size budget
         run: scripts/check_firmware_size.sh
+      - name: Report firmware memory use
+        run: scripts/report_firmware_symbols.sh
       - name: Package firmware and manifest
         run: scripts/package_firmware.sh
       - name: Upload test build

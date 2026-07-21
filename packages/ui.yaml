@@ -1,0 +1,95 @@
+# Muse Luxe ui package. Included by luxe_microWW.yaml.
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO27
+      mode:
+        input: true
+        pullup: true
+    id: jack_detect
+    name: Jack Detect
+    internal: true
+    on_press:
+      - script.execute: jack_detect_high
+    on_release:
+      - script.execute: jack_detect_low
+  - platform: gpio
+    pin:
+      number: GPIO19
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: Volume Up
+    on_click:
+        - lambda: |-
+                id(Vol) += 0.05;
+                if(id(Vol) > 1) id(Vol) = 1;
+        - if:
+            condition:
+              lambda: 'return fabsf(id(last_volume_cmd) - id(Vol)) > 0.005f;'
+            then:
+              - media_player.volume_set:
+                  id: luxe_media_player
+                  volume: !lambda return id(Vol);
+              - lambda: id(last_volume_cmd) = id(Vol);
+
+  - platform: gpio
+    pin:
+      number: GPIO32
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: Volume Down
+    on_click:
+        - lambda: |-
+                id(Vol) -= 0.05;
+                if(id(Vol) < 0) id(Vol) = 0;
+        - if:
+            condition:
+              lambda: 'return fabsf(id(last_volume_cmd) - id(Vol)) > 0.005f;'
+            then:
+              - media_player.volume_set:
+                  id: luxe_media_player
+                  volume: !lambda return id(Vol);
+              - lambda: id(last_volume_cmd) = id(Vol);
+
+  - platform: gpio
+    pin:
+      number: GPIO12
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: Mute
+    on_click:
+      - script.execute: manual_listen
+    on_double_click:
+       - if:
+           condition:
+              - lambda: 'return id(phase) == ${P_playing};'
+           then:
+              - media_player.stop:
+
+light:
+  - platform: esp32_rmt_led_strip
+    name: None
+    id: top_led
+    pin: GPIO22
+    chipset: WS2812
+    num_leds: 1
+    rgb_order: grb
+#    rmt_channel: 0
+    default_transition_length: 0s
+    gamma_correct: 2.8
+    effects:
+      - pulse:
+          name: pulse
+          transition_length: 250ms
+          update_interval: 250ms
+      - pulse:
+          name: slow_pulse
+          transition_length: 1s
+          update_interval: 2s
