@@ -32,6 +32,10 @@ the recovery path.
 The complete technical and product program is maintained in
 [ROADMAP.md](ROADMAP.md).
 
+Wake-word A/B testing uses the isolated Okay Nabu configuration and protocol in
+[`docs/calibration.md`](docs/calibration.md); it is never part of the primary
+firmware manifest.
+
 The main configuration is intentionally small and composes the seven files in
 `packages/`: hardware, audio, voice, UI, recovery, diagnostics and updates.
 

@@ -5,8 +5,8 @@ micro_wake_word:
   microphone: luxe_mic
   stop_after_detection: false
   models:
-    - model: https://raw.githubusercontent.com/TaterTotterson/Tater-Wake-Words/740bd31af8f28b1700daf49c36444d278715d298/microWakeWordsV2/okay_hal.json
-      id: okay_hal
+    - model: ${wake_word_model}
+      id: ${wake_word_id}
   on_wake_word_detected:
     - lambda: id(wake_word_count)++;
     - sensor.template.publish:
@@ -30,11 +30,11 @@ select:
       # Adjust model probability thresholds to tune wake word sensitivity
       lambda: |-
         if (x == "Slightly sensitive") {
-          id(okay_hal).set_probability_cutoff(252);     // 0.99, fewer false accepts
+          id(${wake_word_id}).set_probability_cutoff(${wake_word_cutoff_slight});
         } else if (x == "Moderately sensitive") {
-          id(okay_hal).set_probability_cutoff(247);     // 0.97, model default
+          id(${wake_word_id}).set_probability_cutoff(${wake_word_cutoff_moderate});
         } else if (x == "Very sensitive") {
-          id(okay_hal).set_probability_cutoff(230);     // 0.90, more permissive
+          id(${wake_word_id}).set_probability_cutoff(${wake_word_cutoff_very});
         }
 
 voice_assistant:
