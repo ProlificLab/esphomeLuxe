@@ -1,0 +1,87 @@
+input_boolean:
+  muse_acoustic_guardian_enabled:
+    name: Muse acoustic guardian enabled
+    icon: mdi:ear-hearing-off
+
+input_number:
+  muse_acoustic_cooldown_seconds:
+    name: Muse acoustic alert cooldown
+    min: 60
+    max: 1800
+    step: 60
+    initial: 300
+    unit_of_measurement: s
+    icon: mdi:timer-lock-outline
+
+input_text:
+  muse_acoustic_allowed_cameras:
+    name: Muse acoustic allowed cameras
+    max: 255
+    icon: mdi:microphone-settings
+  muse_acoustic_allowed_labels:
+    name: Muse acoustic allowed labels
+    initial: fire_alarm
+    max: 255
+    icon: mdi:alarm-light-outline
+  muse_acoustic_last_detection:
+    name: Muse acoustic last detection
+    max: 150
+    icon: mdi:ear-hearing
+
+input_datetime:
+  muse_acoustic_last_announcement:
+    name: Muse acoustic last announcement
+    has_date: true
+    has_time: true
+    icon: mdi:clock-alert-outline
+
+automation:
+  - id: muse_acoustic_guardian_event
+    alias: Muse - guarded Frigate acoustic event
+    description: >-
+      Opt-in acoustic warning. It announces a possible sound class for human
+      verification and never activates a siren or other critical action.
+    triggers:
+      - trigger: mqtt
+        topic: frigate/+/audio/+
+    variables:
+      topic_parts: "{{ trigger.topic.split('/') }}"
+      camera: "{{ topic_parts[1] if topic_parts | length == 4 else '' }}"
+      label: "{{ topic_parts[3] if topic_parts | length == 4 else '' }}"
+      allowed_cameras: >-
+        {{ states('input_text.muse_acoustic_allowed_cameras').split(',')
+           | map('trim') | reject('eq', '') | list }}
+      allowed_labels: >-
+        {{ states('input_text.muse_acoustic_allowed_labels').split(',')
+           | map('trim') | reject('eq', '') | list }}
+      last_announcement: >-
+        {{ as_timestamp(states('input_datetime.muse_acoustic_last_announcement'), 0) }}
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_acoustic_guardian_enabled
+        state: "on"
+      - condition: template
+        value_template: >-
+          {{ trigger.payload == 'ON' and camera in allowed_cameras and
+             label in allowed_labels and
+             now().timestamp() - last_announcement >=
+               states('input_number.muse_acoustic_cooldown_seconds') | float(300) }}
+    actions:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_acoustic_last_detection
+        data:
+          value: "{{ (camera ~ ':' ~ label)[:150] }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_acoustic_last_announcement
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: script.muse_announce_everywhere
+        data:
+          message: >-
+            Attention. La caméra {{ camera | replace('_', ' ') }} a détecté
+            un son compatible avec {{ label | replace('_', ' ') }}.
+            Vérifiez avec les capteurs dédiés et visuellement.
+          priority: urgent
+    mode: single

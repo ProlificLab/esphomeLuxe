@@ -168,6 +168,13 @@ event-ID deduplication, cooldown and night-mode suppression. It never identifies
 a person or changes camera/alarm state. The optional richer Frigate integration
 still follows the [official HACS installation guide](https://docs.frigate.video/integrations/home-assistant).
 
+`muse_acoustic_guardian.yaml` prepares the first `hal.9.3` experiment without
+enabling any camera microphone. It is opt-in, starts with an empty camera
+allowlist, listens only for `fire_alarm` by default, rate-limits announcements
+and asks for human/sensor verification. It cannot trigger a siren or another
+critical action. Real audio detection must be enabled separately per consented
+Frigate camera after checking that stream's audio role and retention policy.
+
 ## Introducing the New Version: luxe_microWW
 
 Discover the enhancements in the latest release!
