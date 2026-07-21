@@ -1,0 +1,17 @@
+name: Hardware problem
+description: Report buttons, LED, jack, battery, codec, USB or recovery issues
+title: "[Hardware] "
+labels: [hardware]
+body:
+  - type: input
+    id: hardware
+    attributes: {label: Device revision, power source and connected peripherals}
+    validations: {required: true}
+  - type: textarea
+    id: behavior
+    attributes: {label: Expected behavior, actual behavior and physical tests}
+    validations: {required: true}
+  - type: textarea
+    id: recovery
+    attributes: {label: USB, Safe Mode and rollback results}
+    validations: {required: true}

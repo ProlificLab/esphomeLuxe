@@ -1,0 +1,19 @@
+name: Wake-word calibration
+description: Report missed or false Okay Hal/Nabu detections
+title: "[Wake word] "
+labels: [calibration]
+body:
+  - type: dropdown
+    id: model
+    attributes:
+      label: Isolated model
+      options: [Okay Hal, Okay Nabu]
+    validations: {required: true}
+  - type: input
+    id: sensitivity
+    attributes: {label: Sensitivity, room and approximate distance}
+    validations: {required: true}
+  - type: textarea
+    id: result
+    attributes: {label: Consented corpus counts, misses and false activations}
+    validations: {required: true}

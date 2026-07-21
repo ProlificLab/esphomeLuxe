@@ -36,6 +36,14 @@ jobs:
         run: scripts/report_firmware_symbols.sh
       - name: Package firmware and manifest
         run: scripts/package_firmware.sh
+      - name: Verify release metadata and stable rollback guard
+        run: |
+          version="$(jq -r .version release/manifest-development.json)"
+          scripts/verify_release.sh \
+            release/manifest-development.json \
+            "release/muse-luxe-$version.ota.bin"
+          scripts/check_production_manifest.sh
+          bash -n scripts/*.sh
       - name: Upload test build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -44,7 +52,7 @@ jobs:
             .esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.ota.bin
             .esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.map
             firmware-size.txt
-            release/*
+            release/**
           retention-days: 7
 
   release-source:

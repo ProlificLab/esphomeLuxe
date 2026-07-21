@@ -32,6 +32,13 @@ the recovery path.
 The complete technical and product program is maintained in
 [ROADMAP.md](ROADMAP.md).
 
+Operational documentation:
+
+- [Installation and canary workflow](docs/INSTALLATION.md)
+- [Diagnosis and rollback](docs/OPERATIONS.md)
+- [Privacy and safety contract](docs/PRIVACY.md)
+- [Development, beta and stable channels](docs/RELEASES.md)
+
 Wake-word A/B testing uses the isolated Okay Nabu configuration and protocol in
 [`docs/calibration.md`](docs/calibration.md); it is never part of the primary
 firmware manifest.
@@ -63,8 +70,10 @@ create source-only releases.
 
 Every CI build also runs `scripts/check_firmware_size.sh`,
 `scripts/report_firmware_symbols.sh` and `scripts/package_firmware.sh`. The
-release directory contains a versioned OTA image, MD5/SHA-256 files, the
-matching manifest, the section sizes and the 120 largest symbols.
+release directory contains a versioned OTA image, MD5/SHA-256 files, a
+channel-specific manifest, build metadata, section sizes and the 120 largest
+symbols. CI emits only `development`; beta/stable promotion requires a reviewed
+qualification record and explicit command documented in `docs/RELEASES.md`.
 
 Canary reboot recovery can be exercised from the pinned ESPHome container:
 

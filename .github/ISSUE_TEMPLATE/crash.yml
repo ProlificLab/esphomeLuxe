@@ -1,0 +1,24 @@
+name: Crash or recovery failure
+description: Report a reboot, boot loop, timeout or failed recovery
+title: "[Crash] "
+labels: [bug, crash]
+body:
+  - type: input
+    id: version
+    attributes: {label: Firmware version}
+    validations: {required: true}
+  - type: textarea
+    id: timeline
+    attributes: {label: Timestamped reproduction and observed state transitions}
+    validations: {required: true}
+  - type: textarea
+    id: diagnostics
+    attributes: {label: Reset reason, heap, PSRAM, voice health and last error}
+    validations: {required: true}
+  - type: checkboxes
+    id: secrets
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, tokens, private audio and private URLs.
+          required: true

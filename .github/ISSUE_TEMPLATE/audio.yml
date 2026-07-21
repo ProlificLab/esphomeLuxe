@@ -1,0 +1,17 @@
+name: Audio or TTS problem
+description: Report missing, delayed, clipped or stuck playback
+title: "[Audio] "
+labels: [bug, audio]
+body:
+  - type: input
+    id: version
+    attributes: {label: Firmware and HA versions}
+    validations: {required: true}
+  - type: textarea
+    id: source
+    attributes: {label: Source, codec, exact phrase and reproduction steps}
+    validations: {required: true}
+  - type: textarea
+    id: telemetry
+    attributes: {label: Voice state, media-player state, errors and timings}
+    validations: {required: true}
