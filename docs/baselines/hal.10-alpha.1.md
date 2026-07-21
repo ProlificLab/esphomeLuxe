@@ -14,6 +14,8 @@
 - Build metadata records version, channel, size, hashes, pinned ESPHome image
   and ESP-IDF version.
 - CI uploads release directories recursively.
+- GitHub checkout and artifact actions are pinned to `v7.0.1` commit SHAs for
+  the current Node 24 runner contract.
 - Installation, recovery/diagnosis, privacy and release-channel guides added.
 - Structured crash, audio, wake-word and hardware issue forms added.
 
