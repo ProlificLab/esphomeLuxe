@@ -31,5 +31,15 @@ companion files, rerun `scripts/provision_opnsense_readonly.sh`; do not grant
 the broader `System: Gateways` privilege as a shortcut. Timestamped
 `/conf/config.xml.pre-muse-readonly-*` files provide configuration rollback.
 
+## Frigate camera telemetry
+
+Run `scripts/test_frigate_viewer.sh` to verify authenticated viewer access,
+statistics access and administrator denial. Rerun
+`scripts/provision_frigate_readonly.sh` to repair registry hardening after an
+integration upgrade. An unavailable camera is a source/stream fault, not a
+reason to grant `admin`, expose raw entities to Assist or use port `5000`.
+Account revocation, database backups and component rollback are documented in
+`docs/FRIGATE_READONLY.md`.
+
 Do not erase NVS, reset HA storage or overwrite unrelated Proxmox disks as a
 first-line diagnostic action.

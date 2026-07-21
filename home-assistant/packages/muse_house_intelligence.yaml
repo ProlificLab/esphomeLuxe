@@ -183,6 +183,77 @@ template:
             {{ ((as_timestamp(now()) - as_timestamp(generated)) | int)
                if generated else -1 }}
 
+      - name: Muse camera status
+        unique_id: muse_camera_status
+        icon: mdi:cctv
+        state: >-
+          {% set expected = [
+            'camera.avant_jardin', 'camera.cuisine', 'camera.v5_screen',
+            'camera.jardin_tracking', 'camera.keview', 'camera.keview_2',
+            'camera.piscine', 'camera.rlc810a_test', 'camera.reolink_eth22',
+            'camera.reolink_eth24', 'camera.sonnette'
+          ] %}
+          {% set unavailable = ['unknown', 'unavailable', 'none', ''] %}
+          {% set ns = namespace(online=0) %}
+          {% for entity_id in expected %}
+            {% if states(entity_id) not in unavailable %}
+              {% set ns.online = ns.online + 1 %}
+            {% endif %}
+          {% endfor %}
+          {% if not is_state('binary_sensor.frigate_mqtt_available', 'on') %}
+            unavailable
+          {% elif ns.online == 0 %}
+            offline
+          {% elif ns.online < expected | count %}
+            degraded
+          {% else %}
+            normal
+          {% endif %}
+        attributes:
+          expected_count: 11
+          online_count: >-
+            {% set expected = [
+              'camera.avant_jardin', 'camera.cuisine', 'camera.v5_screen',
+              'camera.jardin_tracking', 'camera.keview', 'camera.keview_2',
+              'camera.piscine', 'camera.rlc810a_test', 'camera.reolink_eth22',
+              'camera.reolink_eth24', 'camera.sonnette'
+            ] %}
+            {% set unavailable = ['unknown', 'unavailable', 'none', ''] %}
+            {% set ns = namespace(online=0) %}
+            {% for entity_id in expected %}
+              {% if states(entity_id) not in unavailable %}
+                {% set ns.online = ns.online + 1 %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.online }}
+          offline_cameras: >-
+            {% set expected = [
+              'camera.avant_jardin', 'camera.cuisine', 'camera.v5_screen',
+              'camera.jardin_tracking', 'camera.keview', 'camera.keview_2',
+              'camera.piscine', 'camera.rlc810a_test', 'camera.reolink_eth22',
+              'camera.reolink_eth24', 'camera.sonnette'
+            ] %}
+            {% set unavailable = ['unknown', 'unavailable', 'none', ''] %}
+            {% set ns = namespace(items=[]) %}
+            {% for entity_id in expected %}
+              {% if states(entity_id) in unavailable %}
+                {% set ns.items = ns.items + [entity_id.split('.', 1)[1]] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.items }}
+          credential_role: viewer
+          controls_exposed: "{{ false }}"
+          source_age_seconds: >-
+            {% set reported = [
+              as_timestamp(states.camera.avant_jardin.last_reported, 0)
+                if states.camera.avant_jardin is defined else 0,
+              as_timestamp(states.camera.cuisine.last_reported, 0)
+                if states.camera.cuisine is defined else 0,
+              as_timestamp(states.camera.sonnette.last_reported, 0)
+                if states.camera.sonnette is defined else 0
+            ] | max %}
+            {{ ((as_timestamp(now()) - reported) | int) if reported > 0 else -1 }}
+
   - binary_sensor:
       - name: Muse Victron data stale
         unique_id: muse_victron_data_stale
@@ -241,6 +312,18 @@ template:
           {{ not is_state('sensor.muse_opnsense_gateway_feed', 'ok')
              or not generated
              or as_timestamp(now()) - as_timestamp(generated) > 120 }}
+
+      - name: Muse Frigate data stale
+        unique_id: muse_frigate_data_stale
+        device_class: problem
+        icon: mdi:cctv-off
+        state: >-
+          {{ not is_state('binary_sensor.frigate_mqtt_available', 'on')
+             or states('sensor.muse_camera_status') == 'unavailable'
+             or state_attr('sensor.muse_camera_status', 'source_age_seconds')
+                | int(-1) < 0
+             or state_attr('sensor.muse_camera_status', 'source_age_seconds')
+                | int(999) > 30 }}
 
 script:
   muse_narrate_house_status:
@@ -321,11 +404,26 @@ script:
           {{ state_attr('sensor.muse_internet_status', 'gateway_count') }}.
           {{ ns.parts | join(', ') }}.
         {% endif %}
+      camera_summary: >-
+        {% if is_state('binary_sensor.muse_frigate_data_stale', 'on') %}
+          Les données des caméras Frigate sont indisponibles ou périmées; je ne
+          donne pas d'état vidéo non vérifié.
+        {% else %}
+          État des caméras {{ states('sensor.muse_camera_status') }}, avec
+          {{ state_attr('sensor.muse_camera_status', 'online_count') }} caméras
+          disponibles sur
+          {{ state_attr('sensor.muse_camera_status', 'expected_count') }}.
+          {% set offline = state_attr(
+            'sensor.muse_camera_status', 'offline_cameras') | default([], true) %}
+          {% if offline %}
+            Caméras indisponibles: {{ offline | join(', ') | replace('_', ' ') }}.
+          {% endif %}
     sequence:
       - action: script.muse_announce
         data:
           message: >-
             {{ energy_summary }} {{ proxmox_summary }} {{ internet_summary }}
+            {{ camera_summary }}
           targets: "{{ [target_player] }}"
           priority: normal
 

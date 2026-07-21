@@ -14,7 +14,9 @@ required_markers=(
   "binary_sensor.muse_victron_data_stale"
   "binary_sensor.muse_proxmox_data_stale"
   "binary_sensor.muse_opnsense_data_stale"
+  "binary_sensor.muse_frigate_data_stale"
   "credential_role: page-muse-readonly"
+  "credential_role: viewer"
 )
 for marker in "${required_markers[@]}"; do
   if ! grep -Fq "$marker" "$PACKAGE"; then

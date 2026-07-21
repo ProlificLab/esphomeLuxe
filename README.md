@@ -39,6 +39,7 @@ Operational documentation:
 - [Privacy and safety contract](docs/PRIVACY.md)
 - [Development, beta and stable channels](docs/RELEASES.md)
 - [Read-only OPNsense telemetry](docs/OPNSENSE_READONLY.md)
+- [Authenticated Frigate camera telemetry](docs/FRIGATE_READONLY.md)
 
 Wake-word A/B testing uses the isolated Okay Nabu configuration and protocol in
 [`docs/calibration.md`](docs/calibration.md); it is never part of the primary
@@ -189,8 +190,12 @@ The script keeps dated VM backups and stores the credential only in Frigate's
 root-only `.env` and Mosquitto options. `muse_video_alerts.yaml` then provides
 opt-in person announcements with camera allowlisting, confidence threshold,
 event-ID deduplication, cooldown and night-mode suppression. It never identifies
-a person or changes camera/alarm state. The optional richer Frigate integration
-still follows the [official HACS installation guide](https://docs.frigate.video/integrations/home-assistant).
+a person or changes camera/alarm state. The official Frigate integration is
+pinned and provisioned on authenticated port `8971` with a dedicated `viewer`
+account. All generated controls are disabled, raw entities are hidden from
+Assist, and only the normalized camera health sensor is exposed. Provisioning,
+validation, rotation and rollback are documented in
+`docs/FRIGATE_READONLY.md`.
 
 `muse_acoustic_guardian.yaml` prepares the first `hal.9.3` experiment without
 enabling any camera microphone. It is opt-in, starts with an empty camera

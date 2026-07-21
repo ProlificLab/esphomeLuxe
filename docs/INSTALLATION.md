@@ -59,3 +59,12 @@ OPNsense and Home Assistant are reachable. It backs up OPNsense, installs the
 GET-only gateway endpoint, stores credentials outside Git, validates HA and
 proves unrelated API and POST denial. The security boundary and rollback are
 documented in `docs/OPNSENSE_READONLY.md`.
+
+## Frigate authenticated monitoring
+
+Run `PVE_HOST=root@192.168.1.10 scripts/provision_frigate_readonly.sh` to create
+the dedicated Frigate viewer, install the checksum-pinned official integration
+and enforce the Home Assistant registry policy. The procedure deliberately
+uses authenticated port `8971`, disables all Frigate control domains and hides
+raw entities from Assist. Follow `docs/FRIGATE_READONLY.md` for validation and
+credential rotation; do not substitute Frigate's internal port `5000`.
