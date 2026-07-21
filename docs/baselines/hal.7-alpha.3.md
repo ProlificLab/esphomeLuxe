@@ -31,8 +31,9 @@ The final SPIFFS partition keeps the same offset and size; only its incorrect
 - Voice errors and timeouts after boot: zero.
 - Software reboot recovery: passed in 17.04 seconds.
 - Local startup sound: passed during boot.
-- Home Assistant Core restart: `offline` at 6.90 seconds, reconnected and
-  `waiting` at 15.84 seconds; recovery from offline took 8.94 seconds.
+- Ten Home Assistant Core restarts: passed. The final automated series of eight
+  recovered from `offline` in 8.07-8.76 seconds (8.34 seconds average) and
+  advanced the reconnect counter once per cycle.
 - Twenty-five network announcement cycles: passed. The final measured series
   averaged 3.75 seconds, lost only 2,188 heap bytes and gained 268 PSRAM bytes
   after a fresh post-test diagnostic sample.
@@ -47,7 +48,6 @@ intended inter-VLAN media path.
 
 - Ten physical power cycles.
 - Ten Wi-Fi interruptions and recoveries.
-- Nine more Home Assistant restarts and recoveries.
 - Seventy-five more announcement cycles plus actual generated TTS endurance.
 - Wake-word, volume, mute, jack and forced-timeout tests.
 - A separate Okay Nabu calibration image and measured comparison.

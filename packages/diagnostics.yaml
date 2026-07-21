@@ -158,3 +158,10 @@ button:
     name: Restart in Safe Mode
     entity_category: diagnostic
     disabled_by_default: true
+  - platform: template
+    id: inject_voice_timeout
+    name: Inject Voice Timeout
+    entity_category: diagnostic
+    disabled_by_default: true
+    on_press:
+      - script.execute: handle_voice_timeout

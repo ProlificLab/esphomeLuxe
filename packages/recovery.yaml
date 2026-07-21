@@ -246,13 +246,19 @@ script:
               - not:
                   micro_wake_word.is_running:
           then:
-            - lambda: |-
-                id(voice_session_failed) = true;
-                id(voice_timeout_count)++;
-                id(voice_timeout_counter).publish_state(id(voice_timeout_count));
-            - script.execute:
-                id: recover_voice
-                reason: voice_timeout
+            - script.execute: handle_voice_timeout
+
+  # Shared by the real watchdog and the disabled-by-default diagnostic button.
+  - id: handle_voice_timeout
+    mode: single
+    then:
+      - lambda: |-
+          id(voice_session_failed) = true;
+          id(voice_timeout_count)++;
+          id(voice_timeout_counter).publish_state(id(voice_timeout_count));
+      - script.execute:
+          id: recover_voice
+          reason: voice_timeout
 
 
   - id: jack_detect_high

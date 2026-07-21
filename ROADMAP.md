@@ -11,7 +11,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reference `hal.6` | Archivee et conservee comme rollback publie |
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
-| Observabilite `hal.8` | Compteurs de base integres pour qualifier `hal.7` |
+| Observabilite `hal.8` | `hal.8-alpha.1`: injection bornee et harnais d'endurance |
 | Fonctions `hal.9` | Planifiees, non implementees |
 | Distribution `hal.10` | CI epinglee; canaux et documentation a poursuivre |
 

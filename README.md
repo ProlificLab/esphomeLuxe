@@ -81,6 +81,30 @@ docker run --rm --entrypoint python -v "$PWD":/config -w /config \
   scripts/test_audio_endurance.py --cycles 10
 ```
 
+Home Assistant restart recovery and unattended idle endurance have dedicated
+harnesses. The latter defaults to 24 hours and appends machine-readable JSONL:
+
+```bash
+docker run --rm --network host --entrypoint python \
+  -v "$PWD":/config -v "$HOME/.ssh":/root/.ssh:ro -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  scripts/test_ha_restarts.py --pve-host user@proxmox-host --cycles 10
+docker run --rm --network host --entrypoint python \
+  -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  scripts/monitor_endurance.py
+```
+
+The timeout path can be exercised without waiting 45 seconds. Its Home
+Assistant button is diagnostic and disabled by default:
+
+```bash
+docker run --rm --network host --entrypoint python \
+  -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  scripts/test_timeout_injection.py
+```
+
 ## Introducing the New Version: luxe_microWW
 
 Discover the enhancements in the latest release!

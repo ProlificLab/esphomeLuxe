@@ -30,7 +30,7 @@ esphome:
     board_build.arduino.memory_type: qio_opi
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1-hal.7-alpha.3"
+    version: "2025.3.1-hal.8-alpha.1"
   on_boot:
     priority: -100.0
     then:
@@ -40,4 +40,3 @@ esphome:
           id: set_phase
           new_phase: ${P_starting}
       - script.execute: initialize_device
-
