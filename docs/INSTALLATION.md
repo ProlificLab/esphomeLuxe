@@ -44,3 +44,10 @@ shown in `docs/INTERACTIVE_ROUTINES.md`. Run `ha core check` before restarting,
 then run `scripts/test_home_assistant_routines.py` inside HA Core. Keep
 `input_boolean.muse_routines_enabled` off until household wording and physical
 sensor coverage have been reviewed.
+
+## Proxmox read-only monitoring
+
+Follow `docs/PROXMOX_READONLY.md` to publish the two in-HA helpers and run
+`scripts/provision_proxmox_readonly.sh`. Keep the role at `PVEAuditor`; the
+provisioner must report only `.Audit` permissions and all generated control
+buttons disabled before deploying the updated house-intelligence package.

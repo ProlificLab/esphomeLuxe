@@ -79,6 +79,50 @@ template:
             {% set newest = updates | max %}
             {{ ((as_timestamp(now()) - newest) | int) if newest > 0 else -1 }}
 
+      - name: Muse Proxmox status
+        unique_id: muse_proxmox_status
+        icon: mdi:server-network
+        state: >-
+          {% set unavailable = ['unknown', 'unavailable', 'none', ''] %}
+          {% set node = states('sensor.chuwi_pve_status') %}
+          {% set haos = states('sensor.haos_status') %}
+          {% set frigate = states('sensor.frigate_status') %}
+          {% if node in unavailable or haos in unavailable or frigate in unavailable %}
+            unavailable
+          {% elif node != 'online' or haos != 'running' or frigate != 'running' %}
+            degraded
+          {% else %}
+            normal
+          {% endif %}
+        attributes:
+          node_status: "{{ states('sensor.chuwi_pve_status') }}"
+          node_cpu_percent: "{{ states('sensor.chuwi_pve_cpu_usage') }}"
+          node_memory_percent: >-
+            {{ states('sensor.chuwi_pve_memory_usage_percentage') }}
+          node_disk_gib: "{{ states('sensor.chuwi_pve_disk_usage') }}"
+          node_disk_max_gib: "{{ states('sensor.chuwi_pve_max_disk_usage') }}"
+          last_backup: "{{ states('sensor.chuwi_pve_last_backup') }}"
+          frigate_status: "{{ states('sensor.frigate_status') }}"
+          haos_status: "{{ states('sensor.haos_status') }}"
+          librenms_status: "{{ states('sensor.librenms_status') }}"
+          ollama_status: "{{ states('sensor.ollama_status') }}"
+          credential_role: PVEAuditor
+          controls_exposed: "{{ false }}"
+          source_age_seconds: >-
+            {% set updates = [
+              as_timestamp(states.sensor.chuwi_pve_cpu_usage.last_updated, 0)
+                if states.sensor.chuwi_pve_cpu_usage is defined else 0,
+              as_timestamp(
+                states.sensor.chuwi_pve_memory_usage_percentage.last_updated, 0)
+                if states.sensor.chuwi_pve_memory_usage_percentage is defined else 0,
+              as_timestamp(states.sensor.frigate_cpu_usage.last_updated, 0)
+                if states.sensor.frigate_cpu_usage is defined else 0,
+              as_timestamp(states.sensor.haos_cpu_usage.last_updated, 0)
+                if states.sensor.haos_cpu_usage is defined else 0
+            ] %}
+            {% set newest = updates | max %}
+            {{ ((as_timestamp(now()) - newest) | int) if newest > 0 else -1 }}
+
   - binary_sensor:
       - name: Muse Victron data stale
         unique_id: muse_victron_data_stale
@@ -103,12 +147,37 @@ template:
              or newest == 0
              or as_timestamp(now()) - newest > 300 }}
 
+      - name: Muse Proxmox data stale
+        unique_id: muse_proxmox_data_stale
+        device_class: problem
+        icon: mdi:server-network-off
+        state: >-
+          {% set unavailable = ['unknown', 'unavailable', 'none', ''] %}
+          {% set updates = [
+            as_timestamp(states.sensor.chuwi_pve_cpu_usage.last_updated, 0)
+              if states.sensor.chuwi_pve_cpu_usage is defined else 0,
+            as_timestamp(
+              states.sensor.chuwi_pve_memory_usage_percentage.last_updated, 0)
+              if states.sensor.chuwi_pve_memory_usage_percentage is defined else 0,
+            as_timestamp(states.sensor.frigate_cpu_usage.last_updated, 0)
+              if states.sensor.frigate_cpu_usage is defined else 0,
+            as_timestamp(states.sensor.haos_cpu_usage.last_updated, 0)
+              if states.sensor.haos_cpu_usage is defined else 0
+          ] %}
+          {% set newest = updates | max %}
+          {{ states('sensor.chuwi_pve_status') in unavailable
+             or states('sensor.haos_status') in unavailable
+             or states('sensor.frigate_status') in unavailable
+             or newest == 0
+             or as_timestamp(now()) - newest > 300 }}
+
 script:
   muse_narrate_house_status:
     alias: Muse - narrate house status
     description: >-
-      Read-only deterministic summary built from current Victron entities and
-      their freshness. It never calls a writable infrastructure entity.
+      Read-only deterministic summary built from current Victron and Proxmox
+      entities and their freshness. It never calls a writable infrastructure
+      entity.
     mode: queued
     max: 5
     fields:
@@ -121,44 +190,54 @@ script:
     variables:
       target_player: >-
         {{ target | default('media_player.raspiaudio_muse_luxe', true) }}
-      energy_state: "{{ states('sensor.muse_house_energy_status') }}"
-      soc: "{{ state_attr('sensor.muse_house_energy_status', 'battery_soc') }}"
-      battery_power: >-
-        {{ state_attr('sensor.muse_house_energy_status', 'battery_power_w') }}
-      grid_power: >-
-        {{ state_attr('sensor.muse_house_energy_status', 'grid_power_w') }}
-      solar_power: >-
-        {{ state_attr('sensor.muse_house_energy_status', 'solar_power_w') }}
-      load_power: >-
-        {{ state_attr('sensor.muse_house_energy_status', 'load_power_w') }}
-      source: "{{ state_attr('sensor.muse_house_energy_status', 'ac_source') }}"
-      age: >-
-        {{ state_attr('sensor.muse_house_energy_status', 'source_age_seconds')
-           | int(-1) }}
+      energy_summary: >-
+        {% if is_state('binary_sensor.muse_victron_data_stale', 'on') %}
+          Les données énergétiques Victron sont indisponibles ou sans changement
+          de télémétrie depuis plus de cinq minutes; je ne donne pas d'état
+          énergétique non vérifié.
+        {% else %}
+          État énergétique {{ states('sensor.muse_house_energy_status') }}.
+          Batterie à
+          {{ state_attr('sensor.muse_house_energy_status', 'battery_soc') }} pour
+          cent, puissance batterie
+          {{ state_attr('sensor.muse_house_energy_status', 'battery_power_w') }}
+          watts, solaire
+          {{ state_attr('sensor.muse_house_energy_status', 'solar_power_w') }}
+          watts, consommation
+          {{ state_attr('sensor.muse_house_energy_status', 'load_power_w') }}
+          watts et réseau
+          {{ state_attr('sensor.muse_house_energy_status', 'grid_power_w') }}
+          watts. Source active
+          {{ state_attr('sensor.muse_house_energy_status', 'ac_source') }}.
+          Dernier changement de télémétrie il y a
+          {{ state_attr('sensor.muse_house_energy_status', 'source_age_seconds')
+             | int(-1) }} secondes.
+        {% endif %}
+      proxmox_summary: >-
+        {% if is_state('binary_sensor.muse_proxmox_data_stale', 'on') %}
+          Les données Proxmox sont indisponibles ou périmées; je ne donne pas
+          d'état serveur non vérifié.
+        {% else %}
+          État Proxmox {{ states('sensor.muse_proxmox_status') }}. Nœud
+          {{ state_attr('sensor.muse_proxmox_status', 'node_status') }}, Home
+          Assistant {{ state_attr('sensor.muse_proxmox_status', 'haos_status') }},
+          Frigate {{ state_attr('sensor.muse_proxmox_status', 'frigate_status') }},
+          Libre NMS
+          {{ state_attr('sensor.muse_proxmox_status', 'librenms_status') }} et
+          Ollama {{ state_attr('sensor.muse_proxmox_status', 'ollama_status') }}.
+          CPU du nœud
+          {{ state_attr('sensor.muse_proxmox_status', 'node_cpu_percent')
+             | float(0) | round(1) }} pour cent, mémoire
+          {{ state_attr('sensor.muse_proxmox_status', 'node_memory_percent')
+             | float(0) | round(1) }} pour cent. Dernier backup
+          {{ state_attr('sensor.muse_proxmox_status', 'last_backup') }}.
+        {% endif %}
     sequence:
-      - if:
-          - condition: state
-            entity_id: binary_sensor.muse_victron_data_stale
-            state: "on"
-        then:
-          - action: script.muse_announce
-            data:
-              message: >-
-                Les données énergétiques Victron sont indisponibles ou datent
-                de plus de trois minutes. Je ne peux pas donner un état fiable.
-              targets: "{{ [target_player] }}"
-              priority: normal
-        else:
-          - action: script.muse_announce
-            data:
-              message: >-
-                État énergétique {{ energy_state }}. Batterie à {{ soc }} pour
-                cent, puissance batterie {{ battery_power }} watts, solaire
-                {{ solar_power }} watts, consommation {{ load_power }} watts et
-                réseau {{ grid_power }} watts. Source active {{ source }}.
-                Dernier changement de télémétrie il y a {{ age }} secondes.
-              targets: "{{ [target_player] }}"
-              priority: normal
+      - action: script.muse_announce
+        data:
+          message: "{{ energy_summary }} {{ proxmox_summary }}"
+          targets: "{{ [target_player] }}"
+          priority: normal
 
 automation:
   - id: muse_energy_battery_alert

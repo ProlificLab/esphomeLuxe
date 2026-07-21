@@ -172,6 +172,12 @@ checklists. Local French commands, manual-versus-sensor proof, pause/resume and
 the deployment test are documented in `docs/INTERACTIVE_ROUTINES.md`. The
 feature remains opt-in and cannot invoke critical infrastructure actions.
 
+The same read-only layer now consumes the official Proxmox VE integration
+through a dedicated privilege-separated `PVEAuditor` token. All generated
+control buttons are disabled, no Proxmox entity is exposed to Assist, and the
+combined energy/server narrator uses five-minute freshness guards. Provisioning,
+rotation and validation are documented in `docs/PROXMOX_READONLY.md`.
+
 Frigate's MQTT event path can be enabled with a dedicated random broker login:
 
 ```bash

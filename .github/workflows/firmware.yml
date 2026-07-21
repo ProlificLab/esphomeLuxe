@@ -57,6 +57,9 @@ jobs:
           scripts/check_production_manifest.sh
           scripts/check_routine_safety.sh
           scripts/test_routine_safety.sh
+          scripts/check_house_intelligence_safety.sh
+          scripts/test_house_intelligence_safety.sh
+          python3 scripts/test_proxmox_permissions.py
           bash -n scripts/*.sh
           python3 -m py_compile scripts/*.py
       - name: Upload test build
