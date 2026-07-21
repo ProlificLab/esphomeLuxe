@@ -47,14 +47,37 @@ template:
           load_power_w: "{{ states('sensor.gx_device_consumption_power_l1') }}"
           ac_source: "{{ states('sensor.gx_device_ac_active_input_source') }}"
           system_state: "{{ states('sensor.gx_device_system_state') }}"
-          source_entity: sensor.pylontech_charge
+          connection_entity: >-
+            binary_sensor.multiplus_ii_48_5000_70_50_id_276_connected
+          connection_state: >-
+            {{ states('binary_sensor.multiplus_ii_48_5000_70_50_id_276_connected') }}
+          source_entity: sensor.gx_device_grid_power_l1
           source_last_updated: >-
-            {{ states.sensor.pylontech_charge.last_updated.isoformat()
-               if states.sensor.pylontech_charge is defined else 'unavailable' }}
+            {% set updates = [
+              as_timestamp(states.sensor.pylontech_charge.last_updated, 0)
+                if states.sensor.pylontech_charge is defined else 0,
+              as_timestamp(states.sensor.gx_device_grid_power_l1.last_updated, 0)
+                if states.sensor.gx_device_grid_power_l1 is defined else 0,
+              as_timestamp(states.sensor.gx_device_consumption_power_l1.last_updated, 0)
+                if states.sensor.gx_device_consumption_power_l1 is defined else 0,
+              as_timestamp(states.sensor.gx_device_dc_battery_power.last_updated, 0)
+                if states.sensor.gx_device_dc_battery_power is defined else 0
+            ] %}
+            {% set newest = updates | max %}
+            {{ as_datetime(newest).isoformat() if newest > 0 else 'unavailable' }}
           source_age_seconds: >-
-            {{ ((as_timestamp(now()) -
-                 as_timestamp(states.sensor.pylontech_charge.last_updated)) | int)
-               if states.sensor.pylontech_charge is defined else -1 }}
+            {% set updates = [
+              as_timestamp(states.sensor.pylontech_charge.last_updated, 0)
+                if states.sensor.pylontech_charge is defined else 0,
+              as_timestamp(states.sensor.gx_device_grid_power_l1.last_updated, 0)
+                if states.sensor.gx_device_grid_power_l1 is defined else 0,
+              as_timestamp(states.sensor.gx_device_consumption_power_l1.last_updated, 0)
+                if states.sensor.gx_device_consumption_power_l1 is defined else 0,
+              as_timestamp(states.sensor.gx_device_dc_battery_power.last_updated, 0)
+                if states.sensor.gx_device_dc_battery_power is defined else 0
+            ] %}
+            {% set newest = updates | max %}
+            {{ ((as_timestamp(now()) - newest) | int) if newest > 0 else -1 }}
 
   - binary_sensor:
       - name: Muse Victron data stale
@@ -62,11 +85,23 @@ template:
         device_class: problem
         icon: mdi:database-clock-outline
         state: >-
-          {{ states('sensor.pylontech_charge') in
-             ['unknown', 'unavailable', 'none', ''] or
-             (states.sensor.pylontech_charge is defined and
-              as_timestamp(now()) -
-              as_timestamp(states.sensor.pylontech_charge.last_updated) > 180) }}
+          {% set unavailable = ['unknown', 'unavailable', 'none', ''] %}
+          {% set updates = [
+            as_timestamp(states.sensor.pylontech_charge.last_updated, 0)
+              if states.sensor.pylontech_charge is defined else 0,
+            as_timestamp(states.sensor.gx_device_grid_power_l1.last_updated, 0)
+              if states.sensor.gx_device_grid_power_l1 is defined else 0,
+            as_timestamp(states.sensor.gx_device_consumption_power_l1.last_updated, 0)
+              if states.sensor.gx_device_consumption_power_l1 is defined else 0,
+            as_timestamp(states.sensor.gx_device_dc_battery_power.last_updated, 0)
+              if states.sensor.gx_device_dc_battery_power is defined else 0
+          ] %}
+          {% set newest = updates | max %}
+          {{ not is_state(
+               'binary_sensor.multiplus_ii_48_5000_70_50_id_276_connected', 'on')
+             or states('sensor.pylontech_charge') in unavailable
+             or newest == 0
+             or as_timestamp(now()) - newest > 300 }}
 
 script:
   muse_narrate_house_status:
@@ -121,7 +156,7 @@ script:
                 cent, puissance batterie {{ battery_power }} watts, solaire
                 {{ solar_power }} watts, consommation {{ load_power }} watts et
                 réseau {{ grid_power }} watts. Source active {{ source }}.
-                Données actualisées il y a {{ age }} secondes.
+                Dernier changement de télémétrie il y a {{ age }} secondes.
               targets: "{{ [target_player] }}"
               priority: normal
 

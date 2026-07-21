@@ -36,3 +36,11 @@ player provider. For the current canary, the allowlist contains only
 `home-assistant/packages/muse_music_assistant.yaml`, validate the HA
 configuration, and restart HA before running the end-to-end test described in
 `docs/MUSIC_ASSISTANT.md`.
+
+## Interactive routines
+
+Publish the package and French sentence file using the closed destination roots
+shown in `docs/INTERACTIVE_ROUTINES.md`. Run `ha core check` before restarting,
+then run `scripts/test_home_assistant_routines.py` inside HA Core. Keep
+`input_boolean.muse_routines_enabled` off until household wording and physical
+sensor coverage have been reviewed.

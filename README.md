@@ -159,11 +159,18 @@ multi-player transfer remain unvalidated until a second satellite is deployed.
 
 `home-assistant/packages/muse_house_intelligence.yaml` starts the read-only
 `hal.9.2` layer. It exposes a normalized energy state with raw Victron facts,
-source timestamps and a three-minute stale-data guard. The narration script
+source timestamps and a connection-plus-five-minute telemetry freshness guard.
+The narration script
 only reads sensors; no Victron `number`, `select`, `switch` or `button` is
 called. Low/critical battery announcements are local and deterministic but
 remain disabled until `input_boolean.muse_energy_alerts_enabled` is explicitly
 enabled after reviewing the two thresholds.
+
+`home-assistant/packages/muse_interactive_routines.yaml` adds persisted,
+guidance-only departure, bedtime, server, outage, alarm and evacuation
+checklists. Local French commands, manual-versus-sensor proof, pause/resume and
+the deployment test are documented in `docs/INTERACTIVE_ROUTINES.md`. The
+feature remains opt-in and cannot invoke critical infrastructure actions.
 
 Frigate's MQTT event path can be enabled with a dedicated random broker login:
 

@@ -17,7 +17,10 @@ if [[ ! "$REMOTE_PATH" =~ ^[A-Za-z0-9._/-]+$ || "$REMOTE_PATH" == /* || "$REMOTE
   echo "Unsafe Home Assistant www path: $REMOTE_PATH" >&2
   exit 2
 fi
-if [[ "$DESTINATION_ROOT" != "/config/www" && "$DESTINATION_ROOT" != "/config/packages" ]]; then
+if [[ "$DESTINATION_ROOT" != "/config/www" &&
+      "$DESTINATION_ROOT" != "/config/packages" &&
+      "$DESTINATION_ROOT" != "/config/custom_sentences" &&
+      "$DESTINATION_ROOT" != "/config/muse-tests" ]]; then
   echo "Unsafe Home Assistant destination root: $DESTINATION_ROOT" >&2
   exit 2
 fi

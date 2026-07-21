@@ -55,6 +55,8 @@ jobs:
             release/manifest-development.json \
             "release/muse-luxe-$version.ota.bin"
           scripts/check_production_manifest.sh
+          scripts/check_routine_safety.sh
+          scripts/test_routine_safety.sh
           bash -n scripts/*.sh
           python3 -m py_compile scripts/*.py
       - name: Upload test build
