@@ -1,0 +1,179 @@
+input_boolean:
+  muse_energy_alerts_enabled:
+    name: Muse energy alerts enabled
+    icon: mdi:home-lightning-bolt-outline
+
+input_number:
+  muse_battery_low_threshold:
+    name: Muse battery low threshold
+    min: 10
+    max: 60
+    step: 1
+    initial: 30
+    unit_of_measurement: "%"
+    icon: mdi:battery-low
+  muse_battery_critical_threshold:
+    name: Muse battery critical threshold
+    min: 5
+    max: 30
+    step: 1
+    initial: 15
+    unit_of_measurement: "%"
+    icon: mdi:battery-alert
+
+template:
+  - sensor:
+      - name: Muse house energy status
+        unique_id: muse_house_energy_status
+        icon: mdi:home-lightning-bolt
+        state: >-
+          {% set soc = states('sensor.pylontech_charge') %}
+          {% if soc in ['unknown', 'unavailable', 'none', ''] %}
+            unavailable
+          {% elif soc | float(0) <=
+                  states('input_number.muse_battery_critical_threshold') | float(15) %}
+            critical
+          {% elif soc | float(0) <=
+                  states('input_number.muse_battery_low_threshold') | float(30) %}
+            low
+          {% else %}
+            normal
+          {% endif %}
+        attributes:
+          battery_soc: "{{ states('sensor.pylontech_charge') }}"
+          battery_power_w: "{{ states('sensor.gx_device_dc_battery_power') }}"
+          grid_power_w: "{{ states('sensor.gx_device_grid_power_l1') }}"
+          solar_power_w: "{{ states('sensor.gx_device_pv_power') }}"
+          load_power_w: "{{ states('sensor.gx_device_consumption_power_l1') }}"
+          ac_source: "{{ states('sensor.gx_device_ac_active_input_source') }}"
+          system_state: "{{ states('sensor.gx_device_system_state') }}"
+          source_entity: sensor.pylontech_charge
+          source_last_updated: >-
+            {{ states.sensor.pylontech_charge.last_updated.isoformat()
+               if states.sensor.pylontech_charge is defined else 'unavailable' }}
+          source_age_seconds: >-
+            {{ ((as_timestamp(now()) -
+                 as_timestamp(states.sensor.pylontech_charge.last_updated)) | int)
+               if states.sensor.pylontech_charge is defined else -1 }}
+
+  - binary_sensor:
+      - name: Muse Victron data stale
+        unique_id: muse_victron_data_stale
+        device_class: problem
+        icon: mdi:database-clock-outline
+        state: >-
+          {{ states('sensor.pylontech_charge') in
+             ['unknown', 'unavailable', 'none', ''] or
+             (states.sensor.pylontech_charge is defined and
+              as_timestamp(now()) -
+              as_timestamp(states.sensor.pylontech_charge.last_updated) > 180) }}
+
+script:
+  muse_narrate_house_status:
+    alias: Muse - narrate house status
+    description: >-
+      Read-only deterministic summary built from current Victron entities and
+      their freshness. It never calls a writable infrastructure entity.
+    mode: queued
+    max: 5
+    fields:
+      target:
+        required: false
+        selector:
+          entity:
+            filter:
+              domain: media_player
+    variables:
+      target_player: >-
+        {{ target | default('media_player.raspiaudio_muse_luxe', true) }}
+      energy_state: "{{ states('sensor.muse_house_energy_status') }}"
+      soc: "{{ state_attr('sensor.muse_house_energy_status', 'battery_soc') }}"
+      battery_power: >-
+        {{ state_attr('sensor.muse_house_energy_status', 'battery_power_w') }}
+      grid_power: >-
+        {{ state_attr('sensor.muse_house_energy_status', 'grid_power_w') }}
+      solar_power: >-
+        {{ state_attr('sensor.muse_house_energy_status', 'solar_power_w') }}
+      load_power: >-
+        {{ state_attr('sensor.muse_house_energy_status', 'load_power_w') }}
+      source: "{{ state_attr('sensor.muse_house_energy_status', 'ac_source') }}"
+      age: >-
+        {{ state_attr('sensor.muse_house_energy_status', 'source_age_seconds')
+           | int(-1) }}
+    sequence:
+      - if:
+          - condition: state
+            entity_id: binary_sensor.muse_victron_data_stale
+            state: "on"
+        then:
+          - action: script.muse_announce
+            data:
+              message: >-
+                Les données énergétiques Victron sont indisponibles ou datent
+                de plus de trois minutes. Je ne peux pas donner un état fiable.
+              targets: "{{ [target_player] }}"
+              priority: normal
+        else:
+          - action: script.muse_announce
+            data:
+              message: >-
+                État énergétique {{ energy_state }}. Batterie à {{ soc }} pour
+                cent, puissance batterie {{ battery_power }} watts, solaire
+                {{ solar_power }} watts, consommation {{ load_power }} watts et
+                réseau {{ grid_power }} watts. Source active {{ source }}.
+                Données actualisées il y a {{ age }} secondes.
+              targets: "{{ [target_player] }}"
+              priority: normal
+
+automation:
+  - id: muse_energy_battery_alert
+    alias: Muse - announce low or critical battery
+    triggers:
+      - trigger: state
+        entity_id: sensor.muse_house_energy_status
+        to: low
+        for: "00:02:00"
+      - trigger: state
+        entity_id: sensor.muse_house_energy_status
+        to: critical
+        for: "00:02:00"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_energy_alerts_enabled
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.muse_victron_data_stale
+        state: "off"
+    actions:
+      - action: script.muse_announce_everywhere
+        data:
+          message: >-
+            Alerte énergie. La batterie est à
+            {{ state_attr('sensor.muse_house_energy_status', 'battery_soc') }}
+            pour cent. État {{ states('sensor.muse_house_energy_status') }}.
+          priority: urgent
+    mode: single
+
+  - id: muse_energy_recovered
+    alias: Muse - announce battery recovery
+    triggers:
+      - trigger: state
+        entity_id: sensor.muse_house_energy_status
+        from:
+          - low
+          - critical
+        to: normal
+        for: "00:05:00"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_energy_alerts_enabled
+        state: "on"
+    actions:
+      - action: script.muse_announce_everywhere
+        data:
+          message: >-
+            Le niveau de batterie est revenu à
+            {{ state_attr('sensor.muse_house_energy_status', 'battery_soc') }}
+            pour cent. L'état énergétique est de nouveau normal.
+          priority: normal
+    mode: single

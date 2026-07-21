@@ -147,6 +147,14 @@ transfer: both need a second satellite, and playback transfer additionally
 needs Music Assistant, which is not currently installed on the target HA
 instance.
 
+`home-assistant/packages/muse_house_intelligence.yaml` starts the read-only
+`hal.9.2` layer. It exposes a normalized energy state with raw Victron facts,
+source timestamps and a three-minute stale-data guard. The narration script
+only reads sensors; no Victron `number`, `select`, `switch` or `button` is
+called. Low/critical battery announcements are local and deterministic but
+remain disabled until `input_boolean.muse_energy_alerts_enabled` is explicitly
+enabled after reviewing the two thresholds.
+
 ## Introducing the New Version: luxe_microWW
 
 Discover the enhancements in the latest release!
