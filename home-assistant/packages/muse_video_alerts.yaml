@@ -1,0 +1,112 @@
+input_boolean:
+  muse_video_alerts_enabled:
+    name: Muse Frigate announcements enabled
+    icon: mdi:cctv-off
+
+input_number:
+  muse_video_min_confidence:
+    name: Muse video minimum confidence
+    min: 0.5
+    max: 0.99
+    step: 0.01
+    initial: 0.75
+    icon: mdi:percent-circle-outline
+  muse_video_cooldown_seconds:
+    name: Muse video announcement cooldown
+    min: 15
+    max: 600
+    step: 15
+    initial: 60
+    unit_of_measurement: s
+    icon: mdi:timer-lock-outline
+
+input_text:
+  muse_video_allowed_cameras:
+    name: Muse video allowed cameras
+    initial: sonnette,avant_jardin
+    max: 255
+    icon: mdi:cctv
+  muse_video_last_event_id:
+    name: Muse video last announced event
+    max: 100
+    icon: mdi:identifier
+
+input_datetime:
+  muse_video_last_announcement:
+    name: Muse video last announcement
+    has_date: true
+    has_time: true
+    icon: mdi:clock-check-outline
+
+mqtt:
+  binary_sensor:
+    - name: Frigate MQTT available
+      unique_id: muse_frigate_mqtt_available
+      state_topic: frigate/available
+      payload_on: online
+      payload_off: offline
+      device_class: connectivity
+
+automation:
+  - id: muse_frigate_person_announcement
+    alias: Muse - announce selected Frigate person events
+    description: >-
+      Opt-in, confidence-gated, deduplicated person announcement. It never
+      identifies a person and never changes a camera or alarm entity.
+    triggers:
+      - trigger: mqtt
+        topic: frigate/events
+    variables:
+      event: "{{ trigger.payload_json }}"
+      detection: "{{ event.get('after', {}) }}"
+      event_id: "{{ detection.get('id', '') }}"
+      camera: "{{ detection.get('camera', '') }}"
+      label: "{{ detection.get('label', '') }}"
+      confidence: >-
+        {{ detection.get('top_score', detection.get('score', 0)) | float(0) }}
+      zones: "{{ detection.get('current_zones', []) }}"
+      allowed_cameras: >-
+        {{ states('input_text.muse_video_allowed_cameras').split(',')
+           | map('trim') | reject('eq', '') | list }}
+      last_announcement: >-
+        {{ as_timestamp(states('input_datetime.muse_video_last_announcement'), 0) }}
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_video_alerts_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.muse_night_mode
+        state: "off"
+      - condition: template
+        value_template: >-
+          {{ event.get('type') in ['new', 'update'] and
+             event_id | length > 0 and label == 'person' and
+             not detection.get('false_positive', false) and
+             confidence >= states('input_number.muse_video_min_confidence')
+                           | float(0.75) and
+             camera in allowed_cameras and
+             event_id != states('input_text.muse_video_last_event_id') and
+             now().timestamp() - last_announcement >=
+               states('input_number.muse_video_cooldown_seconds') | float(60) }}
+    actions:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_video_last_event_id
+        data:
+          value: "{{ event_id[:100] }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_video_last_announcement
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: script.muse_announce
+        data:
+          message: >-
+            Une personne a été détectée par la caméra
+            {{ camera | replace('_', ' ') }}{% if zones %}, dans la zone
+            {{ zones | join(', ') | replace('_', ' ') }}{% endif %}.
+          targets:
+            - media_player.raspiaudio_muse_luxe
+          priority: normal
+          chime: true
+    mode: single

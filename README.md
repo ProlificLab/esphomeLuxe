@@ -155,6 +155,19 @@ called. Low/critical battery announcements are local and deterministic but
 remain disabled until `input_boolean.muse_energy_alerts_enabled` is explicitly
 enabled after reviewing the two thresholds.
 
+Frigate's MQTT event path can be enabled with a dedicated random broker login:
+
+```bash
+PVE_HOST=root@proxmox-host scripts/configure_frigate_mqtt.sh
+```
+
+The script keeps dated VM backups and stores the credential only in Frigate's
+root-only `.env` and Mosquitto options. `muse_video_alerts.yaml` then provides
+opt-in person announcements with camera allowlisting, confidence threshold,
+event-ID deduplication, cooldown and night-mode suppression. It never identifies
+a person or changes camera/alarm state. The optional richer Frigate integration
+still follows the [official HACS installation guide](https://docs.frigate.video/integrations/home-assistant).
+
 ## Introducing the New Version: luxe_microWW
 
 Discover the enhancements in the latest release!
