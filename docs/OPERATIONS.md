@@ -23,5 +23,13 @@ state. For suspected exposure, use the revocation and explicit rotation
 procedure in `docs/PROXMOX_READONLY.md`; never add power-management privileges
 to make a button work.
 
+## OPNsense telemetry credential
+
+Run `scripts/test_opnsense_live.sh` to verify the GET-only endpoint, unrelated
+API denial and non-GET rejection. If a major OPNsense upgrade removes the Muse
+companion files, rerun `scripts/provision_opnsense_readonly.sh`; do not grant
+the broader `System: Gateways` privilege as a shortcut. Timestamped
+`/conf/config.xml.pre-muse-readonly-*` files provide configuration rollback.
+
 Do not erase NVS, reset HA storage or overwrite unrelated Proxmox disks as a
 first-line diagnostic action.

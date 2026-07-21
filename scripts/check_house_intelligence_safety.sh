@@ -13,6 +13,8 @@ required_markers=(
   "controls_exposed: \"{{ false }}\""
   "binary_sensor.muse_victron_data_stale"
   "binary_sensor.muse_proxmox_data_stale"
+  "binary_sensor.muse_opnsense_data_stale"
+  "credential_role: page-muse-readonly"
 )
 for marker in "${required_markers[@]}"; do
   if ! grep -Fq "$marker" "$PACKAGE"; then

@@ -38,6 +38,7 @@ Operational documentation:
 - [Diagnosis and rollback](docs/OPERATIONS.md)
 - [Privacy and safety contract](docs/PRIVACY.md)
 - [Development, beta and stable channels](docs/RELEASES.md)
+- [Read-only OPNsense telemetry](docs/OPNSENSE_READONLY.md)
 
 Wake-word A/B testing uses the isolated Okay Nabu configuration and protocol in
 [`docs/calibration.md`](docs/calibration.md); it is never part of the primary

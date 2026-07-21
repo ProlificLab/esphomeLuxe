@@ -51,3 +51,11 @@ Follow `docs/PROXMOX_READONLY.md` to publish the two in-HA helpers and run
 `scripts/provision_proxmox_readonly.sh`. Keep the role at `PVEAuditor`; the
 provisioner must report only `.Audit` permissions and all generated control
 buttons disabled before deploying the updated house-intelligence package.
+
+## OPNsense read-only monitoring
+
+Run `PVE_HOST=root@192.168.1.10 scripts/provision_opnsense_readonly.sh` after
+OPNsense and Home Assistant are reachable. It backs up OPNsense, installs the
+GET-only gateway endpoint, stores credentials outside Git, validates HA and
+proves unrelated API and POST denial. The security boundary and rollback are
+documented in `docs/OPNSENSE_READONLY.md`.

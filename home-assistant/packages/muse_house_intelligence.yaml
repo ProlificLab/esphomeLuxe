@@ -21,6 +21,24 @@ input_number:
     unit_of_measurement: "%"
     icon: mdi:battery-alert
 
+rest:
+  - resource: "https://192.168.1.1/api/muse/status/gateways"
+    method: GET
+    authentication: basic
+    username: !secret opnsense_muse_api_key
+    password: !secret opnsense_muse_api_secret
+    verify_ssl: false
+    timeout: 10
+    scan_interval: 30
+    sensor:
+      - name: Muse OPNsense gateway feed
+        unique_id: muse_opnsense_gateway_feed
+        icon: mdi:wan
+        value_template: "{{ value_json.status | default('unavailable') }}"
+        json_attributes:
+          - generated_at
+          - gateways
+
 template:
   - sensor:
       - name: Muse house energy status
@@ -123,6 +141,48 @@ template:
             {% set newest = updates | max %}
             {{ ((as_timestamp(now()) - newest) | int) if newest > 0 else -1 }}
 
+      - name: Muse Internet status
+        unique_id: muse_internet_status
+        icon: mdi:wan
+        state: >-
+          {% set gateways = state_attr(
+            'sensor.muse_opnsense_gateway_feed', 'gateways') | default([], true) %}
+          {% set online = gateways
+            | selectattr('status_translated', 'eq', 'Online') | list | count %}
+          {% if not is_state('sensor.muse_opnsense_gateway_feed', 'ok')
+                or gateways | count == 0 %}
+            unavailable
+          {% elif online == 0 %}
+            offline
+          {% elif online < gateways | count %}
+            degraded
+          {% else %}
+            normal
+          {% endif %}
+        attributes:
+          gateways: >-
+            {{ state_attr('sensor.muse_opnsense_gateway_feed', 'gateways')
+               | default([], true) }}
+          gateway_count: >-
+            {{ state_attr('sensor.muse_opnsense_gateway_feed', 'gateways')
+               | default([], true) | count }}
+          online_count: >-
+            {% set gateways = state_attr(
+              'sensor.muse_opnsense_gateway_feed', 'gateways')
+              | default([], true) %}
+            {{ gateways | selectattr('status_translated', 'eq', 'Online')
+               | list | count }}
+          credential_role: page-muse-readonly
+          controls_exposed: "{{ false }}"
+          source_generated_at: >-
+            {{ state_attr('sensor.muse_opnsense_gateway_feed', 'generated_at')
+               | default('unavailable', true) }}
+          source_age_seconds: >-
+            {% set generated = state_attr(
+              'sensor.muse_opnsense_gateway_feed', 'generated_at') %}
+            {{ ((as_timestamp(now()) - as_timestamp(generated)) | int)
+               if generated else -1 }}
+
   - binary_sensor:
       - name: Muse Victron data stale
         unique_id: muse_victron_data_stale
@@ -170,6 +230,17 @@ template:
              or states('sensor.frigate_status') in unavailable
              or newest == 0
              or as_timestamp(now()) - newest > 300 }}
+
+      - name: Muse OPNsense data stale
+        unique_id: muse_opnsense_data_stale
+        device_class: problem
+        icon: mdi:wan-disconnected
+        state: >-
+          {% set generated = state_attr(
+            'sensor.muse_opnsense_gateway_feed', 'generated_at') %}
+          {{ not is_state('sensor.muse_opnsense_gateway_feed', 'ok')
+             or not generated
+             or as_timestamp(now()) - as_timestamp(generated) > 120 }}
 
 script:
   muse_narrate_house_status:
@@ -232,10 +303,29 @@ script:
              | float(0) | round(1) }} pour cent. Dernier backup
           {{ state_attr('sensor.muse_proxmox_status', 'last_backup') }}.
         {% endif %}
+      internet_summary: >-
+        {% if is_state('binary_sensor.muse_opnsense_data_stale', 'on') %}
+          Les données du routeur OPNsense sont indisponibles ou périmées; je ne
+          donne pas d'état Internet non vérifié.
+        {% else %}
+          {% set gateways = state_attr(
+            'sensor.muse_internet_status', 'gateways') | default([], true) %}
+          {% set ns = namespace(parts=[]) %}
+          {% for gateway in gateways %}
+            {% set ns.parts = ns.parts + [gateway.name ~ ' ' ~
+              gateway.status_translated] %}
+          {% endfor %}
+          État Internet {{ states('sensor.muse_internet_status') }}, avec
+          {{ state_attr('sensor.muse_internet_status', 'online_count') }}
+          passerelles en ligne sur
+          {{ state_attr('sensor.muse_internet_status', 'gateway_count') }}.
+          {{ ns.parts | join(', ') }}.
+        {% endif %}
     sequence:
       - action: script.muse_announce
         data:
-          message: "{{ energy_summary }} {{ proxmox_summary }}"
+          message: >-
+            {{ energy_summary }} {{ proxmox_summary }} {{ internet_summary }}
           targets: "{{ [target_player] }}"
           priority: normal
 

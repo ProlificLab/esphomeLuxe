@@ -1,0 +1,8 @@
+<acl>
+    <page-muse-readonly>
+        <name>Muse: Read-only gateway telemetry</name>
+        <patterns>
+            <pattern>api/muse/status/gateways</pattern>
+        </patterns>
+    </page-muse-readonly>
+</acl>
