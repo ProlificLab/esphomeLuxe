@@ -2,7 +2,7 @@ name: Firmware source validation
 
 on:
   push:
-    branches: [main, codex/muse-luxe-hal-stability]
+    branches: [main]
     tags: ["v*"]
   pull_request:
 
