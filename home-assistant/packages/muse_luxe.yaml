@@ -2,6 +2,9 @@ input_boolean:
   muse_night_mode:
     name: Muse night mode
     icon: mdi:weather-night
+  muse_pending_message:
+    name: Muse pending family message
+    icon: mdi:message-clock-outline
 
 input_number:
   muse_day_volume:
@@ -40,6 +43,11 @@ input_datetime:
     has_date: false
     has_time: true
     initial: "07:00:00"
+  muse_pending_expiry:
+    name: Muse pending message expiry
+    has_date: true
+    has_time: true
+    icon: mdi:timer-sand
 
 input_text:
   muse_chime_url:
@@ -47,6 +55,18 @@ input_text:
     initial: http://10.10.30.159:8123/local/muse-luxe/test-audio.wav
     max: 255
     icon: mdi:bell-ring-outline
+  muse_pending_message_text:
+    name: Muse pending message text
+    max: 255
+    icon: mdi:message-text-clock-outline
+  muse_pending_recipient:
+    name: Muse pending message recipient
+    max: 100
+    icon: mdi:account-clock-outline
+  muse_pending_target:
+    name: Muse pending message speaker
+    max: 100
+    icon: mdi:speaker-message
 
 script:
   muse_announce:
@@ -209,6 +229,196 @@ script:
         target:
           entity_id: switch.raspiaudio_muse_luxe_privacy_mode
 
+  muse_intercom_message:
+    alias: Muse - transcribed push-to-talk message
+    description: >-
+      Audible, chime-prefixed voice note. This deliberately does not open a
+      silent microphone or pretend to provide a duplex audio channel.
+    mode: queued
+    max: 10
+    fields:
+      message:
+        required: true
+        selector:
+          text:
+            multiline: true
+      target:
+        required: false
+        selector:
+          entity:
+            filter:
+              domain: media_player
+    variables:
+      target_player: >-
+        {{ target | default('media_player.raspiaudio_muse_luxe', true) }}
+    sequence:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ target_player not in states.media_player
+                 | map(attribute='entity_id') | list }}
+        then:
+          - stop: "The requested intercom target does not exist."
+            error: true
+      - action: script.muse_announce
+        data:
+          message: "Message familial. {{ message }}"
+          targets: "{{ [target_player] }}"
+          priority: normal
+          chime: true
+
+  muse_queue_family_message:
+    alias: Muse - queue family message
+    description: >-
+      Delivers immediately when the recipient is home, otherwise retains one
+      bounded message locally until presence or expiry. It never overwrites an
+      existing pending message.
+    mode: queued
+    max: 10
+    fields:
+      recipient:
+        required: true
+        selector:
+          entity:
+            filter:
+              domain: person
+      message:
+        required: true
+        selector:
+          text:
+            multiline: true
+      target:
+        required: false
+        selector:
+          entity:
+            filter:
+              domain: media_player
+      expires_in_minutes:
+        required: false
+        default: 720
+        selector:
+          number:
+            min: 5
+            max: 1440
+            step: 5
+            unit_of_measurement: min
+    variables:
+      recipient_entity: "{{ recipient }}"
+      target_player: >-
+        {{ target | default('media_player.raspiaudio_muse_luxe', true) }}
+      expiry_minutes: "{{ expires_in_minutes | default(720) | int(720) }}"
+    sequence:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ recipient_entity not in states.person
+                 | map(attribute='entity_id') | list }}
+        then:
+          - stop: "The requested message recipient does not exist."
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ target_player not in states.media_player
+                 | map(attribute='entity_id') | list }}
+        then:
+          - stop: "The requested message target does not exist."
+            error: true
+      - if:
+          - condition: template
+            value_template: "{{ is_state(recipient_entity, 'home') }}"
+        then:
+          - action: script.muse_intercom_message
+            data:
+              message: "{{ message }}"
+              target: "{{ target_player }}"
+        else:
+          - if:
+              - condition: state
+                entity_id: input_boolean.muse_pending_message
+                state: "on"
+            then:
+              - stop: "A family message is already pending."
+                error: true
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_pending_message_text
+            data:
+              value: "{{ message | truncate(255, true, '') }}"
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_pending_recipient
+            data:
+              value: "{{ recipient_entity }}"
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_pending_target
+            data:
+              value: "{{ target_player }}"
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: input_datetime.muse_pending_expiry
+            data:
+              timestamp: >-
+                {{ (now() + timedelta(minutes=expiry_minutes | int(720)))
+                   .timestamp() | int }}
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.muse_pending_message
+          - action: persistent_notification.create
+            data:
+              notification_id: muse_pending_family_message
+              title: Message familial en attente
+              message: >-
+                Message pour {{ state_attr(recipient_entity, 'friendly_name')
+                or recipient_entity }}, expire dans {{ expiry_minutes }} minutes.
+
+  muse_deliver_pending_message:
+    alias: Muse - deliver pending family message
+    mode: single
+    fields:
+      force:
+        required: false
+        default: false
+        selector:
+          boolean:
+    variables:
+      recipient_entity: "{{ states('input_text.muse_pending_recipient') }}"
+      target_player: "{{ states('input_text.muse_pending_target') }}"
+      pending_text: "{{ states('input_text.muse_pending_message_text') }}"
+      force_delivery: "{{ force | default(false) | bool }}"
+    sequence:
+      - condition: state
+        entity_id: input_boolean.muse_pending_message
+        state: "on"
+      - condition: template
+        value_template: >-
+          {{ force_delivery or is_state(recipient_entity, 'home') }}
+      - action: script.muse_intercom_message
+        data:
+          message: "{{ pending_text }}"
+          target: "{{ target_player }}"
+      - action: script.muse_clear_pending_message
+
+  muse_clear_pending_message:
+    alias: Muse - clear pending family message
+    mode: single
+    sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.muse_pending_message
+      - action: input_text.set_value
+        target:
+          entity_id:
+            - input_text.muse_pending_message_text
+            - input_text.muse_pending_recipient
+            - input_text.muse_pending_target
+        data:
+          value: ""
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: muse_pending_family_message
+
 automation:
   - id: muse_night_mode_start
     alias: Muse - enable night mode
@@ -230,4 +440,41 @@ automation:
       - action: input_boolean.turn_off
         target:
           entity_id: input_boolean.muse_night_mode
+    mode: single
+
+  - id: muse_pending_message_dispatch
+    alias: Muse - dispatch or expire pending family message
+    triggers:
+      - trigger: time_pattern
+        minutes: "/1"
+      - trigger: homeassistant
+        event: start
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_pending_message
+        state: "on"
+    actions:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ now().timestamp() >=
+                     as_timestamp(states('input_datetime.muse_pending_expiry'),
+                     now().timestamp()) }}
+            sequence:
+              - action: persistent_notification.create
+                data:
+                  notification_id: muse_expired_family_message
+                  title: Message familial expiré
+                  message: >-
+                    Le message pour
+                    {{ states('input_text.muse_pending_recipient') }} n'a pas
+                    été diffusé avant son échéance.
+              - action: script.muse_clear_pending_message
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ is_state(states('input_text.muse_pending_recipient'), 'home') }}
+            sequence:
+              - action: script.muse_deliver_pending_message
     mode: single

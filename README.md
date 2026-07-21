@@ -135,6 +135,18 @@ uv run --with aioesphomeapi --with pyyaml scripts/test_hal9_modes.py
 uv run --with aioesphomeapi --with pyyaml scripts/test_privacy_reboot.py
 ```
 
+The same HA package contains the first `hal.9.1` communication layer. A
+transcribed push-to-talk message always starts with an audible chime. Family
+messages are delivered immediately when the selected `person` is home, or one
+message is retained locally until presence, explicit forced delivery, or
+expiry. A second request is rejected instead of silently replacing the pending
+message.
+
+This alpha intentionally does not claim live room-to-room audio or playback
+transfer: both need a second satellite, and playback transfer additionally
+needs Music Assistant, which is not currently installed on the target HA
+instance.
+
 ## Introducing the New Version: luxe_microWW
 
 Discover the enhancements in the latest release!
