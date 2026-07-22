@@ -32,6 +32,15 @@ announcements, timers, night LED, deferred messages, house facts, routine
 handoff, authenticated video review and the acoustic guardian, in addition to
 intercom, audio transfer, interpreter, camera alerts and offline rescue.
 
+Seven beta gates share one mandatory hash-bound
+`canary-core-VERSION.json`: `canary_ota`, `reboot_recovery_10`,
+`wifi_recovery_10`, `ha_restart_recovery_10`, `privacy_reboot`,
+`tts_cycles_100` and `rollback_artifact_verified`. The record binds the device,
+source commit, version and OTA SHA-256, enforces exact counts and strict
+recovery deadlines, and itself binds seven raw logs by SHA-256. All seven gate
+strings must be identical; prose, split records and modified logs are rejected.
+Follow `docs/CANARY_QUALIFICATION.md` for the closed physical order.
+
 Starting with `hal.9.0-alpha.4`, the 93% target is also a blocking source-CI
 gate. Any main OTA larger than 1,889,402 bytes must be optimized or explicitly
 reworked; it can no longer pass with a warning.

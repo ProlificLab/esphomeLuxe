@@ -14,6 +14,10 @@ import unittest
 import check_qualification_record as checker
 from test_acoustic_guardian_evidence import valid_evidence as valid_acoustic_evidence
 from test_announcement_evidence import valid_evidence as valid_announcement_evidence
+from test_canary_core_evidence import (
+    valid_evidence as valid_canary_core_evidence,
+    write_log_fixtures as write_canary_core_logs,
+)
 from test_family_message_evidence import valid_evidence as valid_family_message_evidence
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
 from test_house_intelligence_evidence import (
@@ -112,9 +116,41 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_intercom: bool = False,
         tamper_music: bool = False,
         unbound_music: bool = False,
+        tamper_canary_core: bool = False,
+        tamper_canary_log: bool = False,
+        unbound_canary_core: bool = False,
+        split_canary_core: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
+        canary_core_path = self.directory / "canary-core.json"
+        canary_core = valid_canary_core_evidence()
+        canary_core["candidate"]["project_version"] = version
+        canary_core["candidate"]["firmware_sha256"] = self.digest
+        canary_core["candidate"]["source_commit"] = COMMIT
+        write_canary_core_logs(self.directory, canary_core)
+        canary_core_path.write_text(json.dumps(canary_core), encoding="utf-8")
+        canary_core_hash = hashlib.sha256(canary_core_path.read_bytes()).hexdigest()
+        bound_canary_core = (
+            "canary-core.json"
+            if unbound_canary_core
+            else f"sha256:{canary_core_hash} {canary_core_path.name}"
+        )
+        for gate_name in checker.CANARY_CORE_GATES:
+            if gate_name in record["gates"]:
+                record["gates"][gate_name]["evidence"] = bound_canary_core
+        if split_canary_core:
+            duplicate_path = self.directory / "canary-core-duplicate.json"
+            duplicate_path.write_bytes(canary_core_path.read_bytes())
+            record["gates"]["tts_cycles_100"]["evidence"] = (
+                f"sha256:{canary_core_hash} {duplicate_path.name}"
+            )
+        if tamper_canary_core:
+            canary_core_path.write_text("{}\n", encoding="utf-8")
+        if tamper_canary_log:
+            (self.directory / "tts_cycles.log").write_text(
+                "tampered after review\n", encoding="utf-8"
+            )
         modes_path = self.directory / "modes.json"
         modes = valid_modes_evidence()
         modes["device"]["project_version"] = version
@@ -613,6 +649,46 @@ class QualificationRecordTests(unittest.TestCase):
         version = "2026.1.0-hal.10-beta.1"
         record = self.record("beta", version)
         result = self.run_check(record, "beta", version, tamper_modes=True)
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_canary_core_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version),
+            "beta",
+            version,
+            tamper_canary_core=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_canary_core_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version),
+            "beta",
+            version,
+            unbound_canary_core=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_canary_raw_log_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version),
+            "beta",
+            version,
+            tamper_canary_log=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_split_canary_core_gate_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version),
+            "beta",
+            version,
+            split_canary_core=True,
+        )
         self.assertNotEqual(result.returncode, 0)
 
     def test_unbound_modes_evidence_is_rejected(self) -> None:

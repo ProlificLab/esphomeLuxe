@@ -17,6 +17,9 @@ from check_acoustic_guardian_evidence import (
 from check_announcement_evidence import (
     validate_evidence as validate_announcement_evidence,
 )
+from check_canary_core_evidence import (
+    validate_evidence as validate_canary_core_evidence,
+)
 from check_endurance_summary import validate_summary
 from check_family_message_evidence import (
     validate_evidence as validate_family_message_evidence,
@@ -55,6 +58,16 @@ BETA_GATES = {
     "reboot_recovery_10",
     "rollback_artifact_verified",
     "secrets_audit",
+    "tts_cycles_100",
+    "wifi_recovery_10",
+}
+
+CANARY_CORE_GATES = {
+    "canary_ota",
+    "ha_restart_recovery_10",
+    "privacy_reboot",
+    "reboot_recovery_10",
+    "rollback_artifact_verified",
     "tts_cycles_100",
     "wifi_recovery_10",
 }
@@ -266,6 +279,27 @@ def main() -> None:
     gate_evidence = {
         name: validate_gate(name, gates[name]) for name in sorted(required_gates)
     }
+    canary_core_records = {gate_evidence[name] for name in CANARY_CORE_GATES}
+    if len(canary_core_records) != 1:
+        fail("Core canary gates must bind the same evidence record")
+    canary_core_path = resolve_bound_evidence(
+        args.record,
+        canary_core_records.pop(),
+        "Canary core",
+    )
+    root = Path(__file__).resolve().parents[1]
+    rollback_manifest = json.loads(
+        (root / "manifest_update.json").read_text(encoding="utf-8")
+    )
+    rollback_md5 = rollback_manifest["builds"][0]["ota"]["md5"]
+    validate_canary_core_evidence(
+        canary_core_path,
+        version,
+        artifact_hash,
+        expected_commit,
+        record["canary_device"],
+        rollback_md5,
+    )
     modes_path = resolve_bound_evidence(
         args.record,
         gate_evidence["mode_api_transitions"],
@@ -285,7 +319,6 @@ def main() -> None:
     if args.channel == "stable":
         if gate_evidence["emergency_offline"] != gate_evidence["offline_rescue_physical"]:
             fail("Offline rescue stable gates must bind the same evidence record")
-        root = Path(__file__).resolve().parents[1]
         package_path = (
             root / "home-assistant/packages/muse_luxe.yaml"
         )

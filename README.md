@@ -36,6 +36,7 @@ Operational documentation:
 
 - [Installation and canary workflow](docs/INSTALLATION.md)
 - [Diagnosis and rollback](docs/OPERATIONS.md)
+- [Core canary qualification](docs/CANARY_QUALIFICATION.md)
 - [Privacy and safety contract](docs/PRIVACY.md)
 - [Development, beta and stable channels](docs/RELEASES.md)
 - [Machine-verifiable qualification record](docs/qualification-record.example.json)

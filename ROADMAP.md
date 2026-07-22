@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.7`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.22`: installation OTA exacte, verification chiffree et rollback separe |
+| Distribution `hal.10` | `hal.10-alpha.23`: sept portes canari liees a un dossier et leurs journaux exacts |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -387,7 +387,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.22`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.23`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -404,6 +404,13 @@ une confirmation exacte, transmet le binaire revu directement a l'implementation
 `waiting`, la sante `healthy` et aucune erreur vocale. Le rollback `hal.6` a sa
 propre confirmation, lie SHA-256 et MD5 au manifeste immuable, et n'est jamais
 declenche automatiquement.
+Les sept portes canari fondamentales partagent obligatoirement un dossier
+`canary-core` unique, lie au commit, a l'appareil, a la version et au SHA-256
+OTA. Il impose une OTA exacte, dix redemarrages firmware, dix coupures Wi-Fi
+ciblees, dix redemarrages HA, la persistance/nettoyage confidentialite, cent TTS
+entendus et l'artefact `hal.6` conserve. Chaque resultat lie aussi son journal
+brut par SHA-256; dossiers divises, chemins non surs, seuils atteints ou depasses,
+interventions manuelles et etat final non sain sont refuses.
 La porte modes charge aussi une preuve liee par hash, controle sa version, ses
 quatre transitions, ses compteurs et son nettoyage; elle ne remplace jamais
 l'observation physique des boutons et LED.
