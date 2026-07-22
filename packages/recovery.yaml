@@ -91,6 +91,9 @@ globals:
   - id: voice_error_count
     type: uint32_t
     initial_value: '0'
+  - id: voice_no_speech_count
+    type: uint32_t
+    initial_value: '0'
   - id: voice_timeout_count
     type: uint32_t
     initial_value: '0'
@@ -164,6 +167,7 @@ script:
           id(wake_word_counter).publish_state(id(wake_word_count));
           id(voice_success_counter).publish_state(id(voice_success_count));
           id(voice_error_counter).publish_state(id(voice_error_count));
+          id(voice_no_speech_counter).publish_state(id(voice_no_speech_count));
           id(voice_timeout_counter).publish_state(id(voice_timeout_count));
           id(voice_reconnect_counter).publish_state(id(voice_reconnect_count));
           id(voice_recovery_counter).publish_state(id(voice_recovery_count));
@@ -293,6 +297,14 @@ script:
       - media_player.stop: luxe_media_player
       - delay: 250ms
       - script.execute: enter_waiting
+
+  - id: handle_voice_error
+    mode: restart
+    then:
+      - delay: 3s
+      - script.execute:
+          id: recover_voice
+          reason: voice_error
 
   - id: start_manual_listening
     mode: restart

@@ -194,7 +194,10 @@ For a stable record, `idle_endurance_24h.evidence` uses the form
 reviewed digest, loads the safe path relative to the record and verifies 24
 hours in monotonic and wall time, at least 1,400 samples, matching firmware
 version, fresh diagnostics, memory thresholds, zero reboot, zero voice error
-and zero timeout.
+zero timeout and zero recovery. Schema v2 separately records exact
+`stt-no-text-recognized` sessions. At most three are accepted in 24 hours; the
+limit is closed in both collector and validator and does not relax any real
+error counter.
 The `uptime` heartbeat must remain fresher than 180 seconds by default, so a
 silent API disconnect cannot turn frozen values into apparently valid proof.
 

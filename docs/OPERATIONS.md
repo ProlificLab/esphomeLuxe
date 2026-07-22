@@ -6,6 +6,15 @@ Check firmware version, voice state/health, last error, last recovery reason,
 heap, PSRAM, Wi-Fi, reset reason and HA/Frigate availability before rebooting.
 Export timestamps and exact spoken phrase for reproducible voice failures.
 
+`Voice No Speech` counts only the exact Assist code
+`stt-no-text-recognized`. It means a session reached STT without usable speech;
+it is neither a successful command nor a firmware failure. The firmware returns
+directly to `waiting` without incrementing Voice Errors or Voice Recoveries.
+Investigate wake-word sensitivity and room noise when it rises; more than three
+new occurrences in a 24-hour qualification fails the closed endurance gate.
+Every other Assist error still publishes Last Voice Error, enters `degraded`
+for three seconds and increments both error and recovery counters.
+
 ## Recovery order
 
 1. Stop continuous conversation and clear privacy only if intentionally desired.

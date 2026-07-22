@@ -117,33 +117,26 @@ voice_assistant:
               id(voice_success_counter).publish_state(id(voice_success_count));
 
   on_error:
-    - script.stop: voice_timeout
-    - script.stop: conversation_session_timeout
     - lambda: |-
+        id(voice_timeout).stop();
+        id(conversation_session_timeout).stop();
         id(audio_active) = false;
         id(audio_started) = false;
         id(voice_session_failed) = true;
         id(continuous_conversation) = false;
+        id(continuous_conversation_switch).publish_state(false);
+        if (code == "stt-no-text-recognized") {
+          id(voice_no_speech_count)++;
+          id(voice_no_speech_counter).publish_state(id(voice_no_speech_count));
+          id(enter_waiting).execute();
+          return;
+        }
         id(voice_error_count)++;
         id(voice_error_counter).publish_state(id(voice_error_count));
-    - switch.template.publish:
-        id: continuous_conversation_switch
-        state: OFF
-    - text_sensor.template.publish:
-        id: last_voice_error
-        state: !lambda |-
-          return code + ": " + message;
-    - logger.log:
-        format: "Voice error: %s - %s"
-        args: [ 'code.c_str()', 'message.c_str()' ]
-        level: WARN
-    - script.execute:
-        id: set_phase
-        new_phase: ${P_error}
-    - delay: 3s
-    - script.execute:
-        id: recover_voice
-        reason: voice_error
+        id(last_voice_error).publish_state(code + ": " + message);
+        ESP_LOGW("voice", "Voice error: %s - %s", code.c_str(), message.c_str());
+        id(set_phase).execute(${P_error});
+        id(handle_voice_error).execute();
 
   on_timer_started:
     - script.execute: refresh_timer_status

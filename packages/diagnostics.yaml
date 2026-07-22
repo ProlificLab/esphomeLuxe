@@ -98,6 +98,13 @@ sensor:
     entity_category: diagnostic
     update_interval: never
   - platform: template
+    id: voice_no_speech_counter
+    name: Voice No Speech
+    accuracy_decimals: 0
+    state_class: total_increasing
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
     id: voice_timeout_counter
     name: Voice Timeouts
     accuracy_decimals: 0

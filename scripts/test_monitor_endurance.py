@@ -18,6 +18,8 @@ def arguments() -> argparse.Namespace:
         max_psram_loss=131072,
         max_new_errors=0,
         max_new_timeouts=0,
+        max_new_no_speech=3,
+        max_new_recoveries=0,
         max_diagnostic_age=180,
     )
 
@@ -32,6 +34,8 @@ def sample(elapsed: float, **changes: object) -> dict:
         "uptime": 1000.0 + elapsed,
         "voice_errors": 0.0,
         "voice_health": "healthy",
+        "voice_no_speech": 0.0,
+        "voice_recoveries": 0.0,
         "voice_state": "waiting",
         "voice_timeouts": 0.0,
     }
@@ -74,6 +78,27 @@ class EnduranceEvidenceTests(unittest.TestCase):
         )
         self.assertFalse(result["passed"])
         self.assertGreaterEqual(len(result["failures"]), 3)
+
+    def test_bounded_no_speech_is_reported_without_hiding_errors(self) -> None:
+        accepted = evaluate_samples(
+            [sample(0), sample(60, voice_no_speech=3)], arguments()
+        )
+        self.assertTrue(accepted["passed"])
+        self.assertEqual(accepted["metrics"]["voice_no_speech_delta"], 3)
+        refused = evaluate_samples(
+            [sample(0), sample(60, voice_no_speech=4)], arguments()
+        )
+        self.assertFalse(refused["passed"])
+        self.assertIn("no-speech", refused["failures"][0])
+
+    def test_recovery_or_counter_regression_fails(self) -> None:
+        for changes in (
+            {"voice_recoveries": 1},
+            {"voice_no_speech": -1},
+        ):
+            result = evaluate_samples([sample(0), sample(60, **changes)], arguments())
+            with self.subTest(changes=changes):
+                self.assertFalse(result["passed"])
 
     def test_summary_write_is_valid_json(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

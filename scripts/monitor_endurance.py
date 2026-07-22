@@ -20,6 +20,7 @@ TRACKED = {
     "uptime",
     "voice_errors",
     "voice_health",
+    "voice_no_speech",
     "voice_recoveries",
     "voice_state",
     "voice_timeouts",
@@ -43,6 +44,12 @@ def evaluate_samples(
     timeouts_delta = float(final.get("voice_timeouts", 0)) - float(
         baseline.get("voice_timeouts", 0)
     )
+    no_speech_delta = float(final.get("voice_no_speech", 0)) - float(
+        baseline.get("voice_no_speech", 0)
+    )
+    recoveries_delta = float(final.get("voice_recoveries", 0)) - float(
+        baseline.get("voice_recoveries", 0)
+    )
     maximum_age = max(float(sample["diagnostic_age_seconds"]) for sample in samples)
     uptime_regressions = sum(
         float(current["uptime"]) < float(previous["uptime"])
@@ -62,6 +69,22 @@ def evaluate_samples(
         failures.append(f"new voice errors {errors_delta:g} > {args.max_new_errors:g}")
     if timeouts_delta > args.max_new_timeouts:
         failures.append(f"new timeouts {timeouts_delta:g} > {args.max_new_timeouts:g}")
+    if no_speech_delta > args.max_new_no_speech:
+        failures.append(
+            f"new no-speech sessions {no_speech_delta:g} > {args.max_new_no_speech:g}"
+        )
+    if recoveries_delta > args.max_new_recoveries:
+        failures.append(
+            f"new voice recoveries {recoveries_delta:g} > {args.max_new_recoveries:g}"
+        )
+    for label, delta in (
+        ("voice errors", errors_delta),
+        ("voice timeouts", timeouts_delta),
+        ("no-speech sessions", no_speech_delta),
+        ("voice recoveries", recoveries_delta),
+    ):
+        if delta < 0:
+            failures.append(f"{label} counter regressed by {-delta:g}")
     if maximum_age > args.max_diagnostic_age:
         failures.append(
             f"diagnostic age {maximum_age:g}s > {args.max_diagnostic_age:g}s"
@@ -70,7 +93,7 @@ def evaluate_samples(
         failures.append(f"uptime regressed {uptime_regressions} time(s)")
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "passed": not failures,
         "device": device or {},
         "started_at": baseline["timestamp"],
@@ -82,6 +105,8 @@ def evaluate_samples(
             "psram_loss": psram_loss,
             "voice_errors_delta": errors_delta,
             "voice_timeouts_delta": timeouts_delta,
+            "voice_no_speech_delta": no_speech_delta,
+            "voice_recoveries_delta": recoveries_delta,
             "maximum_diagnostic_age_seconds": maximum_age,
             "uptime_regressions": uptime_regressions,
         },
@@ -90,6 +115,8 @@ def evaluate_samples(
             "max_psram_loss": args.max_psram_loss,
             "max_new_errors": args.max_new_errors,
             "max_new_timeouts": args.max_new_timeouts,
+            "max_new_no_speech": args.max_new_no_speech,
+            "max_new_recoveries": args.max_new_recoveries,
             "max_diagnostic_age_seconds": args.max_diagnostic_age,
         },
         "failures": failures,
@@ -203,6 +230,8 @@ async def run(args: argparse.Namespace) -> None:
         f"heap_loss={metrics['heap_loss']:g} psram_loss={metrics['psram_loss']:g} "
         f"errors_delta={metrics['voice_errors_delta']:g} "
         f"timeouts_delta={metrics['voice_timeouts_delta']:g} "
+        f"no_speech_delta={metrics['voice_no_speech_delta']:g} "
+        f"recoveries_delta={metrics['voice_recoveries_delta']:g} "
         f"max_age={metrics['maximum_diagnostic_age_seconds']:g}s "
         f"output={args.output} summary={summary_path}"
     )
@@ -224,6 +253,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-psram-loss", type=float, default=131072)
     parser.add_argument("--max-new-errors", type=float, default=0)
     parser.add_argument("--max-new-timeouts", type=float, default=0)
+    parser.add_argument("--max-new-no-speech", type=float, default=3)
+    parser.add_argument("--max-new-recoveries", type=float, default=0)
     parser.add_argument("--max-diagnostic-age", type=float, default=180)
     return parser.parse_args()
 

@@ -57,6 +57,7 @@ class EnduranceSummaryTests(unittest.TestCase):
         for metric, value in (
             ("maximum_diagnostic_age_seconds", 181),
             ("uptime_regressions", 1),
+            ("voice_recoveries_delta", 1),
         ):
             summary = deepcopy(valid_summary())
             summary["metrics"][metric] = value
@@ -84,8 +85,22 @@ class EnduranceSummaryTests(unittest.TestCase):
             self.check(summary)
 
     def test_relaxed_threshold_fails(self) -> None:
+        for threshold, value in (
+            ("max_heap_loss", 999999),
+            ("max_new_no_speech", 4),
+        ):
+            summary = valid_summary()
+            summary["thresholds"][threshold] = value
+            with self.subTest(threshold=threshold), self.assertRaises(RuntimeError):
+                self.check(summary)
+
+    def test_no_speech_limit_is_closed(self) -> None:
         summary = valid_summary()
-        summary["thresholds"]["max_heap_loss"] = 999999
+        summary["metrics"]["voice_no_speech_delta"] = 3
+        self.check(summary)
+        summary["metrics"]["voice_no_speech_delta"] = 4
+        summary["passed"] = False
+        summary["failures"] = ["new no-speech sessions 4 > 3"]
         with self.assertRaises(RuntimeError):
             self.check(summary)
 

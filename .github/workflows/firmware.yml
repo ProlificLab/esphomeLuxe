@@ -88,6 +88,8 @@ jobs:
           python3 scripts/test_verify_release.py
           python3 scripts/test_monitor_endurance.py
           python3 scripts/test_endurance_summary.py
+          python3 scripts/check_voice_error_classification.py
+          python3 scripts/test_voice_error_classification.py
           python3 scripts/test_canary_deploy_safety.py
           python3 scripts/test_canary_install_safety.py
           python3 scripts/test_hal6_credential_compatibility.py

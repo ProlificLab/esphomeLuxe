@@ -22,6 +22,8 @@ METRIC_KEYS = {
     "psram_loss",
     "voice_errors_delta",
     "voice_timeouts_delta",
+    "voice_no_speech_delta",
+    "voice_recoveries_delta",
     "maximum_diagnostic_age_seconds",
     "uptime_regressions",
 }
@@ -30,6 +32,8 @@ THRESHOLD_KEYS = {
     "max_psram_loss",
     "max_new_errors",
     "max_new_timeouts",
+    "max_new_no_speech",
+    "max_new_recoveries",
     "max_diagnostic_age_seconds",
 }
 
@@ -66,7 +70,7 @@ def validate_summary(path: Path, expected_version: str | None = None) -> dict:
     }
     if not isinstance(summary, dict) or set(summary) != required:
         fail("Endurance summary keys differ from schema")
-    if summary["schema_version"] != 1:
+    if summary["schema_version"] != 2:
         fail("Unsupported endurance summary schema")
     if summary["passed"] is not True or summary["failures"] != []:
         fail("Endurance summary did not pass cleanly")
@@ -112,6 +116,8 @@ def validate_summary(path: Path, expected_version: str | None = None) -> dict:
         "max_psram_loss": MAXIMUM_PSRAM_LOSS,
         "max_new_errors": 0,
         "max_new_timeouts": 0,
+        "max_new_no_speech": 3,
+        "max_new_recoveries": 0,
         "max_diagnostic_age_seconds": MAXIMUM_DIAGNOSTIC_AGE_SECONDS,
     }
     for name, policy_limit in policy_limits.items():
@@ -136,9 +142,22 @@ def validate_summary(path: Path, expected_version: str | None = None) -> dict:
         limit = float(thresholds.get(threshold, float("-inf")))
         if not math.isfinite(value) or not math.isfinite(limit) or value > limit:
             fail(f"Endurance {metric} exceeded its recorded threshold")
-    for metric in ("voice_errors_delta", "voice_timeouts_delta", "uptime_regressions"):
+    for metric in (
+        "voice_errors_delta",
+        "voice_timeouts_delta",
+        "voice_recoveries_delta",
+        "uptime_regressions",
+    ):
         if float(metrics.get(metric, float("inf"))) != 0:
             fail(f"Endurance {metric} must be zero")
+    no_speech = float(metrics.get("voice_no_speech_delta", float("inf")))
+    no_speech_limit = min(float(thresholds.get("max_new_no_speech", 0)), 3)
+    if (
+        not math.isfinite(no_speech)
+        or no_speech < 0
+        or no_speech > no_speech_limit
+    ):
+        fail("Endurance no-speech sessions exceeded the closed limit")
 
     return summary
 

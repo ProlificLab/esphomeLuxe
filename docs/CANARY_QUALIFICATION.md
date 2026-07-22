@@ -36,6 +36,9 @@ captures in these logs.
 Use `tee` for every command so the reviewed terminal output is the exact file
 later bound by SHA-256. A command reporting `SLOW`, a timeout, a manual recovery
 or an inaudible TTS fails the entire record; do not average it away.
+The preceding endurance summary must use schema v2: zero errors, timeouts,
+recoveries and reboots, plus no more than three separately counted no-speech
+sessions. Never reclassify another Assist code to make this gate pass.
 
 ## Evidence binding
 
