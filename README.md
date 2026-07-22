@@ -38,6 +38,7 @@ Operational documentation:
 - [Diagnosis and rollback](docs/OPERATIONS.md)
 - [Privacy and safety contract](docs/PRIVACY.md)
 - [Development, beta and stable channels](docs/RELEASES.md)
+- [Machine-verifiable qualification record](docs/qualification-record.example.json)
 - [Read-only OPNsense telemetry](docs/OPNSENSE_READONLY.md)
 - [Authenticated Frigate camera telemetry](docs/FRIGATE_READONLY.md)
 - [Local bounded French-English interpreter](docs/INTERPRETER.md)

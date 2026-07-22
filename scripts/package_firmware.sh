@@ -5,7 +5,7 @@ CONFIG="${CONFIG:-luxe_microWW.yaml}"
 FIRMWARE="${FIRMWARE:-.esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.ota.bin}"
 OUTPUT_DIR="${OUTPUT_DIR:-release}"
 CHANNEL="${CHANNEL:-development}"
-OTA_URL="${OTA_URL:-http://10.10.30.159:8123/local/muse-luxe/channels/$CHANNEL/firmware.ota.bin}"
+OTA_URL="${OTA_URL:-}"
 
 case "$CHANNEL" in
   development | beta | stable) ;;
@@ -16,6 +16,13 @@ version="${VERSION:-$(sed -n 's/^[[:space:]]*version: "\([^"]*\)"/\1/p' "$CONFIG
 if [[ -z "$version" || ! "$version" =~ ^[0-9]{4}\.[0-9]+\.[0-9]+-[A-Za-z0-9.-]+$ ]]; then
   echo "Unable to determine a valid project version from $CONFIG" >&2
   exit 2
+fi
+if [[ -z "$OTA_URL" ]]; then
+  if [[ "$CHANNEL" == "development" ]]; then
+    OTA_URL="http://10.10.30.159:8123/local/muse-luxe/channels/$CHANNEL/firmware.ota.bin"
+  else
+    OTA_URL="http://10.10.30.159:8123/local/muse-luxe/channels/$CHANNEL/firmware-$version.ota.bin"
+  fi
 fi
 if [[ ! -f "$FIRMWARE" ]]; then
   echo "Firmware not found: $FIRMWARE" >&2
@@ -81,6 +88,7 @@ cat > "$OUTPUT_DIR/build-metadata.json" <<EOF
 {
   "version": "$version",
   "channel": "$CHANNEL",
+  "source_commit": "$(git rev-parse HEAD)",
   "config": "$CONFIG",
   "artifact": "$(basename "$artifact")",
   "size_bytes": $(wc -c < "$artifact" | tr -d ' '),

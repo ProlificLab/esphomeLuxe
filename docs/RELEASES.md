@@ -2,17 +2,62 @@
 
 - `development`: automatic clean CI artifact for one canary; never advertised
   by the production updater.
-- `beta`: explicit `ALLOW_BETA=1`, reviewed qualification record and private
-  family test channel.
-- `stable`: explicit `ALLOW_STABLE=1`, non-prerelease version, all physical and
-  endurance gates, rollback test and reviewed qualification record.
+- `beta`: reviewed JSON qualification record, clean rebuild and private family
+  test channel.
+- `stable`: non-prerelease version, clean rebuild, all physical and endurance
+  gates, rollback test and reviewed JSON qualification record.
 
-Promote only with:
+## Qualification record
+
+Copy `docs/qualification-record.example.json` into the ignored `release/`
+directory. Never mark a gate passed until its `evidence` points to a reviewed
+CI run, baseline, machine log or physical test record. The checker binds the
+record to all of the following:
+
+- exact beta/stable channel and project version;
+- full 40-character source commit and a clean worktree;
+- SHA-256 of the freshly rebuilt production OTA artifact;
+- reviewer, timezone-aware review time no older than 30 days and canary ID;
+- exact hardware, Home Assistant, ESPHome and ESP-IDF compatibility matrix;
+- qualified feature scope, explicit beta open gates and no stable open gate;
+- 12 mandatory beta gates or all 24 stable gates.
+
+Beta includes reproducible build, CI, hard size limit, secrets audit, rollback
+artifact, canary OTA, ten reboot/Wi-Fi/HA recovery cycles, privacy reboot,
+physical controls and 100 TTS cycles. Stable additionally requires the 93%
+size target, 24-hour idle, acoustic calibration, exercised rollback,
+second-person install and the physical `hal.9` feature gates.
+
+To obtain the candidate hash before review, run the pinned clean build, then
+package locally without publishing:
+
+```bash
+docker run --rm -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  clean luxe_microWW.yaml
+docker run --rm -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  compile luxe_microWW.yaml
+ALLOW_BETA=1 CHANNEL=beta scripts/package_firmware.sh
+```
+
+Use `ALLOW_STABLE=1 CHANNEL=stable` only for a non-prerelease stable candidate.
+Fill the exact values from `release/build-metadata.json`, attach evidence and
+run `scripts/check_qualification_record.py` with the generated manifest and
+artifact before requesting review.
+
+Promote only from the same clean commit with:
 
 ```bash
 PVE_HOST=user@proxmox-host scripts/promote_firmware_channel.sh \
-  beta docs/baselines/QUALIFIED.md
+  beta release/qualification-VERSION.json
 ```
+
+Promotion performs another pinned clean compile and requires the resulting
+SHA-256 to match the reviewed record. It uploads a versioned OTA, qualification
+record, changelog, dependency diff, build metadata and checksums first. The
+channel `manifest.json` is published last and is the only activation point, so
+a partial upload cannot redirect the channel to an incomplete release.
 
 The root `manifest_update.json` remains the `hal.6` rollback reference until a
 stable promotion is separately reviewed. Firmware binaries contain secrets and
@@ -36,7 +81,7 @@ python3 scripts/report_release_changes.py --base BASE_TAG --target HEAD
 python3 scripts/test_release_report.py
 ```
 
-Review both files together with the firmware hashes, size report and physical
+Review both files together with the firmware hashes, size report and JSON
 qualification record before promoting `beta` or `stable`.
 `promote_firmware_channel.sh` regenerates them automatically; set
 `RELEASE_BASE_REF` explicitly when the last qualified release is not the most

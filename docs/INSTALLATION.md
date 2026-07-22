@@ -22,6 +22,12 @@
 
 Never point the production update entity at an alpha manifest.
 
+Before any beta or stable promotion, follow `docs/RELEASES.md` and complete a
+copy of `docs/qualification-record.example.json` in the ignored `release/`
+directory. The promotion command performs a second clean build and refuses any
+commit, hash, compatibility or gate mismatch; do not bypass it by copying a
+firmware file directly into a channel directory.
+
 ## Music Assistant
 
 Use the stable Home Assistant app, not beta or nightly. After completing its

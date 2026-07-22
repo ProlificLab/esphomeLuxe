@@ -63,6 +63,10 @@ jobs:
           python3 scripts/test_interpreter_safety.py
           python3 scripts/check_intercom_safety.py
           python3 scripts/test_intercom_safety.py
+          python3 scripts/check_promotion_safety.py
+          python3 scripts/test_promotion_safety.py
+          python3 scripts/test_qualification_record.py
+          python3 scripts/test_verify_release.py
           python3 scripts/check_offline_rescue_safety.py
           python3 scripts/test_offline_rescue_safety.py
           python3 scripts/test_prepare_rescue_media.py
