@@ -61,6 +61,9 @@ record, refuses overwrite and exposes it through an atomic no-clobber link.
 YAML version, clean Git and three real private values, performs two pinned clean
 builds, rejects unequal hashes or leaked values in any retained log, enforces
 the flash budget and only then invokes the source sealer.
+The selected rotated secrets file is the exact read-only `/config/secrets.yaml`
+mount for both builds. An exact-commit CI preflight runs before compilation;
+auditing one file while compiling another is a release-blocking failure.
 
 Prepare the post-endurance credential transition with
 `scripts/prepare_secret_rotation.py` and `docs/SECRET_ROTATION.md`. Preparation

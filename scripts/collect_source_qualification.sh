@@ -30,17 +30,23 @@ if [[ ! -f "$SECRETS" || -L "$SECRETS" ]]; then
 fi
 secret_mode="$(stat -f '%Lp' "$SECRETS" 2>/dev/null || stat -c '%a' "$SECRETS")"
 [[ "$secret_mode" == "600" ]] || { echo "Private secrets permissions must be 0600." >&2; exit 1; }
+SECRETS_ABS="$(python3 -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$SECRETS")"
 mkdir -m 700 "$OUTPUT_DIR"
 trap 'status=$?; if (( status != 0 )); then rm -rf "$OUTPUT_DIR"; fi' EXIT
 cp "$CI_JSON" "$OUTPUT_DIR/ci.log"
 chmod 600 "$OUTPUT_DIR/ci.log"
 python3 "$SCRIPT_DIR/audit_tracked_secrets.py" --private-secrets "$SECRETS" \
   --require-private-keys 3 --output "$OUTPUT_DIR/secrets-audit.log" >/dev/null
+source_commit="$(git -C "$ROOT" rev-parse HEAD)"
+python3 "$SCRIPT_DIR/check_source_ci_preflight.py" "$OUTPUT_DIR/ci.log" \
+  "$source_commit" >/dev/null
 
 build_once() {
   local log="$1"
-  docker run --rm -v "$ROOT:/config" -w /config "$IMAGE" clean "$CONFIG" >>"$log" 2>&1
-  docker run --rm -v "$ROOT:/config" -w /config "$IMAGE" compile "$CONFIG" >>"$log" 2>&1
+  docker run --rm -v "$ROOT:/config" -v "$SECRETS_ABS:/config/secrets.yaml:ro" \
+    -w /config "$IMAGE" clean "$CONFIG" >>"$log" 2>&1
+  docker run --rm -v "$ROOT:/config" -v "$SECRETS_ABS:/config/secrets.yaml:ro" \
+    -w /config "$IMAGE" compile "$CONFIG" >>"$log" 2>&1
   local sha
   sha="$(shasum -a 256 "$FIRMWARE" | awk '{print $1}')"
   printf 'OTA SHA256=%s\n' "$sha" >>"$log"

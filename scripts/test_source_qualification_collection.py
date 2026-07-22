@@ -45,7 +45,8 @@ class SourceQualificationCollectionTests(unittest.TestCase):
 
     def test_collector_closes_order_and_runs_two_pinned_clean_builds(self) -> None:
         source = (ROOT / "scripts/collect_source_qualification.sh").read_text(encoding="utf-8")
-        markers = ["config_version=", "status --porcelain", "audit_tracked_secrets.py", "first_sha=", "second_sha=",
+        markers = ["config_version=", "status --porcelain", "audit_tracked_secrets.py",
+                   "check_source_ci_preflight.py", "first_sha=", "second_sha=",
                    '[[ "$first_sha" != "$second_sha" ]]', "check_firmware_size.sh",
                    "check_private_log_disclosure.py", "seal_source_qualification_evidence.py"]
         positions = [source.index(marker) for marker in markers]
@@ -53,6 +54,7 @@ class SourceQualificationCollectionTests(unittest.TestCase):
         self.assertEqual(source.count('"$IMAGE" clean "$CONFIG"'), 1)
         self.assertEqual(source.count('"$IMAGE" compile "$CONFIG"'), 1)
         self.assertIn("build_once", source)
+        self.assertEqual(source.count('$SECRETS_ABS:/config/secrets.yaml:ro'), 2)
         self.assertNotIn("upload_exact_ota", source)
         self.assertNotIn("verify_canary_boot", source)
 

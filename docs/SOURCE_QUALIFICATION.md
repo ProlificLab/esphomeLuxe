@@ -9,7 +9,8 @@ collection path runs both pinned clean builds, size/audit/disclosure checks and
 the atomic sealer:
 
 ```bash
-scripts/collect_source_qualification.sh \
+SECRETS=release/rotation-VERSION/secrets.yaml \
+  scripts/collect_source_qualification.sh \
   release/source-VERSION VERSION CI_JSON "REVIEWER"
 ```
 
@@ -17,6 +18,10 @@ The requested version must equal the version in the compiled YAML. The output
 directory must not exist. On any failure it is removed in full; an existing
 path is never touched. The detailed steps below remain the audit and manual
 recovery procedure.
+The selected private file is resolved once and over-mounted read-only on
+`/config/secrets.yaml` in both Docker builds, so the audited and compiled values
+cannot diverge. The saved CI JSON is also checked against the clean current
+commit and its single successful `compile` job before either build starts.
 
 ## Required logs
 
