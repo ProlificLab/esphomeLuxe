@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.8`: contrôles et profils LED liés à l'OTA et au package HA |
+| Distribution `hal.10` | `hal.10-alpha.9`: contrôles, LED et minuteurs liés à l'OTA et aux packages HA |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -146,6 +146,11 @@ version, une enceinte occupee ou des minuteurs actifs, exige des compteurs voix
 stables et restaure les deux modes dans un bloc final. Sa preuve JSON n'est
 publiee atomiquement qu'apres retour verifie a `waiting/healthy`. Boutons, audio
 et LED restent volontairement une observation physique separee.
+
+Etat outil `hal.9.0-qualification.4`: le dossier minuteur ferme douze scenarios
+physiques et mesure deux noms distincts, les quatre jalons une seule fois en
+jour puis en nuit, zero rejeu apres reconnexion et un son final local pendant
+la perte HA. Il est lie a la version, a l'OTA et aux deux packages HA exacts.
 
 Sortie: aucune session ouverte apres timeout, annonces prioritaires propres et
 minuteurs resilients a une reconnexion.
@@ -292,7 +297,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.8`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.9`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -310,6 +315,8 @@ la version et au binaire OTA, avec dix observations humaines fermees; une simple
 phrase dans le dossier de promotion n'est plus acceptee.
 La porte LED nuit charge egalement un dossier hashé avec les neuf profils et six
 scenarios, lie au binaire OTA et au hash du package HA recalcule depuis la source.
+La porte minuteurs charge un dossier hashé de douze scenarios avec des mesures
+fermees, lie au binaire OTA et aux hashes des packages de base et timer coach.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

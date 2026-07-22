@@ -47,7 +47,7 @@
     "rollback_exercised": {"passed": false, "evidence": "REPLACE"},
     "second_person_install": {"passed": false, "evidence": "REPLACE"},
     "secrets_audit": {"passed": false, "evidence": "REPLACE"},
-    "timer_multi_pause_reconnect": {"passed": false, "evidence": "REPLACE"},
+    "timer_multi_pause_reconnect": {"passed": false, "evidence": "sha256:REPLACE timer-VERSION.json"},
     "tts_cycles_100": {"passed": false, "evidence": "REPLACE"},
     "video_review_authenticated": {"passed": false, "evidence": "REPLACE"},
     "wifi_recovery_10": {"passed": false, "evidence": "REPLACE"}

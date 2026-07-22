@@ -17,6 +17,7 @@ from check_night_led_evidence import validate_evidence as validate_night_led_evi
 from check_physical_controls_evidence import (
     validate_evidence as validate_physical_controls_evidence,
 )
+from check_timer_evidence import validate_evidence as validate_timer_evidence
 
 
 BETA_GATES = {
@@ -273,6 +274,22 @@ def main() -> None:
             version,
             artifact_hash,
             sha256(package_path),
+        )
+        timer_package_path = (
+            Path(__file__).resolve().parents[1]
+            / "home-assistant/packages/muse_timer_coach.yaml"
+        )
+        timer_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["timer_multi_pause_reconnect"],
+            "Timer",
+        )
+        validate_timer_evidence(
+            timer_path,
+            version,
+            artifact_hash,
+            sha256(package_path),
+            sha256(timer_package_path),
         )
         endurance_path = resolve_bound_evidence(
             args.record,

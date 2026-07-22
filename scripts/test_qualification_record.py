@@ -15,6 +15,7 @@ import check_qualification_record as checker
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
+from test_timer_evidence import valid_evidence as valid_timer_evidence
 from test_endurance_summary import valid_summary
 from monitor_endurance import write_summary
 
@@ -73,6 +74,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_physical_controls: bool = False,
         tamper_night_led: bool = False,
         unbound_night_led: bool = False,
+        tamper_timer: bool = False,
+        unbound_timer: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -115,6 +118,29 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_night_led:
                 night_led_path.write_text("{}\n", encoding="utf-8")
+            if "timer_multi_pause_reconnect" in record["gates"]:
+                timer_package_path = (
+                    ROOT / "home-assistant/packages/muse_timer_coach.yaml"
+                )
+                timer_package_hash = hashlib.sha256(
+                    timer_package_path.read_bytes()
+                ).hexdigest()
+                timer_path = self.directory / "timer.json"
+                timer = valid_timer_evidence(
+                    version,
+                    self.digest,
+                    package_hash,
+                    timer_package_hash,
+                )
+                timer_path.write_text(json.dumps(timer), encoding="utf-8")
+                timer_hash = hashlib.sha256(timer_path.read_bytes()).hexdigest()
+                record["gates"]["timer_multi_pause_reconnect"]["evidence"] = (
+                    "timer.json"
+                    if unbound_timer
+                    else f"sha256:{timer_hash} {timer_path.name}"
+                )
+                if tamper_timer:
+                    timer_path.write_text("{}\n", encoding="utf-8")
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
             summary["device"]["project_version"] = version
@@ -316,6 +342,28 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_night_led=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_timer_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record,
+            "stable",
+            version,
+            tamper_timer=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_timer_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record,
+            "stable",
+            version,
+            unbound_timer=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

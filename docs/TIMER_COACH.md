@@ -54,6 +54,21 @@ after restart and must be enabled explicitly.
 6. Trigger an urgent test announcement during a timer checkpoint and verify the
    urgent path interrupts cleanly without losing timer completion.
 
+Copy `docs/timer-record.example.json` into the ignored release directory and
+record all twelve scenarios and exact metrics. Validate the completed record
+with `scripts/check_timer_evidence.py`, passing the candidate version, OTA hash
+and the SHA-256 of both `muse_luxe.yaml` and `muse_timer_coach.yaml`. Stable
+promotion loads that hash-bound record and recalculates both package hashes
+from the candidate source.
+
+```bash
+python3 scripts/check_timer_evidence.py release/timer-VERSION.json \
+  --expected-version "VERSION" \
+  --expected-firmware-sha256 "$(sha256sum release/muse-luxe-VERSION.ota.bin | cut -d' ' -f1)" \
+  --expected-base-package-sha256 "$(sha256sum home-assistant/packages/muse_luxe.yaml | cut -d' ' -f1)" \
+  --expected-timer-package-sha256 "$(sha256sum home-assistant/packages/muse_timer_coach.yaml | cut -d' ' -f1)"
+```
+
 ## Rollback
 
 Leave the opt-in switch off, stop Home Assistant, restore the timestamped
