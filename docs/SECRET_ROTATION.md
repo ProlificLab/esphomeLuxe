@@ -35,6 +35,21 @@ The installation phase will authenticate the one OTA upload with
 API encryption key in `secrets.yaml`. It must never disable encryption, expose
 an unauthenticated fallback or silently retry with example credentials.
 
+After the endurance summary and exact candidate are reviewed, the closed
+operator command is:
+
+```bash
+scripts/install_rotated_canary_ota.sh \
+  ARTIFACT MANIFEST ENDURANCE_SUMMARY OTA_SHA256 HOST \
+  release/rotation-VERSION
+```
+
+It repeats bundle, tracked-secret and candidate preflights and requires the
+literal `ROTATE CANARY VERSION SHA256` confirmation. The old OTA value is
+mounted read-only only for upload. The new API key must then prove the exact
+version, `waiting`, `healthy` and empty error state before local activation.
+Never set its confirmation variable in shell history or automation.
+
 After successful exact-version and healthy-state verification, unlink the
 transition file and retain only the new ignored `secrets.yaml`. Secure erasure
 cannot be guaranteed on SSD or copy-on-write storage, so the old OTA credential

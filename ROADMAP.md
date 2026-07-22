@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.7`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.27`: validation fermee du bundle prive de rotation |
+| Distribution `hal.10` | `hal.10-alpha.28`: transition OTA double credential et activation reprenable |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -387,7 +387,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.27`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.28`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -428,6 +428,11 @@ trois valeurs CSPRNG independantes, API 32 octets, conservation des autres
 secrets, ancien OTA seul dans une enveloppe de transition, dossier `0700` et
 fichiers `0600`. Aucune connexion, compilation ou installation n'est effectuee;
 une erreur supprime toute sortie partielle sans toucher une destination existante.
+La transition exige ensuite bundle et audit fermes, endurance et artefact exacts
+et une confirmation dediee. L'ancien OTA ne sert qu'a l'upload; la nouvelle cle
+API prouve le boot exact et sain avant remplacement atomique du fichier actif.
+L'ancien OTA est alors retire. Une interruption est reprenable, mais un jeu
+actif partiel ou etranger est refuse sans modification.
 La porte modes charge aussi une preuve liee par hash, controle sa version, ses
 quatre transitions, ses compteurs et son nettoyage; elle ne remplace jamais
 l'observation physique des boutons et LED.
