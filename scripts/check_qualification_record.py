@@ -25,6 +25,7 @@ from check_physical_controls_evidence import (
     validate_evidence as validate_physical_controls_evidence,
 )
 from check_timer_evidence import validate_evidence as validate_timer_evidence
+from check_video_review_evidence import validate_evidence as validate_video_evidence
 
 
 BETA_GATES = {
@@ -344,6 +345,21 @@ def main() -> None:
             ),
             sha256(root / "scripts/prepare_frigate_acoustic_guardian.py"),
             sha256(root / "frigate/acoustic-guardian-policy.example.yaml"),
+        )
+        video_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["video_review_authenticated"],
+            "Video review",
+        )
+        validate_video_evidence(
+            video_path,
+            version,
+            artifact_hash,
+            sha256(root / "home-assistant/packages/muse_video_review.yaml"),
+            sha256(
+                root / "home-assistant/dashboards/muse-video-review.yaml"
+            ),
+            sha256(root / "scripts/provision_video_review_dashboard.sh"),
         )
         endurance_path = resolve_bound_evidence(
             args.record,

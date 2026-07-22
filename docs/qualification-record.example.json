@@ -49,7 +49,7 @@
     "secrets_audit": {"passed": false, "evidence": "REPLACE"},
     "timer_multi_pause_reconnect": {"passed": false, "evidence": "sha256:REPLACE timer-VERSION.json"},
     "tts_cycles_100": {"passed": false, "evidence": "REPLACE"},
-    "video_review_authenticated": {"passed": false, "evidence": "REPLACE"},
+    "video_review_authenticated": {"passed": false, "evidence": "sha256:REPLACE video-review-VERSION.json"},
     "wifi_recovery_10": {"passed": false, "evidence": "REPLACE"}
   }
 }

@@ -64,6 +64,25 @@ ignored. Test a real person event only on an authorized camera.
 7. Confirm no `/api/frigate/notifications/` URL, image token or mobile message
    appears in helpers, logs or notifications.
 
+For stable qualification, copy `docs/video-review-record.example.json` into the
+ignored release directory. Test both mapped cameras and every rejection path,
+let both five-minute windows expire, perform one HA restart and leave the
+review state closed. Validate the exact candidate and sources:
+
+```bash
+python3 scripts/check_video_review_evidence.py \
+  release/video-review-VERSION.json \
+  --expected-version "VERSION" \
+  --expected-firmware-sha256 "$(sha256sum release/muse-luxe-VERSION.ota.bin | cut -d' ' -f1)" \
+  --expected-package-sha256 "$(sha256sum home-assistant/packages/muse_video_review.yaml | cut -d' ' -f1)" \
+  --expected-dashboard-sha256 "$(sha256sum home-assistant/dashboards/muse-video-review.yaml | cut -d' ' -f1)" \
+  --expected-provisioner-sha256 "$(sha256sum scripts/provision_video_review_dashboard.sh | cut -d' ' -f1)"
+```
+
+Stable promotion recalculates every source hash and binds the record to the
+OTA. The example remains failed and is never a substitute for the authenticated
+physical review.
+
 ## Rollback
 
 Turn review off, restore the timestamped

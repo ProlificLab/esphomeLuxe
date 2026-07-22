@@ -149,3 +149,8 @@ limit, all exit/restoration paths and zero Home Assistant actions.
 preparer, policy template and private candidate hash. It requires consent,
 all four classes, two hours per class, bounded false positives and CPU, one-day
 retention, disabled transcription and a verified rollback to audio disabled.
+
+`video_review_authenticated.evidence` binds the OTA, package, dashboard and
+provisioner. It requires accepted events for both closed cameras, every stale
+or unauthorized rejection, two five-minute expirations, HA restart cleanup,
+authenticated access and zero public tokens, URLs or external deliveries.

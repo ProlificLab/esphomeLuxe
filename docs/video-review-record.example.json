@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "ha_package_sha256": "REPLACE_WITH_VIDEO_REVIEW_PACKAGE_SHA256",
+    "dashboard_sha256": "REPLACE_WITH_VIDEO_REVIEW_DASHBOARD_SHA256",
+    "provisioner_sha256": "REPLACE_WITH_VIDEO_REVIEW_PROVISIONER_SHA256"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "runtime": {
+    "camera_map": {
+      "avant_jardin": "image.avant_jardin_person",
+      "sonnette": "image.sonnette_person"
+    },
+    "destination": "ha_dashboard",
+    "authenticated_frontend": true,
+    "window_seconds": 300,
+    "maximum_image_age_seconds": 30,
+    "maximum_image_before_event_seconds": 5
+  },
+  "metrics": {
+    "accepted_events": {"avant_jardin": 0, "sonnette": 0},
+    "below_threshold_rejections": 0,
+    "unmapped_camera_rejections": 0,
+    "non_person_rejections": 0,
+    "stale_image_rejections": 0,
+    "expired_windows": 0,
+    "ha_restart_cycles": 0,
+    "public_urls_or_tokens": -1,
+    "external_deliveries": -1
+  },
+  "final_state": {
+    "enabled": false,
+    "destination": "disabled",
+    "camera": "none",
+    "window_active": false
+  },
+  "scenarios": {
+    "below_threshold_rejected": {"passed": false, "evidence": "REPLACE"},
+    "event_id_and_camera_match_frigate": {"passed": false, "evidence": "REPLACE"},
+    "fresh_avant_jardin_opens_correct_card": {"passed": false, "evidence": "REPLACE"},
+    "fresh_sonnette_opens_correct_card": {"passed": false, "evidence": "REPLACE"},
+    "ha_restart_resets_private_state": {"passed": false, "evidence": "REPLACE"},
+    "non_person_event_ignored": {"passed": false, "evidence": "REPLACE"},
+    "no_mobile_or_external_delivery": {"passed": false, "evidence": "REPLACE"},
+    "no_public_url_or_token": {"passed": false, "evidence": "REPLACE"},
+    "review_requires_ha_authentication": {"passed": false, "evidence": "REPLACE"},
+    "stale_image_rejected": {"passed": false, "evidence": "REPLACE"},
+    "unmapped_camera_rejected": {"passed": false, "evidence": "REPLACE"},
+    "window_expiry_hides_card": {"passed": false, "evidence": "REPLACE"},
+    "window_expiry_removes_notice": {"passed": false, "evidence": "REPLACE"}
+  }
+}

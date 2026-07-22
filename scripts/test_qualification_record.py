@@ -19,6 +19,7 @@ from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
 from test_timer_evidence import valid_evidence as valid_timer_evidence
+from test_video_review_evidence import valid_evidence as valid_video_evidence
 from test_endurance_summary import valid_summary
 from monitor_endurance import write_summary
 
@@ -86,6 +87,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_interpreter: bool = False,
         tamper_acoustic: bool = False,
         unbound_acoustic: bool = False,
+        tamper_video: bool = False,
+        unbound_video: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -238,6 +241,30 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_acoustic:
                 acoustic_path.write_text("{}\n", encoding="utf-8")
+            video_package = ROOT / "home-assistant/packages/muse_video_review.yaml"
+            video_dashboard = (
+                ROOT / "home-assistant/dashboards/muse-video-review.yaml"
+            )
+            video_provisioner = (
+                ROOT / "scripts/provision_video_review_dashboard.sh"
+            )
+            video_path = self.directory / "video-review.json"
+            video = valid_video_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(video_package.read_bytes()).hexdigest(),
+                hashlib.sha256(video_dashboard.read_bytes()).hexdigest(),
+                hashlib.sha256(video_provisioner.read_bytes()).hexdigest(),
+            )
+            video_path.write_text(json.dumps(video), encoding="utf-8")
+            video_hash = hashlib.sha256(video_path.read_bytes()).hexdigest()
+            record["gates"]["video_review_authenticated"]["evidence"] = (
+                "video-review.json"
+                if unbound_video
+                else f"sha256:{video_hash} {video_path.name}"
+            )
+            if tamper_video:
+                video_path.write_text("{}\n", encoding="utf-8")
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
             summary["device"]["project_version"] = version
@@ -531,6 +558,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_acoustic=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_video_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_video=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_video_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_video=True,
         )
         self.assertNotEqual(result.returncode, 0)
 
