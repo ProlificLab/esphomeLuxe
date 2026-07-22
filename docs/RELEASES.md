@@ -151,9 +151,11 @@ A second exact confirmation and post-boot API check are mandatory. Rotation
 therefore closes this OTA path; immutable `hal.6` then uses USB recovery only.
 The credential reference must be an explicit private `0600`
 `HAL6_REFERENCE_SECRETS` file; example values are rejected before contact.
-The USB image has a separate closed gate that requires the reviewed factory
+The USB image has a separate closed gate that requires the canonical factory
 SHA-256 and proves it embeds the exact retained OTA at `0x10000` with no extra
-payload. A generic or merely rebuilt factory image is not accepted as `hal.6`.
+payload. Its tracked provenance binds both historical commits, the pinned
+container, flash offsets and all three artifact hashes. A generic or merely
+rebuilt factory image is not accepted as `hal.6`.
 
 ## Changelog and dependency evidence
 

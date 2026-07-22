@@ -91,6 +91,9 @@ jobs:
           python3 scripts/test_canary_deploy_safety.py
           python3 scripts/test_canary_install_safety.py
           python3 scripts/test_hal6_credential_compatibility.py
+          python3 scripts/test_compose_hal6_usb_recovery.py
+          python3 scripts/test_hal6_recovery_manifest.py
+          python3 scripts/test_hal6_usb_flash_safety.py
           python3 scripts/test_hal6_usb_recovery.py
           python3 scripts/test_canary_core_evidence.py
           python3 scripts/test_seal_canary_core_evidence.py

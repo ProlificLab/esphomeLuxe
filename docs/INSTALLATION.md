@@ -65,28 +65,63 @@ Never weaken authentication or retain/reuse the retired OTA password.
 ## Exact hal.6 USB recovery gate
 
 An ESPHome factory image is not interchangeable with its OTA application. The
-accepted Muse layout must contain the reviewed immutable `hal.6` OTA byte for
-byte at offset `0x10000`, with no trailing payload. Validate both independently
-reviewed hashes before placing a factory image on recovery media:
+canonical Muse image contains the reviewed immutable `hal.6` OTA byte for byte
+at offset `0x10000`, with no trailing payload. Its source commits, pinned
+container, offsets, sizes and hashes are closed in
+`docs/hal6-usb-recovery-manifest.json`.
+
+The canonical image is composed without reading or reconstructing credentials.
+Use only the reviewed 64 KiB prefix from the pinned historical build and the
+exact retained OTA; the command is atomic, private and refuses overwrite:
 
 ```bash
+python3 scripts/compose_hal6_usb_recovery.py \
+  /private/path/muse-luxe-2025.3.1-hal.6.ota.bin \
+  /private/path/pinned-hal6-donor.factory.bin \
+  /private/path/muse-luxe-2025.3.1-hal.6.factory.bin \
+  --manifest manifest_update.json
+```
+
+Validate the provenance record and the resulting private image before placing
+it on recovery media:
+
+```bash
+python3 scripts/check_hal6_recovery_manifest.py
 python3 scripts/check_hal6_usb_recovery.py \
   /private/path/muse-luxe-2025.3.1-hal.6.ota.bin \
   /private/path/muse-luxe-2025.3.1-hal.6.factory.bin \
-  --manifest manifest_update.json \
-  --expected-factory-sha256 REVIEWED_FACTORY_SHA256
+  --manifest manifest_update.json
 ```
 
-The exact retained OTA SHA-256 is closed in the checker. A historical rebuild
-made with example credentials, a generic upstream image, a symlink, an altered
-boot prefix, a wrong offset or extra bytes fails. Do not flash a failed image
-and do not derive or reuse retired credentials from a firmware binary.
+The canonical factory SHA-256 is
+`16ad19ae504dae9e75d6be0cb72b6ada34bf932fae0f972a89b5230dc20c01ac`.
+A generic upstream image, a complete rebuild made with example credentials, a
+symlink, an altered boot prefix, a wrong offset or extra bytes fails. Do not
+flash a failed image and do not derive or reuse retired credentials from a
+firmware binary.
 
 The authenticated OTA rollback is available only when
 `HAL6_REFERENCE_SECRETS` names a separately retained, current-user-private
 `0600` file containing the real immutable `hal.6` domain. Public example
 credentials are always rejected. If that reference is absent, use only a USB
 factory image that has passed the gate above.
+
+For physical recovery, disconnect other serial ESP devices, place the Muse in
+USB boot mode and identify its exact `/dev/cu.*` port. Then run:
+
+```bash
+scripts/flash_hal6_usb.sh \
+  /private/path/muse-luxe-2025.3.1-hal.6.ota.bin \
+  /private/path/muse-luxe-2025.3.1-hal.6.factory.bin \
+  /dev/cu.EXACT_MUSE_PORT
+```
+
+The script repeats both gates around the literal confirmation and pins
+`esptool==5.3.1`. It does not use `--force`, erase the full 4 MB flash, read a
+second secret-bearing copy back to disk, or contact the network. Esptool's
+normal post-write verification must succeed. Reprovision Wi-Fi afterward and
+restore the encrypted Home Assistant API entry. Never run this command merely
+to test it on a healthy canary.
 
 Before any beta or stable promotion, follow `docs/RELEASES.md` and complete a
 copy of `docs/qualification-record.example.json` in the ignored `release/`
