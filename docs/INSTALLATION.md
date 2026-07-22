@@ -45,6 +45,15 @@ then run `scripts/test_home_assistant_routines.py` inside HA Core. Keep
 `input_boolean.muse_routines_enabled` off until household wording and physical
 sensor coverage have been reviewed.
 
+## Family intercom
+
+Follow `docs/INTERCOM.md` to publish the deterministic package, French intents
+and non-audio lifecycle test. Keep `input_boolean.muse_intercom_enabled` off
+until two distinct satellites pass the bidirectional carillon, LED, timeout,
+restart and transcript-retention gates. The current fixed call origin is the
+`bureau`; do not present it as room-aware until the trusted satellite-origin
+hook has been implemented.
+
 ## Proxmox read-only monitoring
 
 Follow `docs/PROXMOX_READONLY.md` to publish the two in-HA helpers and run

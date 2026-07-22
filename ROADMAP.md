@@ -12,7 +12,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0` canari; audio `9.1-alpha.2`; énergie, Proxmox, OPNsense, routines et Frigate authentifié en alpha HA |
+| Fonctions `hal.9` | `9.0` canari; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3` source; énergie, Proxmox, OPNsense, routines et Frigate authentifié en alpha HA |
 | Distribution `hal.10` | `hal.10-alpha.2`: canaux, guides, changelog et dependances automatises |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
@@ -136,6 +136,13 @@ minuteurs resilients a une reconnexion.
 - Bouton central pour accepter, parler, refuser et raccrocher.
 - Commencer en push-to-talk; n'evaluer le duplex qu'apres mesure de l'echo.
 - Carillon et LED obligatoires: aucune ecoute silencieuse.
+
+Etat source `hal.9.1-ha-alpha.3`: le coordinateur Home Assistant impose des
+pieces mappees, un opt-in, un carillon sur ouverture et relais, 45 secondes de
+sonnerie et cinq minutes de session. Le transport est une transcription locale
+ephemere rendue par Piper, sans audio brut ni duplex; un redemarrage HA ferme
+tout etat actif. La qualification reste ouverte jusqu'au second satellite et a
+l'origine de piece materielle fiable.
 
 #### Messages differes
 

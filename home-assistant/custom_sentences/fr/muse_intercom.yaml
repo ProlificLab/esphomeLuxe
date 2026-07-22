@@ -1,0 +1,41 @@
+language: fr
+intents:
+  MuseIntercomCall:
+    data:
+      - sentences:
+          - "appelle [la] {room}"
+          - "ouvre [l']interphone avec [la] {room}"
+  MuseIntercomAccept:
+    data:
+      - sentences:
+          - "accepte [l']interphone"
+          - "décroche [l']interphone"
+  MuseIntercomDecline:
+    data:
+      - sentences:
+          - "refuse [l']interphone"
+          - "rejette [l']appel interphone"
+  MuseIntercomHangup:
+    data:
+      - sentences:
+          - "raccroche [l']interphone"
+          - "termine [l']interphone"
+  MuseIntercomRelay:
+    data:
+      - sentences:
+          - "interphone depuis [le] {room} message {message}"
+        lists:
+          message:
+            wildcard: true
+  MuseIntercomStatus:
+    data:
+      - sentences:
+          - "quel est [l']état de [l']interphone"
+          - "[l']interphone est il actif"
+lists:
+  room:
+    values:
+      - in: "bureau"
+        out: bureau
+      - in: "cuisine"
+        out: cuisine

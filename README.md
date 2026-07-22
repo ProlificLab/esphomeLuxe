@@ -41,14 +41,16 @@ Operational documentation:
 - [Read-only OPNsense telemetry](docs/OPNSENSE_READONLY.md)
 - [Authenticated Frigate camera telemetry](docs/FRIGATE_READONLY.md)
 - [Local bounded French-English interpreter](docs/INTERPRETER.md)
+- [Audible, bounded family intercom](docs/INTERCOM.md)
 - [Offline microSD rescue audio](docs/OFFLINE_RESCUE.md)
 
 Wake-word A/B testing uses the isolated Okay Nabu configuration and protocol in
 [`docs/calibration.md`](docs/calibration.md); it is never part of the primary
 firmware manifest.
 
-The main configuration is intentionally small and composes the seven files in
-`packages/`: hardware, audio, voice, UI, recovery, diagnostics and updates.
+The main configuration is intentionally small and composes the eight files in
+`packages/`: hardware, audio, voice, UI, recovery, diagnostics, updates and
+offline rescue.
 
 ### Private build and local updates
 
