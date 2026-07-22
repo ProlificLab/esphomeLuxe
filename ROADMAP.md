@@ -12,7 +12,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.4` source sous 93%; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3`; gardien acoustique `9.3-ha-alpha.3` source; énergie et infrastructure en alpha HA |
+| Fonctions `hal.9` | `9.0-alpha.4` source sous 93%; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; gardien acoustique `9.3-ha-alpha.3` source |
 | Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
@@ -188,11 +188,13 @@ transfert audio sans redemarrer le satellite.
 - Appliquer anti-spam, horaires silencieux et seuil de confiance.
 - Pas de reconnaissance faciale annoncee sans consentement familial explicite.
 
-Etat `hal.9.2-ha-alpha.5`: l'integration Frigate officielle est epinglee et
+Etat source `hal.9.2-ha-alpha.6`: l'integration Frigate officielle est epinglee et
 utilise un compte `viewer` sur le port authentifie. Onze cameras alimentent un
 etat normalise; les 449 entites brutes sont masquees a Assist et les 121
-commandes generees sont desactivees. La remise d'image reste bloquee jusqu'au
-choix d'une destination explicitement autorisee.
+commandes generees sont desactivees. Une revue locale optionnelle expose pendant
+cinq minutes les deux entites image d'entree explicitement mappees dans un
+dashboard HA authentifie, sans URL publique, copie, jeton ou envoi externe.
+La livraison telephone reste bloquee car aucun Companion n'est inscrit.
 
 Sortie: reponses fondees sur des entites reelles, aucune action critique
 exposee au LLM et alertes Frigate dedupliquees.

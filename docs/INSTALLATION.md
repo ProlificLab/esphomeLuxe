@@ -84,6 +84,13 @@ uses authenticated port `8971`, disables all Frigate control domains and hides
 raw entities from Assist. Follow `docs/FRIGATE_READONLY.md` for validation and
 credential rotation; do not substitute Frigate's internal port `5000`.
 
+## Authenticated video review
+
+After the firmware endurance run, follow `docs/VIDEO_REVIEW.md` and run
+`scripts/provision_video_review_dashboard.sh`. The command validates but does
+not restart HA by default. Keep review off and its destination disabled until
+the closed camera map, image freshness and five-minute expiry pass physically.
+
 ## Local interpreter
 
 Follow `docs/INTERPRETER.md`, then run

@@ -53,10 +53,12 @@ the HA config entry. Removing `/config/custom_components/frigate` restores the
 pre-integration HA state after a core restart. Never replace the viewer role
 with `admin` to repair an unavailable camera; diagnose its RTSP source instead.
 
-Snapshot delivery remains disabled until a specific, authorized Home Assistant
-notification target has been selected and tested. Frigate `0.17` also remains
-below the integration's `0.18` requirement for native LLM image tools, which
-are intentionally not part of this release.
+Phone snapshot delivery remains disabled because no Companion app or authorized
+notification target exists. `hal.9.2-ha-alpha.6` instead prepares a five-minute
+local review of two closed HA image entities; see `docs/VIDEO_REVIEW.md`. It is
+not active before its maintenance-window HA restart and physical test. Frigate
+`0.17` also remains below the integration's `0.18` requirement for native LLM
+image tools, which are intentionally not part of this release.
 
 ## References
 

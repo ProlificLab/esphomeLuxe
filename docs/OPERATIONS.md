@@ -46,6 +46,11 @@ off while diagnosing camera streams. Follow `docs/ACOUSTIC_GUARDIAN.md`; never
 extend retention, enable speech transcription or add a direct alarm action to
 work around a missing MQTT event.
 
+The `Revue video Muse` dashboard displays only a fresh existing HA image entity
+while its five-minute timer is active. If the camera or event ID does not match
+Frigate, close review rather than using the image for a decision. Recovery and
+configuration rollback are in `docs/VIDEO_REVIEW.md`.
+
 ## Local interpreter recovery
 
 Triple click, privacy mode and the ten-minute timer all terminate continuous

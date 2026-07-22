@@ -91,6 +91,8 @@ jobs:
           python3 scripts/check_frigate_readonly.py
           python3 scripts/check_acoustic_guardian_safety.py
           python3 scripts/test_acoustic_guardian_safety.py
+          python3 scripts/check_video_review_safety.py
+          python3 scripts/test_video_review_safety.py
           bash -n scripts/*.sh
           python3 -m py_compile scripts/*.py frigate/*.py
       - name: Upload test build

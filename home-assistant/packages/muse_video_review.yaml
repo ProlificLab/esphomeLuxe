@@ -1,0 +1,202 @@
+input_boolean:
+  muse_video_review_enabled:
+    name: Muse authenticated video review enabled
+    icon: mdi:image-lock-outline
+
+input_select:
+  muse_video_review_destination:
+    name: Muse video review destination
+    options:
+      - disabled
+      - ha_dashboard
+    initial: disabled
+    icon: mdi:monitor-eye
+  muse_video_review_camera:
+    name: Muse video review camera
+    options:
+      - none
+      - sonnette
+      - avant_jardin
+    initial: none
+    icon: mdi:cctv
+
+input_text:
+  muse_video_review_event_id:
+    name: Muse video review event
+    max: 100
+    icon: mdi:identifier
+
+input_datetime:
+  muse_video_review_armed_at:
+    name: Muse video review armed at
+    has_date: true
+    has_time: true
+    icon: mdi:shield-clock-outline
+  muse_video_review_event_at:
+    name: Muse video review event at
+    has_date: true
+    has_time: true
+    icon: mdi:camera-timer
+
+timer:
+  muse_video_review_window:
+    name: Muse video review window
+    duration: "00:05:00"
+    restore: false
+
+automation:
+  - id: muse_video_review_arm_delay
+    alias: Muse - authenticated video review arm delay
+    triggers:
+      - trigger: state
+        entity_id: input_boolean.muse_video_review_enabled
+        to: "on"
+    actions:
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_video_review_armed_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+    mode: restart
+
+  - id: muse_video_review_restart_privacy_guard
+    alias: Muse - authenticated video review restart privacy guard
+    description: restart_privacy_guard closes every stale image review window.
+    triggers:
+      - trigger: homeassistant
+        event: start
+    actions:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.muse_video_review_enabled
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_video_review_destination
+        data:
+          option: disabled
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_video_review_camera
+        data:
+          option: none
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_video_review_event_id
+        data:
+          value: ""
+      - action: timer.cancel
+        target:
+          entity_id: timer.muse_video_review_window
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: muse_video_review
+    mode: single
+
+  - id: muse_video_review_offer
+    alias: Muse - offer authenticated Frigate image review
+    description: >-
+      Opt-in pointer to a fresh read-only HA image entity. It never copies an
+      image, creates a public Frigate URL or sends it to an external target.
+    triggers:
+      - trigger: mqtt
+        topic: frigate/events
+    variables:
+      event: "{{ trigger.payload_json }}"
+      detection: "{{ event.get('after', {}) }}"
+      event_id: "{{ detection.get('id', '') }}"
+      camera: "{{ detection.get('camera', '') }}"
+      label: "{{ detection.get('label', '') }}"
+      confidence: >-
+        {{ detection.get('top_score', detection.get('score', 0)) | float(0) }}
+      event_start: "{{ detection.get('start_time', 0) | float(0) }}"
+      allowed_cameras: >-
+        {{ states('input_text.muse_video_allowed_cameras').split(',')
+           | map('trim') | reject('eq', '') | list }}
+      closed_camera_map:
+        sonnette: image.sonnette_person
+        avant_jardin: image.avant_jardin_person
+      image_entity: "{{ closed_camera_map.get(camera, '') }}"
+      image_updated: >-
+        {%- if image_entity == 'image.sonnette_person' -%}
+          {{ as_timestamp(states.image.sonnette_person.last_updated, 0) }}
+        {%- elif image_entity == 'image.avant_jardin_person' -%}
+          {{ as_timestamp(states.image.avant_jardin_person.last_updated, 0) }}
+        {%- else -%}0
+        {%- endif -%}
+      armed_at: >-
+        {{ as_timestamp(states('input_datetime.muse_video_review_armed_at'), 0) }}
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_video_review_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_select.muse_video_review_destination
+        state: ha_dashboard
+      - condition: template
+        value_template: >-
+          {{ event.get('type') in ['new', 'update'] and
+             event_id | length > 0 and label == 'person' and
+             not detection.get('false_positive', false) and
+             confidence >= states('input_number.muse_video_min_confidence')
+                           | float(0.75) and
+             camera in allowed_cameras and camera in closed_camera_map and
+             event_id != states('input_text.muse_video_review_event_id') and
+             now().timestamp() - armed_at >= 10 and
+             image_entity != '' and
+             states(image_entity) not in ['unknown', 'unavailable'] and
+             image_updated >= event_start - 5 and
+             now().timestamp() - image_updated <= 30 }}
+    actions:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_video_review_event_id
+        data:
+          value: "{{ event_id[:100] }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_video_review_camera
+        data:
+          option: "{{ camera }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_video_review_event_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: timer.start
+        target:
+          entity_id: timer.muse_video_review_window
+        data:
+          duration: "00:05:00"
+      - action: persistent_notification.create
+        data:
+          notification_id: muse_video_review
+          title: Image locale disponible
+          message: >-
+            La dernière image de personne de {{ camera | replace('_', ' ') }}
+            est disponible pendant cinq minutes dans le tableau de bord
+            authentifié « Revue vidéo Muse ». Vérifiez qu'elle correspond à
+            l'événement {{ event_id[:24] }} avant toute décision.
+    mode: single
+
+  - id: muse_video_review_expire
+    alias: Muse - expire authenticated video review
+    triggers:
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.muse_video_review_window
+    actions:
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_video_review_camera
+        data:
+          option: none
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_video_review_event_id
+        data:
+          value: ""
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: muse_video_review
+    mode: single

@@ -1,0 +1,15 @@
+default_config:
+
+homeassistant:
+  packages: !include_dir_named packages
+
+lovelace:
+  mode: storage
+  dashboards:
+    muse-video-review:
+      mode: yaml
+      title: Revue video Muse
+      icon: mdi:image-lock-outline
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/muse-video-review.yaml

@@ -216,6 +216,13 @@ Assist, and only the normalized camera health sensor is exposed. Provisioning,
 validation, rotation and rollback are documented in
 `docs/FRIGATE_READONLY.md`.
 
+`hal.9.2-ha-alpha.6` adds an optional authenticated image-review dashboard for
+the two explicitly mapped entrance cameras. It shows only a fresh existing HA
+person image entity for five minutes, stores no image or token and creates no
+public Frigate notification URL. No mobile app is currently enrolled, so phone
+delivery remains honestly unavailable. Provisioning, qualification and
+rollback are documented in `docs/VIDEO_REVIEW.md`.
+
 `muse_acoustic_guardian.yaml` prepares the first `hal.9.3` experiment without
 enabling any camera microphone. It is opt-in, starts with an empty camera
 allowlist, listens only for `fire_alarm` by default, rate-limits announcements
