@@ -38,6 +38,7 @@ Operational documentation:
 - [Diagnosis and rollback](docs/OPERATIONS.md)
 - [Core canary qualification](docs/CANARY_QUALIFICATION.md)
 - [Source and secrets qualification](docs/SOURCE_QUALIFICATION.md)
+- [Private credential rotation](docs/SECRET_ROTATION.md)
 - [Privacy and safety contract](docs/PRIVACY.md)
 - [Development, beta and stable channels](docs/RELEASES.md)
 - [Machine-verifiable qualification record](docs/qualification-record.example.json)

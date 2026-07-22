@@ -54,6 +54,12 @@ least three real private values against every tracked file without writing
 those values to its report. Follow `docs/SOURCE_QUALIFICATION.md`; example
 credentials cannot pass.
 
+Prepare the post-endurance credential transition with
+`scripts/prepare_secret_rotation.py` and `docs/SECRET_ROTATION.md`. Preparation
+is offline, no-clobber and non-disclosing: it generates three independent
+credentials, keeps only the old OTA password in a private transition file and
+performs no device or network action.
+
 Starting with `hal.9.0-alpha.4`, the 93% target is also a blocking source-CI
 gate. Any main OTA larger than 1,889,402 bytes must be optimized or explicitly
 reworked; it can no longer pass with a warning.
