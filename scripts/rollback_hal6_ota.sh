@@ -16,6 +16,8 @@ if [[ ! -f "$SECRETS" ]]; then
 fi
 version="$(${PYTHON:-python3} "$SCRIPT_DIR/check_rollback_artifact.py" "$FIRMWARE" \
   --manifest "$ROOT/manifest_update.json" --expected-sha256 "$EXPECTED_SHA256")"
+${PYTHON:-python3} "$SCRIPT_DIR/check_hal6_credential_compatibility.py" \
+  "$SECRETS" "$ROOT/secrets.example.yaml" >/dev/null
 confirmation="ROLLBACK $version $EXPECTED_SHA256"
 if [[ -z "${ROLLBACK_CONFIRM:-}" && -t 0 ]]; then
   printf 'Type exactly: %s\n> ' "$confirmation" >&2

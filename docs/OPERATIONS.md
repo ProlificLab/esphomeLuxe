@@ -12,8 +12,10 @@ Export timestamps and exact spoken phrase for reproducible voice failures.
 2. Restart Home Assistant and confirm the Muse returns `offline -> waiting`.
 3. Reboot the Muse and wait at least 60 seconds for Safe Mode health marking.
 4. Use ESPHome Safe Mode OTA if the normal image loops.
-5. Restore the private `hal.6` OTA artifact and matching manifest.
-6. If networking is unavailable, USB-flash the archived factory recovery image.
+5. Before rotation only, restore the private `hal.6` OTA artifact if its
+   credential-domain preflight passes with the matching manifest.
+6. After rotation, or whenever OTA/API is unavailable, USB-flash the archived
+   factory recovery image.
 
 ## Deferred family messages
 

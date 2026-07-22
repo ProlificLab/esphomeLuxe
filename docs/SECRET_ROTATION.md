@@ -59,6 +59,7 @@ of backups until the transition file has been removed.
 ## Recovery boundary
 
 Keep the independently verified `hal.6` rollback artifact. A rollback after
-rotation must use a deliberately reviewed artifact compatible with the active
-credential set; never weaken authentication merely to make an old binary
-uploadable.
+rotation cannot safely use authenticated OTA because immutable `hal.6` boots
+its retired credential domain. `rollback_hal6_ota.sh` detects this mismatch and
+fails before upload. Use the archived USB image and physical recovery procedure;
+never preserve or reuse retired values merely to make the old binary uploadable.

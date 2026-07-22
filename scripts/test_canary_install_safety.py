@@ -77,6 +77,11 @@ class CanaryInstallSafetyTests(unittest.TestCase):
         self.assertNotIn("rollback_hal6_ota.sh", install)
         self.assertIn("ROLLBACK $version $EXPECTED_SHA256", rollback)
         self.assertIn("check_rollback_artifact.py", rollback)
+        self.assertIn("check_hal6_credential_compatibility.py", rollback)
+        self.assertLess(
+            rollback.index("check_hal6_credential_compatibility.py"),
+            rollback.index("ROLLBACK $version $EXPECTED_SHA256"),
+        )
         self.assertIn("verify_canary_boot.py", rollback)
 
 

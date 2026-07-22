@@ -55,9 +55,11 @@ uv run --with aioesphomeapi --with pyyaml scripts/rollback_hal6_ota.sh \
 ```
 
 Rollback has its own confirmation, verifies SHA-256 plus the immutable root
-manifest MD5/version, uploads the exact retained file, and verifies the
-encrypted API after reboot. If OTA or the API is unreachable, stop and follow
-the USB recovery procedure instead of weakening authentication.
+manifest MD5/version, and first requires all three active credentials to match
+the immutable `hal.6` domain. Only then does it upload and verify the encrypted
+API after reboot. After credential rotation this check intentionally fails
+before confirmation or upload: restore immutable `hal.6` over USB instead.
+Never weaken authentication or retain/reuse the retired OTA password.
 
 Before any beta or stable promotion, follow `docs/RELEASES.md` and complete a
 copy of `docs/qualification-record.example.json` in the ignored `release/`

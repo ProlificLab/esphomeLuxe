@@ -137,9 +137,10 @@ manifest, or automatically installs a rollback image.
 
 `scripts/rollback_hal6_ota.sh` is the separate recovery path. It accepts only a
 retained binary whose SHA-256 is supplied explicitly and whose MD5 and version
-match the immutable `hal.6` manifest. A second exact confirmation and post-boot
-API check are mandatory. USB recovery remains the fallback when authenticated
-OTA is unavailable.
+match the immutable `hal.6` manifest. Before confirmation it also requires API,
+OTA and fallback-AP values to match the immutable `hal.6` credential domain.
+A second exact confirmation and post-boot API check are mandatory. Rotation
+therefore closes this OTA path; immutable `hal.6` then uses USB recovery only.
 
 ## Changelog and dependency evidence
 
