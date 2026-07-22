@@ -101,6 +101,7 @@ jobs:
           python3 scripts/test_prepare_secret_rotation.py
           python3 scripts/test_secret_rotation_bundle.py
           python3 scripts/test_rotation_activation.py
+          python3 scripts/test_rotated_candidate_binding.py
           python3 scripts/check_diagnostics_safety.py
           python3 scripts/test_diagnostics_safety.py
           python3 scripts/check_offline_rescue_safety.py

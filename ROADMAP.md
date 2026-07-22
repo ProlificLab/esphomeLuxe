@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.7`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.32`: rollback hal.6 ferme par domaine de credentials |
+| Distribution `hal.10` | `hal.10-alpha.33`: artefact lie aux credentials de build exacts |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -387,7 +387,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.32`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.33`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -435,6 +435,10 @@ Le fichier prive audite est resolu une fois puis sur-monte en lecture seule sur
 `/config/secrets.yaml` dans chacun des deux conteneurs. Le JSON CI doit aussi
 prouver le commit propre, l'unique job `compile`, son succes et son URL canonique
 avant le premier build; auditer un secret et en compiler un autre est impossible.
+La preuve source v2 lie maintenant l'empreinte du fichier prive aux deux journaux
+de build et au binaire reproductible. L'installateur de rotation exige cette
+preuve et compare l'empreinte au bundle avant confirmation ou ecriture; fournir
+un ancien binaire correctement signe ne peut donc plus atteindre l'appareil.
 Le rollback OTA vers l'image `hal.6` immuable compare desormais en temps constant
 les trois credentials actifs a son domaine historique avant confirmation ou
 upload. Apres rotation il refuse donc l'OTA destructrice et impose le flash USB,

@@ -64,6 +64,9 @@ the flash budget and only then invokes the source sealer.
 The selected rotated secrets file is the exact read-only `/config/secrets.yaml`
 mount for both builds. An exact-commit CI preflight runs before compilation;
 auditing one file while compiling another is a release-blocking failure.
+Source evidence schema v2 binds the SHA-256 of that private file into both
+build logs and the sealed record. The rotation installer compares this binding
+with the new bundle before any confirmation or device write.
 
 Prepare the post-endurance credential transition with
 `scripts/prepare_secret_rotation.py` and `docs/SECRET_ROTATION.md`. Preparation
@@ -72,8 +75,10 @@ credentials, keeps only the old OTA password in a private transition file and
 performs no device or network action.
 `install_rotated_canary_ota.sh` is the only supported transition path after
 endurance: old OTA upload and new encrypted-API verification are separate,
-ordered credentials. Local activation is atomic, resumable and occurs only
-after exact healthy boot; partial or unrelated active secret sets fail closed.
+ordered credentials. It additionally requires the exact schema-v2 source
+record proving the candidate was built with the bundle's new credentials.
+Local activation is atomic, resumable and occurs only after exact healthy boot;
+partial or unrelated active secret sets fail closed.
 
 Starting with `hal.9.0-alpha.4`, the 93% target is also a blocking source-CI
 gate. Any main OTA larger than 1,889,402 bytes must be optimized or explicitly

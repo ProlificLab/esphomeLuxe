@@ -24,6 +24,15 @@ class SealSourceQualificationTests(unittest.TestCase):
         self.artifact.write_bytes(b"x" * 1888912)
         self.sha = hashlib.sha256(self.artifact.read_bytes()).hexdigest()
         self.output = self.root / "source.json"
+        self.secrets = self.root / "secrets.yaml"
+        self.secrets.write_text(
+            "api_encryption_key: real-private-api-value\n"
+            "ota_password: real-private-ota-value\n"
+            "fallback_ap_password: real-private-ap-value\n",
+            encoding="utf-8",
+        )
+        self.secrets.chmod(0o600)
+        self.secrets_sha = hashlib.sha256(self.secrets.read_bytes()).hexdigest()
         self.write_logs()
 
     def tearDown(self) -> None:
@@ -39,7 +48,10 @@ class SealSourceQualificationTests(unittest.TestCase):
         }
         (self.root / "ci.log").write_text(json.dumps(ci), encoding="utf-8")
         for name in ("build-first.log", "build-second.log"):
-            (self.root / name).write_text(f"OTA SHA256={self.sha}\n", encoding="utf-8")
+            (self.root / name).write_text(
+                f"SECRETS SHA256={self.secrets_sha}\nOTA SHA256={self.sha}\n",
+                encoding="utf-8",
+            )
         (self.root / "firmware-size.log").write_text(
             "size_bytes=1888912\npartition_bytes=2031616\nusage_percent=92.9\n"
             "target_percent=93\nhard_percent=97\nhal6_baseline_bytes=1948144\n",
@@ -53,7 +65,7 @@ class SealSourceQualificationTests(unittest.TestCase):
 
     def derive(self) -> dict[str, object]:
         return derive_record(self.output, self.root, self.artifact, VERSION, COMMIT,
-                             "Household release reviewer")
+                             "Household release reviewer", self.secrets)
 
     def test_derives_and_atomically_seals_exact_record(self) -> None:
         record = self.derive(); seal(record, self.output)
@@ -61,6 +73,7 @@ class SealSourceQualificationTests(unittest.TestCase):
         self.assertTrue(sealed["passed"])
         self.assertEqual(sealed["candidate"]["firmware_sha256"], self.sha)
         self.assertEqual(sealed["ci"]["run_id"], 123)
+        self.assertEqual(sealed["credentials"]["file_sha256"], self.secrets_sha)
         self.assertEqual(sealed["secrets_audit"]["private_secret_keys_checked"], 3)
 
     def test_refuses_existing_output_without_modification(self) -> None:
@@ -93,11 +106,20 @@ class SealSourceQualificationTests(unittest.TestCase):
         try:
             with self.assertRaises(RuntimeError):
                 derive_record(self.output, outside, self.artifact, VERSION, COMMIT,
-                              "Household release reviewer")
+                              "Household release reviewer", self.secrets)
         finally:
             outside.rmdir()
         log = self.root / "build-second.log"
         log.unlink(); log.symlink_to(self.root / "build-first.log")
+        with self.assertRaises(RuntimeError): self.derive()
+
+    def test_private_secrets_and_both_build_bindings_are_mandatory(self) -> None:
+        self.secrets.chmod(0o644)
+        with self.assertRaises(RuntimeError): self.derive()
+        self.secrets.chmod(0o600)
+        (self.root / "build-first.log").write_text(
+            f"OTA SHA256={self.sha}\n", encoding="utf-8"
+        )
         with self.assertRaises(RuntimeError): self.derive()
 
 

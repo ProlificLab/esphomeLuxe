@@ -17,6 +17,7 @@ VERSION = "2026.1.0-hal.10-beta.1"
 FIRMWARE_SHA = "a" * 64
 SOURCE_COMMIT = "b" * 40
 SIZE_BYTES = 1888912
+SECRETS_SHA = "c" * 64
 
 
 def secret_report() -> dict[str, object]:
@@ -54,7 +55,7 @@ def ci_report(evidence: dict[str, object]) -> dict[str, object]:
 
 def valid_evidence() -> dict[str, object]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "passed": True,
         "candidate": {
             "project_version": VERSION,
@@ -90,6 +91,12 @@ def valid_evidence() -> dict[str, object]:
             "container_image": "esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0",
             "esp_idf": "5.4.2",
         },
+        "credentials": {
+            "file_sha256": SECRETS_SHA,
+            "mounted_path": "/config/secrets.yaml",
+            "read_only": True,
+            "builds_bound": 2,
+        },
         "secrets_audit": {
             "tracked_file_count": 180,
             "private_secret_keys_checked": 3,
@@ -110,6 +117,7 @@ def write_log_fixtures(directory: Path, evidence: dict[str, object]) -> None:
             path.write_text(json.dumps(ci_report(evidence)), encoding="utf-8")
         elif name in {"build_first", "build_second"}:
             path.write_text(
+                f"SECRETS SHA256={evidence['credentials']['file_sha256']}\n"
                 f"reviewed {name} SHA256={evidence['candidate']['firmware_sha256']}\n",
                 encoding="utf-8",
             )
@@ -143,7 +151,7 @@ class SourceQualificationEvidenceTests(unittest.TestCase):
         write_log_fixtures(self.directory, evidence)
         self.path.write_text(json.dumps(evidence), encoding="utf-8")
         validate_evidence(
-            self.path, VERSION, FIRMWARE_SHA, SOURCE_COMMIT, SIZE_BYTES
+            self.path, VERSION, FIRMWARE_SHA, SOURCE_COMMIT, SIZE_BYTES, SECRETS_SHA
         )
 
     def test_exact_source_record_passes(self) -> None:
@@ -195,6 +203,32 @@ class SourceQualificationEvidenceTests(unittest.TestCase):
             evidence["build"][field] = value
             with self.subTest(field=field), self.assertRaises(RuntimeError):
                 self.validate(evidence)
+
+    def test_credential_binding_drift_and_missing_log_marker_fail(self) -> None:
+        for field, value in (
+            ("file_sha256", "0" * 64),
+            ("mounted_path", "/tmp/secrets.yaml"),
+            ("read_only", False),
+            ("builds_bound", 1),
+        ):
+            evidence = valid_evidence()
+            evidence["credentials"][field] = value
+            with self.subTest(field=field), self.assertRaises(RuntimeError):
+                self.validate(evidence)
+
+        evidence = valid_evidence()
+        write_log_fixtures(self.directory, evidence)
+        first = self.directory / "build_first.log"
+        first.write_text(f"reviewed SHA256={FIRMWARE_SHA}\n", encoding="utf-8")
+        evidence["logs"]["build_first"] = (
+            f"sha256:{hashlib.sha256(first.read_bytes()).hexdigest()} {first.name}"
+        )
+        self.path.write_text(json.dumps(evidence), encoding="utf-8")
+        with self.assertRaises(RuntimeError):
+            validate_evidence(
+                self.path, VERSION, FIRMWARE_SHA, SOURCE_COMMIT, SIZE_BYTES,
+                SECRETS_SHA,
+            )
 
     def test_secret_summary_requires_three_real_values_and_no_findings(self) -> None:
         evidence = valid_evidence()
@@ -259,6 +293,8 @@ class SourceQualificationEvidenceTests(unittest.TestCase):
 
     def test_schema_review_time_and_expected_size_are_closed(self) -> None:
         evidence = valid_evidence(); evidence["extra"] = True
+        with self.assertRaises(RuntimeError): self.validate(evidence)
+        evidence = valid_evidence(); evidence["schema_version"] = 1
         with self.assertRaises(RuntimeError): self.validate(evidence)
         evidence = valid_evidence(); evidence["reviewed_at"] = "2020-01-01T00:00:00+00:00"
         with self.assertRaises(RuntimeError): self.validate(evidence)

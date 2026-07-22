@@ -67,6 +67,7 @@ class RotationActivationTests(unittest.TestCase):
             "check_secret_rotation_bundle.py",
             "audit_tracked_secrets.py",
             "check_canary_deploy_readiness.py",
+            "check_rotated_candidate_binding.py",
             "ROTATION_INSTALL_CONFIRM",
             "install_canary_ota.sh",
             "activate_secret_rotation.py",
@@ -75,6 +76,12 @@ class RotationActivationTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertIn('OTA_SECRETS="$ROTATION_DIR/transition-ota.yaml"', wrapper)
         self.assertIn('VERIFY_SECRETS="$ROTATION_DIR/secrets.yaml"', wrapper)
+        self.assertIn('SOURCE_EVIDENCE="${7:?$usage}"', wrapper)
+        self.assertEqual(wrapper.count("check_rotated_candidate_binding.py"), 2)
+        self.assertLess(
+            wrapper.rindex("check_rotated_candidate_binding.py"),
+            wrapper.index("install_canary_ota.sh"),
+        )
         self.assertLess(base.index("upload_exact_ota.py"), base.index("verify_canary_boot.py"))
         self.assertIn('--secrets "$VERIFY_SECRETS"', base)
 

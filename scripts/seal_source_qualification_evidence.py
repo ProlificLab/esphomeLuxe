@@ -87,7 +87,7 @@ def parse_size(path: Path) -> dict[str, str]:
 
 def derive_record(
     output_path: Path, logs_dir: Path, artifact: Path, version: str,
-    source_commit: str, reviewer: str,
+    source_commit: str, reviewer: str, private_secrets: Path,
 ) -> dict[str, object]:
     if output_path.exists() or output_path.is_symlink():
         fail(f"Refusing to overwrite sealed source evidence: {output_path}")
@@ -99,7 +99,15 @@ def derive_record(
         or artifact.stat().st_size == 0
     ):
         fail("Source evidence output directory or OTA artifact is invalid")
+    if (
+        not private_secrets.is_file()
+        or private_secrets.is_symlink()
+        or private_secrets.stat().st_uid != os.getuid()
+        or private_secrets.stat().st_mode & 0o777 != 0o600
+    ):
+        fail("Source evidence private secrets must be current-user mode 0600")
     firmware_sha = digest(artifact)
+    secrets_sha = digest(private_secrets)
     bindings, paths = bind_logs(logs_dir, output_path.parent)
     ci = json.loads(paths["ci"].read_text(encoding="utf-8"))
     jobs = ci.get("jobs") if isinstance(ci, dict) else None
@@ -107,8 +115,11 @@ def derive_record(
     if not isinstance(job, dict):
         fail("Source CI log has no compile job")
     for name in ("build_first", "build_second"):
-        if firmware_sha not in paths[name].read_text(encoding="utf-8"):
+        build_log = paths[name].read_text(encoding="utf-8")
+        if firmware_sha not in build_log:
             fail(f"Source {name} log does not contain exact OTA SHA-256")
+        if f"SECRETS SHA256={secrets_sha}" not in build_log.splitlines():
+            fail(f"Source {name} log does not bind the selected private secrets")
     size_values = parse_size(paths["firmware_size"])
     size = artifact.stat().st_size
     required_size = {
@@ -124,7 +135,7 @@ def derive_record(
     if not isinstance(findings, dict):
         fail("Source secret-audit log is invalid")
     return {
-        "schema_version": 1, "passed": True,
+        "schema_version": 2, "passed": True,
         "candidate": {"project_version": version, "firmware_sha256": firmware_sha, "source_commit": source_commit},
         "reviewer": reviewer, "reviewed_at": datetime.now(timezone.utc).isoformat(),
         "logs": bindings,
@@ -143,6 +154,10 @@ def derive_record(
             "target_passed": size <= PARTITION_BYTES * TARGET_PERCENT // 100,
             "hard_limit_passed": size <= PARTITION_BYTES * HARD_PERCENT // 100,
             "container_image": ESPHOME_IMAGE, "esp_idf": "5.4.2",
+        },
+        "credentials": {
+            "file_sha256": secrets_sha, "mounted_path": "/config/secrets.yaml",
+            "read_only": True, "builds_bound": 2,
         },
         "secrets_audit": {
             "tracked_file_count": secret.get("tracked_file_count"),
@@ -185,10 +200,11 @@ def main() -> None:
     parser.add_argument("output", type=Path); parser.add_argument("artifact", type=Path)
     parser.add_argument("version"); parser.add_argument("--logs-dir", type=Path, required=True)
     parser.add_argument("--reviewer", required=True)
+    parser.add_argument("--private-secrets", type=Path, required=True)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     record = derive_record(args.output, args.logs_dir, args.artifact, args.version,
-                           git_identity(root), args.reviewer)
+                           git_identity(root), args.reviewer, args.private_secrets)
     seal(record, args.output)
     print(f"Sealed source qualification: path={args.output} sha256={digest(args.output)}")
 

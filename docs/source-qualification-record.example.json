@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "passed": false,
   "candidate": {
     "project_version": "REPLACE_WITH_EXACT_VERSION",
@@ -40,6 +40,12 @@
     "hard_limit_passed": false,
     "container_image": "esphome/esphome@sha256:REPLACE",
     "esp_idf": "REPLACE"
+  },
+  "credentials": {
+    "file_sha256": "REPLACE_WITH_PRIVATE_SECRETS_SHA256",
+    "mounted_path": "/config/secrets.yaml",
+    "read_only": true,
+    "builds_bound": 2
   },
   "secrets_audit": {
     "tracked_file_count": 0,

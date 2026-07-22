@@ -40,14 +40,25 @@ python3 "$SCRIPT_DIR/audit_tracked_secrets.py" --private-secrets "$SECRETS" \
 source_commit="$(git -C "$ROOT" rev-parse HEAD)"
 python3 "$SCRIPT_DIR/check_source_ci_preflight.py" "$OUTPUT_DIR/ci.log" \
   "$source_commit" >/dev/null
+secrets_sha="$(shasum -a 256 "$SECRETS_ABS" | awk '{print $1}')"
 
 build_once() {
   local log="$1"
+  local observed_sha
+  observed_sha="$(shasum -a 256 "$SECRETS_ABS" | awk '{print $1}')"
+  [[ "$observed_sha" == "$secrets_sha" ]] || {
+    echo "Private secrets changed before a source build." >&2; exit 1;
+  }
+  printf 'SECRETS SHA256=%s\n' "$secrets_sha" >>"$log"
   docker run --rm -v "$ROOT:/config" -v "$SECRETS_ABS:/config/secrets.yaml:ro" \
     -w /config "$IMAGE" clean "$CONFIG" >>"$log" 2>&1
   docker run --rm -v "$ROOT:/config" -v "$SECRETS_ABS:/config/secrets.yaml:ro" \
     -w /config "$IMAGE" compile "$CONFIG" >>"$log" 2>&1
   local sha
+  observed_sha="$(shasum -a 256 "$SECRETS_ABS" | awk '{print $1}')"
+  [[ "$observed_sha" == "$secrets_sha" ]] || {
+    echo "Private secrets changed during a source build." >&2; exit 1;
+  }
   sha="$(shasum -a 256 "$FIRMWARE" | awk '{print $1}')"
   printf 'OTA SHA256=%s\n' "$sha" >>"$log"
   printf '%s' "$sha"
@@ -69,5 +80,6 @@ python3 "$SCRIPT_DIR/check_private_log_disclosure.py" --private-secrets "$SECRET
   "$OUTPUT_DIR/firmware-size.log" "$OUTPUT_DIR/secrets-audit.log" >/dev/null
 python3 "$SCRIPT_DIR/seal_source_qualification_evidence.py" \
   "$OUTPUT_DIR/source-$VERSION.json" "$artifact" "$VERSION" \
-  --logs-dir "$OUTPUT_DIR" --reviewer "$REVIEWER"
+  --logs-dir "$OUTPUT_DIR" --reviewer "$REVIEWER" \
+  --private-secrets "$SECRETS_ABS"
 echo "Collected and sealed two-build source qualification in $OUTPUT_DIR."

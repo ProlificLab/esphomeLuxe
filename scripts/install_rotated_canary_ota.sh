@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-usage="Usage: install_rotated_canary_ota.sh ARTIFACT MANIFEST ENDURANCE_SUMMARY SHA256 HOST ROTATION_DIR"
+usage="Usage: install_rotated_canary_ota.sh ARTIFACT MANIFEST ENDURANCE_SUMMARY SHA256 HOST ROTATION_DIR SOURCE_EVIDENCE"
 FIRMWARE="${1:?$usage}"
 MANIFEST="${2:?$usage}"
 ENDURANCE_SUMMARY="${3:?$usage}"
 EXPECTED_SHA256="${4:?$usage}"
 DEVICE_HOST="${5:?$usage}"
 ROTATION_DIR="${6:?$usage}"
+SOURCE_EVIDENCE="${7:?$usage}"
 ACTIVE_SECRETS="${ACTIVE_SECRETS:-secrets.yaml}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -19,6 +20,9 @@ readiness="$(${PYTHON:-python3} "$SCRIPT_DIR/check_canary_deploy_readiness.py" \
   --expected-firmware-sha256 "$EXPECTED_SHA256" --format json)"
 version="$(${PYTHON:-python3} -c 'import json,sys; print(json.load(sys.stdin)["version"])' <<<"$readiness")"
 sha256="$(${PYTHON:-python3} -c 'import json,sys; print(json.load(sys.stdin)["sha256"])' <<<"$readiness")"
+${PYTHON:-python3} "$SCRIPT_DIR/check_rotated_candidate_binding.py" \
+  "$FIRMWARE" "$SOURCE_EVIDENCE" "$ROTATION_DIR" \
+  --expected-version "$version" >/dev/null
 confirmation="ROTATE CANARY $version $sha256"
 if [[ -z "${ROTATION_INSTALL_CONFIRM:-}" && -t 0 ]]; then
   printf 'Type exactly: %s\n> ' "$confirmation" >&2
@@ -28,6 +32,9 @@ if [[ "${ROTATION_INSTALL_CONFIRM:-}" != "$confirmation" ]]; then
   echo "Rotation installation confirmation is missing or does not match." >&2
   exit 1
 fi
+${PYTHON:-python3} "$SCRIPT_DIR/check_rotated_candidate_binding.py" \
+  "$FIRMWARE" "$SOURCE_EVIDENCE" "$ROTATION_DIR" \
+  --expected-version "$version" >/dev/null
 
 OTA_SECRETS="$ROTATION_DIR/transition-ota.yaml" \
 VERIFY_SECRETS="$ROTATION_DIR/secrets.yaml" \

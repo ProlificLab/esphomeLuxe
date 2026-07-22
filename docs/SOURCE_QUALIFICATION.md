@@ -22,6 +22,9 @@ The selected private file is resolved once and over-mounted read-only on
 `/config/secrets.yaml` in both Docker builds, so the audited and compiled values
 cannot diverge. The saved CI JSON is also checked against the clean current
 commit and its single successful `compile` job before either build starts.
+Schema v2 records the SHA-256 of that exact private file and requires the same
+non-secret fingerprint in both build logs. This binds reproducibility, the OTA
+and the selected credentials without exposing their values.
 
 ## Required logs
 
@@ -61,7 +64,8 @@ commit and its single successful `compile` job before either build starts.
    ```bash
    python3 scripts/seal_source_qualification_evidence.py \
      release/source-VERSION/source-VERSION.json ARTIFACT VERSION \
-     --logs-dir release/source-VERSION --reviewer "REVIEWER"
+     --logs-dir release/source-VERSION --reviewer "REVIEWER" \
+     --private-secrets release/rotation-VERSION/secrets.yaml
    ```
 
    Then independently validate it with:
@@ -72,7 +76,8 @@ commit and its single successful `compile` job before either build starts.
      --expected-version VERSION \
      --expected-firmware-sha256 OTA_SHA256 \
      --expected-source-commit FULL_COMMIT \
-     --expected-size-bytes OTA_SIZE
+     --expected-size-bytes OTA_SIZE \
+     --expected-secrets-sha256 PRIVATE_SECRETS_SHA256
    ```
 
 `build_reproducible`, `ci_passed`, `firmware_size_hard_limit` and
@@ -80,6 +85,8 @@ commit and its single successful `compile` job before either build starts.
 uses it for `firmware_size_target`. The qualification checker rejects prose,
 split records, modified logs, unsafe paths, non-reproducible hashes, stale CI,
 size drift and an audit that did not compare three real private values.
+The rotation installer also requires this sealed record and refuses before
+confirmation if its OTA or credentials fingerprint differs from the bundle.
 
 ## Current rotation gate
 

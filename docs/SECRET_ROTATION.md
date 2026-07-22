@@ -41,11 +41,15 @@ operator command is:
 ```bash
 scripts/install_rotated_canary_ota.sh \
   ARTIFACT MANIFEST ENDURANCE_SUMMARY OTA_SHA256 HOST \
-  release/rotation-VERSION
+  release/rotation-VERSION release/source-VERSION/source-VERSION.json
 ```
 
-It repeats bundle, tracked-secret and candidate preflights and requires the
-literal `ROTATE CANARY VERSION SHA256` confirmation. The old OTA value is
+It repeats bundle, tracked-secret and candidate preflights, validates source
+evidence schema v2 and proves that both clean builds mounted the bundle's exact
+new secrets. A different artifact, bundle, fingerprint or modified build log is
+rejected before confirmation. It then requires the literal
+`ROTATE CANARY VERSION SHA256` confirmation and repeats the complete binding
+check immediately afterward. The old OTA value is
 mounted read-only only for upload. The new API key must then prove the exact
 version, `waiting`, `healthy` and empty error state before local activation.
 Never set its confirmation variable in shell history or automation.

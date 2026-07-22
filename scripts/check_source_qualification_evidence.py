@@ -164,15 +164,16 @@ def validate_evidence(
     expected_firmware_sha256: str | None = None,
     expected_source_commit: str | None = None,
     expected_size_bytes: int | None = None,
+    expected_secrets_sha256: str | None = None,
 ) -> dict:
     evidence = json.loads(path.read_text(encoding="utf-8"))
     exact_keys(
         evidence,
-        {"schema_version", "passed", "candidate", "reviewer", "reviewed_at", "logs", "ci", "build", "secrets_audit"},
+        {"schema_version", "passed", "candidate", "reviewer", "reviewed_at", "logs", "ci", "build", "credentials", "secrets_audit"},
         "record",
     )
-    if type(evidence["schema_version"]) is not int or evidence["schema_version"] != 1 or evidence["passed"] is not True:
-        fail("Source qualification evidence did not pass with schema version 1")
+    if type(evidence["schema_version"]) is not int or evidence["schema_version"] != 2 or evidence["passed"] is not True:
+        fail("Source qualification evidence did not pass with schema version 2")
     candidate = exact_keys(
         evidence["candidate"],
         {"project_version", "firmware_sha256", "source_commit"},
@@ -264,6 +265,26 @@ def validate_evidence(
     if not required_size_lines.issubset(size_log):
         fail("Source qualification firmware-size log differs from reviewed metrics")
 
+    credentials = exact_keys(
+        evidence["credentials"],
+        {"file_sha256", "mounted_path", "read_only", "builds_bound"},
+        "credentials",
+    )
+    secrets_sha256 = require_text(credentials["file_sha256"], "credentials SHA-256", 64)
+    if (
+        re.fullmatch(r"[0-9a-f]{64}", secrets_sha256) is None
+        or credentials["mounted_path"] != "/config/secrets.yaml"
+        or credentials["read_only"] is not True
+        or credentials["builds_bound"] != 2
+    ):
+        fail("Source qualification credential build binding is invalid")
+    if expected_secrets_sha256 is not None and secrets_sha256 != expected_secrets_sha256:
+        fail("Source qualification credentials differ from the selected private file")
+    marker = f"SECRETS SHA256={secrets_sha256}"
+    for name in ("build_first", "build_second"):
+        if marker not in logs[name].read_text(encoding="utf-8").splitlines():
+            fail(f"Source qualification {name} log is not bound to selected credentials")
+
     summary = exact_keys(
         evidence["secrets_audit"],
         {"tracked_file_count", "private_secret_keys_checked", "exact_secret_matches", "suspicious_pattern_matches", "prohibited_tracked_files"},
@@ -280,6 +301,7 @@ def main() -> None:
     parser.add_argument("--expected-firmware-sha256")
     parser.add_argument("--expected-source-commit")
     parser.add_argument("--expected-size-bytes", type=int)
+    parser.add_argument("--expected-secrets-sha256")
     args = parser.parse_args()
     evidence = validate_evidence(
         args.evidence,
@@ -287,6 +309,7 @@ def main() -> None:
         args.expected_firmware_sha256,
         args.expected_source_commit,
         args.expected_size_bytes,
+        args.expected_secrets_sha256,
     )
     print(
         "Source qualification evidence passed: "
