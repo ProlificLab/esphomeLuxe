@@ -92,6 +92,13 @@ Follow `docs/INTERPRETER.md`, then run
 the package requires its context-reset API action. Keep the interpreter alpha
 and opt-in until bilingual microphone and pronunciation tests pass.
 
+## Local acoustic guardian
+
+Follow `docs/ACOUSTIC_GUARDIAN.md` to inventory, consent, probe and prepare one
+camera at a time. The repository policy is disabled and the generator writes a
+separate private candidate; it never edits or restarts Frigate. Do not apply a
+candidate until the one-day retention tradeoff and room consent are reviewed.
+
 ## Offline rescue card
 
 Follow `docs/OFFLINE_RESCUE.md` to review the six messages, format a dedicated

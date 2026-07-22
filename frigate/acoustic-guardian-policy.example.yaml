@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "enabled": false,
+  "retention_days": 1,
+  "cameras": {
+    "example_camera": {
+      "approved": false,
+      "approved_by": "REPLACE",
+      "approved_at": "REPLACE",
+      "room": "REPLACE",
+      "input_role": "detect",
+      "min_volume": 500,
+      "max_not_heard": 10,
+      "labels": {
+        "fire_alarm": 0.90
+      }
+    }
+  }
+}

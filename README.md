@@ -219,9 +219,12 @@ validation, rotation and rollback are documented in
 `muse_acoustic_guardian.yaml` prepares the first `hal.9.3` experiment without
 enabling any camera microphone. It is opt-in, starts with an empty camera
 allowlist, listens only for `fire_alarm` by default, rate-limits announcements
-and asks for human/sensor verification. It cannot trigger a siren or another
-critical action. Real audio detection must be enabled separately per consented
-Frigate camera after checking that stream's audio role and retention policy.
+and records optional dedicated-sensor corroboration. It returns to off after a
+Home Assistant restart and cannot trigger a siren or another critical action.
+The consent-bound candidate generator enforces local go2rtc input, closed
+labels, high thresholds, disabled transcription and one-day retention before a
+real Frigate camera can be considered. Follow `docs/ACOUSTIC_GUARDIAN.md`;
+there is intentionally no automatic apply command.
 
 `muse_interpreter.yaml` adds the second `hal.9.3` experiment: two local,
 tool-free French-English pipelines with a ten-minute session, explicit

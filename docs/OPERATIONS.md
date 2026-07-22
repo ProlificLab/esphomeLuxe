@@ -41,6 +41,11 @@ reason to grant `admin`, expose raw entities to Assist or use port `5000`.
 Account revocation, database backups and component rollback are documented in
 `docs/FRIGATE_READONLY.md`.
 
+For acoustic detection, keep `input_boolean.muse_acoustic_guardian_enabled`
+off while diagnosing camera streams. Follow `docs/ACOUSTIC_GUARDIAN.md`; never
+extend retention, enable speech transcription or add a direct alarm action to
+work around a missing MQTT event.
+
 ## Local interpreter recovery
 
 Triple click, privacy mode and the ten-minute timer all terminate continuous

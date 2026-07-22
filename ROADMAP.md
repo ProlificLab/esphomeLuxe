@@ -12,7 +12,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.4` source sous 93%; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3` source; énergie, Proxmox, OPNsense, routines et Frigate authentifié en alpha HA |
+| Fonctions `hal.9` | `9.0-alpha.4` source sous 93%; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3`; gardien acoustique `9.3-ha-alpha.3` source; énergie et infrastructure en alpha HA |
 | Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
@@ -204,6 +204,14 @@ exposee au LLM et alertes Frigate dedupliquees.
 - Detecter sur le Chuwi alarme fumee, bris de verre, pleurs ou aboiements.
 - Activation par piece, segments minimaux et retention courte.
 - Croiser avec d'autres capteurs avant une action importante.
+
+Etat source `hal.9.3-ha-alpha.3`: le classifieur CPU natif de Frigate est
+prepare par camera via un manifeste de consentement, un flux go2rtc explicite,
+quatre classes fermees et une retention maximale d'un jour. La transcription
+est interdite, HA revient a `off` apres redemarrage et ne peut produire qu'une
+annonce de verification, eventuellement corroboree par un capteur dedie. Aucun
+microphone camera n'est active; consentement, test du codec, charge CPU, faux
+positifs et suppression physique a un jour restent ouverts.
 
 #### Interprete instantane
 

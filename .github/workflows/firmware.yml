@@ -89,6 +89,8 @@ jobs:
             opnsense/muse-readonly/models/OPNsense/Muse/ACL/ACL.xml
           python3 scripts/test_opnsense_readonly.py
           python3 scripts/check_frigate_readonly.py
+          python3 scripts/check_acoustic_guardian_safety.py
+          python3 scripts/test_acoustic_guardian_safety.py
           bash -n scripts/*.sh
           python3 -m py_compile scripts/*.py frigate/*.py
       - name: Upload test build
