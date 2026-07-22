@@ -94,5 +94,25 @@ that a different value is appropriate.
 5. Turn the HA helper off, restore the dated Frigate config and restart Frigate
    to roll back. Confirm `frigate/<camera>/status/audio` is `disabled`.
 
+For stable qualification, copy
+`docs/acoustic-guardian-record.example.json` into the ignored release
+directory. Preserve only the SHA-256 of the private Frigate candidate, never
+its credentials. Record all thirteen scenarios, at least two representative
+hours and one event for each of the four classes, false positives, RMS and CPU.
+
+```bash
+python3 scripts/check_acoustic_guardian_evidence.py \
+  release/acoustic-VERSION.json \
+  --expected-version "VERSION" \
+  --expected-firmware-sha256 "$(sha256sum release/muse-luxe-VERSION.ota.bin | cut -d' ' -f1)" \
+  --expected-package-sha256 "$(sha256sum home-assistant/packages/muse_acoustic_guardian.yaml | cut -d' ' -f1)" \
+  --expected-preparer-sha256 "$(sha256sum scripts/prepare_frigate_acoustic_guardian.py | cut -d' ' -f1)" \
+  --expected-policy-template-sha256 "$(sha256sum frigate/acoustic-guardian-policy.example.yaml | cut -d' ' -f1)"
+```
+
+Stable promotion recomputes all repository hashes and binds the record to the
+OTA. It permits at most one false positive per observed hour and a 30-point CPU
+increase. The example remains failed until physical qualification is complete.
+
 References: [Frigate audio detectors](https://docs.frigate.video/configuration/audio_detectors/)
 and [Frigate MQTT topics](https://docs.frigate.video/integrations/mqtt/).

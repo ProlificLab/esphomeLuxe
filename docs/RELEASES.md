@@ -144,3 +144,8 @@ physical/failure scenarios, one reboot and one HA disconnect/reconnect cycle.
 pipeline configurator and local intent sentences. It pins Granite and both
 pipelines, requires five heard phrases in each direction below the latency
 limit, all exit/restoration paths and zero Home Assistant actions.
+
+`acoustic_guardian_physical.evidence` binds the OTA, HA package, guarded
+preparer, policy template and private candidate hash. It requires consent,
+all four classes, two hours per class, bounded false positives and CPU, one-day
+retention, disabled transcription and a verified rollback to audio disabled.

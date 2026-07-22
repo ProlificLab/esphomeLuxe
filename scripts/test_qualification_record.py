@@ -12,6 +12,7 @@ import tempfile
 import unittest
 
 import check_qualification_record as checker
+from test_acoustic_guardian_evidence import valid_evidence as valid_acoustic_evidence
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
 from test_interpreter_evidence import valid_evidence as valid_interpreter_evidence
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
@@ -83,6 +84,8 @@ class QualificationRecordTests(unittest.TestCase):
         split_offline_rescue_gates: bool = False,
         tamper_interpreter: bool = False,
         unbound_interpreter: bool = False,
+        tamper_acoustic: bool = False,
+        unbound_acoustic: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -209,6 +212,32 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_interpreter:
                 interpreter_path.write_text("{}\n", encoding="utf-8")
+            acoustic_package = (
+                ROOT / "home-assistant/packages/muse_acoustic_guardian.yaml"
+            )
+            acoustic_preparer = (
+                ROOT / "scripts/prepare_frigate_acoustic_guardian.py"
+            )
+            acoustic_policy = (
+                ROOT / "frigate/acoustic-guardian-policy.example.yaml"
+            )
+            acoustic_path = self.directory / "acoustic.json"
+            acoustic = valid_acoustic_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(acoustic_package.read_bytes()).hexdigest(),
+                hashlib.sha256(acoustic_preparer.read_bytes()).hexdigest(),
+                hashlib.sha256(acoustic_policy.read_bytes()).hexdigest(),
+            )
+            acoustic_path.write_text(json.dumps(acoustic), encoding="utf-8")
+            acoustic_hash = hashlib.sha256(acoustic_path.read_bytes()).hexdigest()
+            record["gates"]["acoustic_guardian_physical"]["evidence"] = (
+                "acoustic.json"
+                if unbound_acoustic
+                else f"sha256:{acoustic_hash} {acoustic_path.name}"
+            )
+            if tamper_acoustic:
+                acoustic_path.write_text("{}\n", encoding="utf-8")
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
             summary["device"]["project_version"] = version
@@ -482,6 +511,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_interpreter=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_acoustic_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_acoustic=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_acoustic_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_acoustic=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

@@ -19,7 +19,7 @@
   "open_gates": [],
   "gates": {
     "access_sensor_routines": {"passed": false, "evidence": "REPLACE"},
-    "acoustic_guardian_physical": {"passed": false, "evidence": "REPLACE"},
+    "acoustic_guardian_physical": {"passed": false, "evidence": "sha256:REPLACE acoustic-VERSION.json"},
     "acoustic_calibration": {"passed": false, "evidence": "REPLACE"},
     "announcement_routing_queue": {"passed": false, "evidence": "REPLACE"},
     "build_reproducible": {"passed": false, "evidence": "REPLACE"},

@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.11`: interprète bilingue lié aux pipelines et au candidat exact |
+| Distribution `hal.10` | `hal.10-alpha.12`: gardien acoustique lié au consentement et au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -259,6 +259,11 @@ annonce de verification, eventuellement corroboree par un capteur dedie. Aucun
 microphone camera n'est active; consentement, test du codec, charge CPU, faux
 positifs et suppression physique a un jour restent ouverts.
 
+Etat outil `hal.9.3-qualification.2`: le dossier acoustique lie version, OTA,
+package HA, preparateur, politique et hash de configuration privee. Il ferme
+consentement, quatre classes sur deux heures chacune, faux positifs, RMS, CPU,
+retention, non-transcription, absence d'action et rollback audio desactive.
+
 #### Interprete instantane
 
 - Session bilingue continue avec STT, traduction et TTS locaux.
@@ -307,7 +312,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.11`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.12`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -331,6 +336,8 @@ Les deux portes secours doivent partager un dossier hashé unique, lie au
 binaire OTA, au package ESPHome, au composant FAT et au manifeste microSD.
 La porte interprète charge un dossier hashé lie au binaire OTA, aux trois
 sources HA, au digest Granite, aux deux pipelines et aux mesures bilingues.
+La porte acoustique charge un dossier hashé lie au binaire OTA, aux sources
+Frigate/HA, au consentement, aux mesures de qualite et au rollback prive.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

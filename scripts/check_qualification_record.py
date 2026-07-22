@@ -11,6 +11,9 @@ from pathlib import Path
 import re
 import subprocess
 
+from check_acoustic_guardian_evidence import (
+    validate_evidence as validate_acoustic_evidence,
+)
 from check_endurance_summary import validate_summary
 from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
 from check_interpreter_evidence import validate_evidence as validate_interpreter_evidence
@@ -325,6 +328,22 @@ def main() -> None:
                 root
                 / "home-assistant/custom_sentences/fr/muse_interpreter.yaml"
             ),
+        )
+        acoustic_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["acoustic_guardian_physical"],
+            "Acoustic guardian",
+        )
+        validate_acoustic_evidence(
+            acoustic_path,
+            version,
+            artifact_hash,
+            sha256(
+                root
+                / "home-assistant/packages/muse_acoustic_guardian.yaml"
+            ),
+            sha256(root / "scripts/prepare_frigate_acoustic_guardian.py"),
+            sha256(root / "frigate/acoustic-guardian-policy.example.yaml"),
         )
         endurance_path = resolve_bound_evidence(
             args.record,
