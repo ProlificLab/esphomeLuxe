@@ -63,8 +63,13 @@ def main() -> None:
         PLAYER,
         "script.muse_music_announcement",
         "script.muse_transfer_audio",
+        "script.muse_create_temporary_audio_group",
+        "script.muse_close_temporary_audio_group",
+        "script.muse_recover_temporary_audio_group",
         "input_boolean.muse_audio_follow_enabled",
+        "input_select.muse_audio_group_state",
         "input_text.muse_audio_transfer_status",
+        "timer.muse_audio_temporary_group",
     }
     states = request("/api/states", token)
     state_ids = {item["entity_id"] for item in states}
@@ -72,6 +77,8 @@ def main() -> None:
         raise RuntimeError(f"Missing Music Assistant entities: {sorted(missing)}")
     if state(token, "input_boolean.muse_audio_follow_enabled")["state"] != "off":
         raise RuntimeError("Automatic/manual audio following must default to off")
+    if state(token, "input_select.muse_audio_group_state")["state"] != "idle":
+        raise RuntimeError("Temporary audio group requires review before testing")
     recovery_deadline = time.monotonic() + PLAYER_RECOVERY_TIMEOUT
     while state(token, PLAYER)["state"] == "unavailable":
         if time.monotonic() >= recovery_deadline:
@@ -80,6 +87,30 @@ def main() -> None:
                 f"{PLAYER_RECOVERY_TIMEOUT}s: {PLAYER}"
             )
         time.sleep(2)
+
+    request(
+        "/api/services/script/muse_create_temporary_audio_group",
+        token,
+        {
+            "master": PLAYER,
+            "members": [PLAYER],
+            "duration_minutes": 5,
+        },
+    )
+    group_guard_deadline = time.monotonic() + 10
+    while True:
+        group_status = state(token, "input_text.muse_audio_transfer_status")[
+            "state"
+        ]
+        if group_status == "blocked_disabled":
+            break
+        if time.monotonic() >= group_guard_deadline:
+            raise RuntimeError(
+                f"Disabled group guard did not run; status={group_status}"
+            )
+        time.sleep(0.25)
+    if state(token, "input_select.muse_audio_group_state")["state"] != "idle":
+        raise RuntimeError("Disabled group request claimed persistent state")
 
     request(
         "/api/services/script/muse_transfer_audio",
@@ -119,7 +150,8 @@ def main() -> None:
     print(
         "PASS Home Assistant Music Assistant "
         f"player={PLAYER} state={final_state} "
-        f"transfer_opt_in=off transfer_guard={transfer_status}"
+        f"transfer_opt_in=off group_guard={group_status} "
+        f"transfer_guard={transfer_status}"
     )
 
 

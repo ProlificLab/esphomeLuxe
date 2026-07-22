@@ -188,8 +188,11 @@ physical gates are documented in `docs/FAMILY_MESSAGES.md`.
 Music Assistant `2.9.9` stable is installed on the target HA instance. The
 allowlisted Muse is exposed as `media_player.raspiaudio_muse_luxe_2`; guarded
 local announcements and an opt-in manual queue-transfer script are provided by
-`home-assistant/packages/muse_music_assistant.yaml`. Live room-to-room audio and
-multi-player transfer remain unvalidated until a second satellite is deployed.
+`home-assistant/packages/muse_music_assistant.yaml`. `hal.9.1-ha-alpha.5` also
+adds two-to-four-player temporary groups with a restorable timer, relative-volume
+restoration and explicit crash recovery. Live room-to-room audio and
+multi-player transfer remain unvalidated until a second satellite is deployed;
+see `docs/MUSIC_ASSISTANT.md` for the physical gates.
 
 `home-assistant/packages/muse_house_intelligence.yaml` starts the read-only
 `hal.9.2` layer. It exposes a normalized energy state with raw Victron facts,

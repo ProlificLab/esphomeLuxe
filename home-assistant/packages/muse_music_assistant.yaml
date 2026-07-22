@@ -9,6 +9,34 @@ input_text:
     initial: idle
     max: 32
     icon: mdi:list-status
+  muse_audio_group_master:
+    name: Muse temporary audio group master
+    max: 100
+    icon: mdi:speaker-multiple
+  muse_audio_group_members:
+    name: Muse temporary audio group members
+    max: 255
+    icon: mdi:speaker-multiple
+
+input_select:
+  muse_audio_group_state:
+    name: Muse temporary audio group state
+    options: [idle, grouping, active, closing, review]
+    icon: mdi:state-machine
+
+input_datetime:
+  muse_audio_group_claimed_at:
+    name: Muse temporary audio group claimed at
+    has_date: true
+    has_time: true
+    icon: mdi:clock-check-outline
+
+timer:
+  muse_audio_temporary_group:
+    name: Muse temporary audio group lifetime
+    duration: "02:00:00"
+    restore: true
+    icon: mdi:timer-music-outline
 
 script:
   muse_music_announcement:
@@ -138,9 +166,23 @@ script:
       - if:
           - condition: template
             value_template: >-
+              {{ states('input_select.muse_audio_group_state') != 'idle' }}
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_audio_transfer_status
+            data:
+              value: blocked_group_active
+          - stop: Queue transfer is blocked during a temporary group session
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
               {{ source == destination
                  or source not in known_players
-                 or destination not in known_players }}
+                 or destination not in known_players
+                 or states(source) in ['unknown', 'unavailable']
+                 or states(destination) in ['unknown', 'unavailable'] }}
         then:
           - action: input_text.set_value
             target:
@@ -165,3 +207,400 @@ script:
           entity_id: input_text.muse_audio_transfer_status
         data:
           value: transferred
+
+  muse_create_temporary_audio_group:
+    alias: Muse - create temporary audio group
+    description: >-
+      Explicit, time-bounded Music Assistant group for two to four available
+      Muse players. Individual volumes are restored immediately after joining.
+    mode: single
+    fields:
+      master:
+        name: Group master
+        required: true
+        selector:
+          entity:
+            filter:
+              domain: media_player
+      members:
+        name: Group members
+        required: true
+        selector:
+          entity:
+            multiple: true
+            filter:
+              domain: media_player
+      duration_minutes:
+        name: Group lifetime
+        required: false
+        default: 120
+        selector:
+          number:
+            min: 5
+            max: 240
+            step: 5
+            unit_of_measurement: min
+    variables:
+      coordinator: "{{ master | string }}"
+      requested_members: >-
+        {% if members is string %}
+          {{ [members] }}
+        {% else %}
+          {{ members | list }}
+        {% endif %}
+      requested_players: "{{ [coordinator] + requested_members }}"
+      candidate_players: "{{ requested_players | unique | list }}"
+      group_minutes: "{{ duration_minutes | default(120) | int }}"
+      known_players: >-
+        {{ states.media_player | map(attribute='entity_id') | list }}
+      valid_players: >-
+        {% set ns = namespace(valid=true) %}
+        {% for player in candidate_players %}
+          {% if player not in known_players or
+                states(player) in ['unknown', 'unavailable'] or
+                not player.startswith('media_player.raspiaudio_muse_luxe') %}
+            {% set ns.valid = false %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valid }}
+      volume_snapshot: >-
+        {% set ns = namespace(items=[]) %}
+        {% for player in candidate_players %}
+          {% set ns.items = ns.items + [{
+            'player': player,
+            'volume': state_attr(player, 'volume_level')
+          }] %}
+        {% endfor %}
+        {{ ns.items }}
+    sequence:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_transfer_status
+        data:
+          value: group_requested
+      - if:
+          - condition: state
+            entity_id: input_boolean.muse_audio_follow_enabled
+            state: "off"
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_audio_transfer_status
+            data:
+              value: blocked_disabled
+          - stop: Temporary audio grouping is disabled
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('input_select.muse_audio_group_state') != 'idle' }}
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_audio_transfer_status
+            data:
+              value: blocked_group_active
+          - stop: Another temporary audio group requires closure or review
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ not valid_players or
+                 requested_players | length != candidate_players | length or
+                 candidate_players | length < 2 or
+                 candidate_players | length > 4 or
+                 group_minutes < 5 or group_minutes > 240 }}
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_audio_transfer_status
+            data:
+              value: blocked_invalid
+          - stop: Group requires two to four distinct available Muse players
+            error: true
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_group_master
+        data:
+          value: "{{ coordinator }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_group_members
+        data:
+          value: "{{ requested_members | join(',') }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_audio_group_claimed_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_audio_group_state
+        data:
+          option: grouping
+      - action: media_player.join
+        target:
+          entity_id: "{{ coordinator }}"
+        data:
+          group_members: "{{ requested_members }}"
+      - wait_template: >-
+          {% set current = state_attr(coordinator, 'group_members') or [] %}
+          {% set ns = namespace(complete=true) %}
+          {% for player in candidate_players %}
+            {% if player not in current %}
+              {% set ns.complete = false %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.complete }}
+        timeout: "00:00:30"
+        continue_on_timeout: false
+      - repeat:
+          for_each: "{{ volume_snapshot }}"
+          sequence:
+            - if:
+                - condition: template
+                  value_template: "{{ repeat.item.volume is not none }}"
+              then:
+                - action: media_player.volume_set
+                  target:
+                    entity_id: "{{ repeat.item.player }}"
+                  data:
+                    volume_level: "{{ repeat.item.volume | float }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_audio_group_state
+        data:
+          option: active
+      - action: timer.start
+        target:
+          entity_id: timer.muse_audio_temporary_group
+        data:
+          duration: "{{ group_minutes * 60 }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_transfer_status
+        data:
+          value: group_active
+
+  muse_clear_temporary_audio_group_state:
+    alias: Muse - clear temporary audio group state
+    description: Internal cleanup after every player has been ungrouped.
+    mode: single
+    sequence:
+      - action: timer.cancel
+        target:
+          entity_id: timer.muse_audio_temporary_group
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_group_master
+        data:
+          value: ""
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_group_members
+        data:
+          value: ""
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_audio_group_state
+        data:
+          option: idle
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_audio_transfer_status
+        data:
+          value: idle
+
+  muse_close_temporary_audio_group:
+    alias: Muse - close temporary audio group
+    description: Ungroups every persisted member and clears state only on success.
+    mode: single
+    variables:
+      coordinator: "{{ states('input_text.muse_audio_group_master') }}"
+      stored_members: >-
+        {{ states('input_text.muse_audio_group_members').split(',')
+           | map('trim') | reject('eq', '') | list }}
+      stored_players: "{{ (stored_members + [coordinator]) | unique | list }}"
+      known_players: >-
+        {{ states.media_player | map(attribute='entity_id') | list }}
+      valid_players: >-
+        {% set ns = namespace(valid=true) %}
+        {% for player in stored_players %}
+          {% if player not in known_players or
+                states(player) in ['unknown', 'unavailable'] or
+                not player.startswith('media_player.raspiaudio_muse_luxe') %}
+            {% set ns.valid = false %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valid and stored_players | length >= 2 and
+           stored_players | length <= 4 }}
+    sequence:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('input_select.muse_audio_group_state') != 'active' or
+                 not valid_players }}
+        then:
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.muse_audio_group_state
+            data:
+              option: review
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_audio_transfer_status
+            data:
+              value: group_review
+          - stop: Temporary group state is incomplete and requires review
+            error: true
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_audio_group_claimed_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_audio_group_state
+        data:
+          option: closing
+      - action: timer.cancel
+        target:
+          entity_id: timer.muse_audio_temporary_group
+      - repeat:
+          for_each: "{{ stored_players }}"
+          sequence:
+            - action: media_player.unjoin
+              target:
+                entity_id: "{{ repeat.item }}"
+      - action: script.muse_clear_temporary_audio_group_state
+
+  muse_recover_temporary_audio_group:
+    alias: Muse - explicitly recover temporary audio group
+    description: >-
+      Human-confirmed cleanup for an interrupted grouping or closing operation.
+      It never runs automatically after a restart.
+    mode: single
+    fields:
+      confirm_cleanup:
+        name: Confirm group cleanup
+        required: true
+        selector:
+          boolean:
+    variables:
+      confirmed: "{{ confirm_cleanup | default(false) | bool }}"
+      coordinator: "{{ states('input_text.muse_audio_group_master') }}"
+      stored_members: >-
+        {{ states('input_text.muse_audio_group_members').split(',')
+           | map('trim') | reject('eq', '') | list }}
+      stored_players: "{{ (stored_members + [coordinator]) | unique | list }}"
+      known_players: >-
+        {{ states.media_player | map(attribute='entity_id') | list }}
+      valid_players: >-
+        {% set ns = namespace(valid=true) %}
+        {% for player in stored_players %}
+          {% if player not in known_players or
+                states(player) in ['unknown', 'unavailable'] or
+                not player.startswith('media_player.raspiaudio_muse_luxe') %}
+            {% set ns.valid = false %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.valid and stored_players | length >= 2 and
+           stored_players | length <= 4 }}
+    sequence:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ not confirmed or not valid_players or
+                 states('input_select.muse_audio_group_state') not in
+                   ['grouping', 'closing', 'review'] }}
+        then:
+          - stop: Explicit confirmation and a valid review state are required
+            error: true
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_audio_group_claimed_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_audio_group_state
+        data:
+          option: closing
+      - repeat:
+          for_each: "{{ stored_players }}"
+          sequence:
+            - action: media_player.unjoin
+              target:
+                entity_id: "{{ repeat.item }}"
+      - action: script.muse_clear_temporary_audio_group_state
+
+automation:
+  - id: muse_temporary_audio_group_lifecycle
+    alias: Muse - temporary audio group lifecycle
+    description: >-
+      Closes an expired active group and quarantines interrupted transitions.
+      Restart recovery never issues an automatic unjoin command.
+    triggers:
+      - trigger: homeassistant
+        event: start
+        id: startup
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.muse_audio_temporary_group
+        id: expired
+      - trigger: time_pattern
+        minutes: "/1"
+        seconds: "30"
+        id: watchdog
+    actions:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ trigger.id == 'expired' and
+                     states('input_select.muse_audio_group_state') == 'active' }}
+            sequence:
+              - action: script.muse_close_temporary_audio_group
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ (trigger.id == 'startup' and
+                      states('input_select.muse_audio_group_state') in
+                        ['grouping', 'closing']) or
+                     (trigger.id in ['startup', 'watchdog'] and
+                      states('input_select.muse_audio_group_state') == 'active' and
+                      not is_state('timer.muse_audio_temporary_group', 'active')) }}
+            sequence:
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.muse_audio_group_state
+                data:
+                  option: review
+              - action: input_text.set_value
+                target:
+                  entity_id: input_text.muse_audio_transfer_status
+                data:
+                  value: group_review
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {% set claimed = as_timestamp(
+                    states('input_datetime.muse_audio_group_claimed_at'), 0) %}
+                  {{ trigger.id == 'watchdog' and
+                     states('input_select.muse_audio_group_state') in
+                       ['grouping', 'closing'] and
+                     now().timestamp() - claimed >= 120 }}
+            sequence:
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.muse_audio_group_state
+                data:
+                  option: review
+              - action: input_text.set_value
+                target:
+                  entity_id: input_text.muse_audio_transfer_status
+                data:
+                  value: group_review
+    mode: queued
+    max: 3

@@ -71,5 +71,62 @@ we need to validate.
   diagnosis without storing media or credentials.
 - Source and destination must be distinct available media players.
 - No paid music provider or external account is configured.
-- Queue transfer, grouping, position preservation and live intercom still need
-  a second satellite and are not release-qualified.
+- Queue transfer, position preservation and live intercom still need a second
+  satellite and are not release-qualified.
+
+## Temporary groups
+
+`hal.9.1-ha-alpha.5` adds an explicit temporary-group lifecycle around Home
+Assistant's Music Assistant `media_player.join` and `media_player.unjoin`
+support. Automatic presence following remains absent and
+`input_boolean.muse_audio_follow_enabled` remains off by default.
+
+A request to `script.muse_create_temporary_audio_group` must contain two to
+four distinct, currently available entities whose IDs begin with
+`media_player.raspiaudio_muse_luxe`. The group lifetime is bounded from five to
+240 minutes. Before joining, the script persists the coordinator, members and
+claim time; after Music Assistant confirms all members, it restores each
+captured volume and starts a restorable timer.
+
+Example after a second Muse has been deployed and validated:
+
+```yaml
+action: script.muse_create_temporary_audio_group
+data:
+  master: media_player.raspiaudio_muse_luxe_2
+  members:
+    - media_player.raspiaudio_muse_luxe_kitchen
+  duration_minutes: 60
+```
+
+Close a healthy group with `script.muse_close_temporary_audio_group`. Expiry
+calls the same close path. A restart preserves an `active` session only when HA
+also restores its active timer. Interrupted `grouping` or `closing`, a missing
+timer, an unavailable persisted player, or a two-minute stuck transition moves
+the session to `review`; state is not silently cleared.
+
+Recovery is deliberately manual because an automatic unjoin after a partial
+failure could stop the wrong playback session:
+
+```yaml
+action: script.muse_recover_temporary_audio_group
+data:
+  confirm_cleanup: true
+```
+
+The explicit recovery validates every persisted player again, unjoins all of
+them, and clears state only if every action succeeds. Queue transfer is blocked
+while any group is active, transitioning or awaiting review.
+
+## Group qualification
+
+1. Enable the manual opt-in and create a two-Muse group for five minutes.
+2. Start from different volumes and verify their relative difference after join.
+3. Transfer an active music, radio and podcast queue in both directions; verify
+   title, queue, elapsed position and play/pause state.
+4. Close manually, then repeat with timer expiry and prove no ghost membership.
+5. Restart HA with an active restored timer; prove the group remains coherent.
+6. Inject failures during join and unjoin, verify `review`, then perform explicit
+   recovery without losing the persisted member list.
+7. Make one member unavailable before close and prove no successful cleanup is
+   claimed until the player returns and recovery is confirmed.

@@ -12,7 +12,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.4` sous 93% et minuteurs `9.0-ha-alpha.2`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
+| Fonctions `hal.9` | `9.0-alpha.4` sous 93% et minuteurs `9.0-ha-alpha.2`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
 | Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
@@ -172,6 +172,15 @@ fin de l'endurance.
   explicite.
 - Creer des groupes temporaires et conserver position, source et volume relatif.
 - Proposer un mode manuel pour eviter les transferts intempestifs.
+
+Etat source `hal.9.1-ha-alpha.5`: le transfert de file reste strictement manuel
+et desactive par defaut. Les groupes temporaires acceptent deux a quatre Muse
+disponibles pour 5 a 240 minutes, revendiquent leur etat avant `join`, restaurent
+les volumes individuels et ferment par le meme chemin sur demande ou expiration.
+Une creation/fermeture interrompue, un timer perdu ou un membre indisponible
+passe en `review`; seul un nettoyage humain confirme peut envoyer les commandes
+de recuperation. Position, volumes et absence de groupe fantome restent a
+qualifier avec un second satellite.
 
 Sortie: aucun canal fantome, message remis une fois au bon destinataire et
 transfert audio sans redemarrer le satellite.
