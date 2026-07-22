@@ -158,6 +158,19 @@ privacy, and triple click toggles continuous conversation. Privacy is restored
 after reboot; only a hardware microphone power cut can provide a strong physical
 privacy guarantee.
 
+Optional timer checkpoints are isolated in
+`home-assistant/packages/muse_timer_coach.yaml`. They are disabled by default,
+never replay a missed checkpoint after reconnect and use the existing bounded
+announcement queue. Publish and validate both required packages without a
+default restart with:
+
+```bash
+PVE_HOST=user@proxmox-host scripts/provision_timer_coach.sh
+```
+
+See `docs/TIMER_COACH.md` for the physical pause/resume, reconnect, night-mode
+and audio-contention qualification gates.
+
 Canary mode and privacy-persistence tests use the encrypted ESPHome API:
 
 ```bash

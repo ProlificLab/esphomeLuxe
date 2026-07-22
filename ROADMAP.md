@@ -12,7 +12,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.4` source sous 93%; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
+| Fonctions `hal.9` | `9.0-alpha.4` sous 93% et minuteurs `9.0-ha-alpha.2`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
 | Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
@@ -116,6 +116,14 @@ Sortie: profils jour/nuit mesures, faux reveils quantifies et stabilite egale a
 - Plusieurs minuteurs nommes avec pause, reprise et annulation.
 - LED representant le temps restant et annonces intermediaires.
 - Son local de secours si HA tombe apres la creation du minuteur.
+
+Etat source `hal.9.0-ha-alpha.2`: les minuteurs Assist natifs restent portes
+par l'ESP32 avec nom, compte, LED et son final local. Un package HA optionnel,
+desactive par defaut, annonce les jalons 5 min, 1 min, 30 s et 10 s via la file
+normale. Il refuse tout rattrapage apres reconnexion ou saut de duree. Les
+annonces non urgentes attendent aussi la fin de la musique et des sessions
+vocales; pause, reprise, minuteurs concurrents et reconnexion restent a qualifier
+physiquement apres l'endurance.
 
 #### Modes physiques et conversation continue
 

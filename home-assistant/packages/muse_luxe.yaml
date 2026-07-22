@@ -142,7 +142,17 @@ script:
                     entity_id: "{{ player }}"
               else:
                 - wait_template: >-
-                    {{ states(player) not in ['playing', 'buffering'] }}
+                    {% set muse_voice_state =
+                         states('sensor.raspiaudio_muse_luxe_voice_state') %}
+                    {% set muse_conversation =
+                         is_state(
+                           'switch.raspiaudio_muse_luxe_continuous_conversation',
+                           'on') or
+                         muse_voice_state in
+                           ['starting', 'listening', 'answering'] %}
+                    {{ states(player) not in ['playing', 'buffering'] and
+                       (player != 'media_player.raspiaudio_muse_luxe' or
+                        not muse_conversation) }}
                   timeout: "00:10:00"
                   continue_on_timeout: false
             - action: media_player.volume_set
