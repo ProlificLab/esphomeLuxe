@@ -84,6 +84,20 @@ Only after that preflight does it upload the artifact to
 `manifest.json` in the same private channel. The order is deliberate and the
 root `manifest_update.json` rollback pointer is never overwritten.
 
+Publication and installation remain separate operations. Once publication and
+the SHA review are complete, `scripts/install_canary_ota.sh` repeats the same
+endurance/artifact preflight and requires an exact interactive confirmation.
+It passes the reviewed OTA file directly to the pinned ESPHome `espota2`
+implementation, then requires the encrypted API to report the expected version,
+healthy voice state and no error. It never rebuilds, copies over the root
+manifest, or automatically installs a rollback image.
+
+`scripts/rollback_hal6_ota.sh` is the separate recovery path. It accepts only a
+retained binary whose SHA-256 is supplied explicitly and whose MD5 and version
+match the immutable `hal.6` manifest. A second exact confirmation and post-boot
+API check are mandatory. USB recovery remains the fallback when authenticated
+OTA is unavailable.
+
 ## Changelog and dependency evidence
 
 CI writes two files into every firmware artifact:

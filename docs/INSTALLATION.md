@@ -22,6 +22,43 @@
 
 Never point the production update entity at an alpha manifest.
 
+The device's HTTP update entity currently reads the private root
+`/local/muse-luxe/manifest.json`. That root remains the `hal.6` recovery
+reference, so publishing a development manifest deliberately does not trigger
+an update. After the 24-hour summary exists and the candidate SHA-256 has been
+reviewed, install the exact artifact directly with:
+
+```bash
+uv run --with aioesphomeapi --with pyyaml scripts/install_canary_ota.sh \
+  release/muse-luxe-VERSION.ota.bin \
+  release/manifest-development.json \
+  release/hal9-endurance-24h-final.summary.json \
+  REVIEWED_SHA256 10.10.40.100
+```
+
+The command repeats the publication preflight, refuses a dirty worktree,
+requires typing `INSTALL CANARY VERSION SHA256`, and mounts only the reviewed
+artifact and secrets read-only into the pinned ESPHome container. It invokes
+`espota2` on that exact file rather than recompiling. After the OTA reboot it
+uses the encrypted API to require the exact version, `voice_state=waiting`,
+`voice_health=healthy` and no voice error. `uv` creates the same isolated
+runtime used by the other physical API tests; no global Python packages are
+required.
+
+If post-boot verification fails, do not repeat the canary flash automatically.
+Collect diagnostics first. To restore the separately retained `hal.6` binary,
+use its independently recorded SHA-256:
+
+```bash
+uv run --with aioesphomeapi --with pyyaml scripts/rollback_hal6_ota.sh \
+  /private/path/muse-luxe-hal6.ota.bin REVIEWED_HAL6_SHA256 10.10.40.100
+```
+
+Rollback has its own confirmation, verifies SHA-256 plus the immutable root
+manifest MD5/version, uploads the exact retained file, and verifies the
+encrypted API after reboot. If OTA or the API is unreachable, stop and follow
+the USB recovery procedure instead of weakening authentication.
+
 Before any beta or stable promotion, follow `docs/RELEASES.md` and complete a
 copy of `docs/qualification-record.example.json` in the ignored `release/`
 directory. The promotion command performs a second clean build and refuses any
