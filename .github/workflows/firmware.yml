@@ -93,6 +93,9 @@ jobs:
           python3 scripts/test_acoustic_guardian_safety.py
           python3 scripts/check_video_review_safety.py
           python3 scripts/test_video_review_safety.py
+          python3 scripts/check_family_message_safety.py
+          python3 scripts/test_family_message_safety.py
+          python3 scripts/test_family_message_queue_model.py
           bash -n scripts/*.sh
           python3 -m py_compile scripts/*.py frigate/*.py
       - name: Upload test build

@@ -60,6 +60,13 @@ restart and transcript-retention gates. The current fixed call origin is the
 `bureau`; do not present it as room-aware until the trusted satellite-origin
 hook has been implemented.
 
+## Deferred family messages
+
+After the firmware endurance run, follow `docs/FAMILY_MESSAGES.md` and run
+`scripts/provision_family_messages.sh`. Inspect the legacy one-slot flag before
+requesting the maintenance restart. After restart, run the non-audio lifecycle
+test before queuing any real family transcript.
+
 ## Proxmox read-only monitoring
 
 Follow `docs/PROXMOX_READONLY.md` to publish the two in-HA helpers and run

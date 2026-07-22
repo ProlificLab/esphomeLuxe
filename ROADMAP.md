@@ -12,7 +12,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.4` source sous 93%; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; gardien acoustique `9.3-ha-alpha.3` source |
+| Fonctions `hal.9` | `9.0-alpha.4` source sous 93%; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
 | Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
@@ -149,6 +149,14 @@ l'origine de piece materielle fiable.
 - `Dis a Anna que le diner est pret quand elle rentre` stocke un message local.
 - Remise sur presence explicite, avec confirmation, report et expiration.
 - Conserver la transcription plutot que l'enregistrement brut si possible.
+
+Etat source `hal.9.1-ha-alpha.4`: trois slots persistants de 240 caracteres
+refusent tout ecrasement et sont traites FIFO par identifiant horodate. Une
+livraison revendique le slot avant TTS; un redemarrage ou blocage de six minutes
+la place en revue sans rejeu automatique. Retry ou discard deviennent alors
+explicitement humains. La migration mono-slot conserve un message valide sans
+prolonger un message expire. Deploiement et qualification physique attendent la
+fin de l'endurance.
 
 #### Audio qui suit l'utilisateur
 

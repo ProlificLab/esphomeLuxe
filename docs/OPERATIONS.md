@@ -15,6 +15,14 @@ Export timestamps and exact spoken phrase for reproducible voice failures.
 5. Restore the private `hal.6` OTA artifact and matching manifest.
 6. If networking is unavailable, USB-flash the archived factory recovery image.
 
+## Deferred family messages
+
+Check `sensor.muse_family_message_queue` before restarting HA. A slot in
+`delivering` after restart is intentionally moved to `review`; never change it
+back to `pending` automatically. Review its ID and recipient, then use the
+explicit retry or discard script. Full migration, qualification and rollback
+steps are in `docs/FAMILY_MESSAGES.md`.
+
 ## Proxmox monitoring credential
 
 The Home Assistant Proxmox token is revocable independently of root. Rerun

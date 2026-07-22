@@ -165,12 +165,12 @@ uv run --with aioesphomeapi --with pyyaml scripts/test_hal9_modes.py
 uv run --with aioesphomeapi --with pyyaml scripts/test_privacy_reboot.py
 ```
 
-The same HA package contains the first `hal.9.1` communication layer. A
-transcribed push-to-talk message always starts with an audible chime. Family
-messages are delivered immediately when the selected `person` is home, or one
-message is retained locally until presence, explicit forced delivery, or
-expiry. A second request is rejected instead of silently replacing the pending
-message.
+The `hal.9.1` communication layer always prefixes a transcribed push-to-talk
+message with an audible chime. `hal.9.1-ha-alpha.4` expands deferred delivery to
+three persistent 240-character slots with FIFO ordering, expiry and strict full
+queue refusal. A delivery interrupted by HA is quarantined for explicit retry
+or discard and is never replayed automatically. Migration, provisioning and
+physical gates are documented in `docs/FAMILY_MESSAGES.md`.
 
 Music Assistant `2.9.9` stable is installed on the target HA instance. The
 allowlisted Muse is exposed as `media_player.raspiaudio_muse_luxe_2`; guarded
