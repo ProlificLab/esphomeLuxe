@@ -99,6 +99,10 @@ jobs:
           python3 scripts/check_acoustic_guardian_safety.py
           python3 scripts/test_acoustic_guardian_safety.py
           python3 scripts/test_acoustic_guardian_evidence.py
+          python3 scripts/check_video_alert_safety.py
+          python3 scripts/test_video_alert_safety.py
+          python3 scripts/test_video_alert_model.py
+          python3 scripts/test_video_alert_evidence.py
           python3 scripts/check_video_review_safety.py
           python3 scripts/test_video_review_safety.py
           python3 scripts/test_video_review_evidence.py

@@ -35,6 +35,7 @@ from check_physical_controls_evidence import (
 )
 from check_routine_evidence import validate_evidence as validate_routine_evidence
 from check_timer_evidence import validate_evidence as validate_timer_evidence
+from check_video_alert_evidence import validate_evidence as validate_video_alert_evidence
 from check_video_review_evidence import validate_evidence as validate_video_evidence
 
 
@@ -413,6 +414,22 @@ def main() -> None:
             ),
             sha256(root / "scripts/prepare_frigate_acoustic_guardian.py"),
             sha256(root / "frigate/acoustic-guardian-policy.example.yaml"),
+        )
+        video_alert_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["camera_alerts_deduplicated"],
+            "Video alert",
+        )
+        validate_video_alert_evidence(
+            video_alert_path,
+            version,
+            artifact_hash,
+            sha256(root / "home-assistant/packages/muse_video_alerts.yaml"),
+            sha256(root / "home-assistant/packages/muse_luxe.yaml"),
+            sha256(root / "scripts/check_video_alert_safety.py"),
+            sha256(root / "scripts/test_video_alert_model.py"),
+            sha256(root / "scripts/configure_frigate_mqtt.sh"),
+            sha256(root / "scripts/check_frigate_readonly.py"),
         )
         video_path = resolve_bound_evidence(
             args.record,

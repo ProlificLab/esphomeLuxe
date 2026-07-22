@@ -152,6 +152,12 @@ distinct available players, preserved session/kind/step across handoff, restart
 recovery, all local intents, stale Victron refusal, full reset and zero critical
 actions or external deliveries.
 
+`camera_alerts_deduplicated.evidence` binds the OTA, alert/base packages,
+safety checker, state model, MQTT provisioning and Frigate read-only policy. It
+requires both closed cameras, fresh-event boundaries, seven-ID persistent FIFO,
+cross-camera cooldown, night/privacy filters, audible count parity and zero
+control action, delivery error or external delivery.
+
 The two stable offline gates must reference one identical hash-bound
 `offline-rescue` record. It binds the OTA, rescue package, read-only FAT
 component and unchanged card manifest, then requires all six clips, fifteen

@@ -12,8 +12,8 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; revue video `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.17`: transfert de routine lie aux deux cibles et au candidat exact |
+| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
+| Distribution `hal.10` | `hal.10-alpha.18`: alertes video liees a la FIFO et au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -273,6 +273,18 @@ complet. La preuve physique attend le second satellite et la fin de l'endurance.
 - Appliquer anti-spam, horaires silencieux et seuil de confiance.
 - Pas de reconnaissance faciale annoncee sans consentement familial explicite.
 
+Etat source `hal.9.2-ha-alpha.9`: les alertes personne refusent maintenant les
+evenements vieux de plus de 30 secondes ou trop futurs, limitent ID et zones,
+ferment les cameras a `sonnette` et `avant_jardin` et conservent sept IDs. Un
+ancien evenement ne peut plus etre reparle apres qu'un autre a remplace le
+dernier ID; cooldown global, mode nuit, confiance et opt-in restent obligatoires.
+
+Etat outil `hal.9.2-qualification.4`: le dossier alertes lie version, OTA,
+packages, checker, modele, provision MQTT et politique Frigate. Il ferme 27
+scenarios, exige FIFO persistante apres redemarrage, cinq annonces entendues,
+les rejets de contenu/fraicheur/cooldown et zero action ou livraison externe.
+Les injections MQTT physiques attendent la fin de l'endurance.
+
 Etat source `hal.9.2-ha-alpha.6`: l'integration Frigate officielle est epinglee et
 utilise un compte `viewer` sur le port authentifie. Onze cameras alimentent un
 etat normalise; les 449 entites brutes sont masquees a Assist et les 121
@@ -358,7 +370,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.17`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.18`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -400,6 +412,10 @@ La porte routines charge un dossier hashe lie au binaire OTA, aux trois
 packages, aux phrases et au test HA. Elle exige deux cibles, la conservation de
 session pendant le transfert, les reprises apres redemarrage, les gardes humains
 et Victron, puis un etat final vide sans action critique.
+La porte alertes video charge un dossier hashe lie au binaire OTA, aux packages,
+au checker, au modele, a MQTT et a Frigate. Elle exige les deux cameras fermees,
+la FIFO de sept IDs persistante, les seuils de fraicheur et cooldown, les comptes
+audibles exacts et zero action critique ou livraison externe.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

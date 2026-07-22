@@ -25,6 +25,7 @@ from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
 from test_routine_evidence import valid_evidence as valid_routine_evidence
 from test_timer_evidence import valid_evidence as valid_timer_evidence
+from test_video_alert_evidence import valid_evidence as valid_video_alert_evidence
 from test_video_review_evidence import valid_evidence as valid_video_evidence
 from test_endurance_summary import valid_summary
 from monitor_endurance import write_summary
@@ -103,6 +104,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_house_intelligence: bool = False,
         tamper_routine: bool = False,
         unbound_routine: bool = False,
+        tamper_video_alert: bool = False,
+        unbound_video_alert: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -332,6 +335,37 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_acoustic:
                 acoustic_path.write_text("{}\n", encoding="utf-8")
+            video_alert_package = (
+                ROOT / "home-assistant/packages/muse_video_alerts.yaml"
+            )
+            video_alert_checker = ROOT / "scripts/check_video_alert_safety.py"
+            video_alert_model = ROOT / "scripts/test_video_alert_model.py"
+            mqtt_provision = ROOT / "scripts/configure_frigate_mqtt.sh"
+            frigate_policy = ROOT / "scripts/check_frigate_readonly.py"
+            video_alert_path = self.directory / "video-alert.json"
+            video_alert = valid_video_alert_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(video_alert_package.read_bytes()).hexdigest(),
+                package_hash,
+                hashlib.sha256(video_alert_checker.read_bytes()).hexdigest(),
+                hashlib.sha256(video_alert_model.read_bytes()).hexdigest(),
+                hashlib.sha256(mqtt_provision.read_bytes()).hexdigest(),
+                hashlib.sha256(frigate_policy.read_bytes()).hexdigest(),
+            )
+            video_alert_path.write_text(
+                json.dumps(video_alert), encoding="utf-8"
+            )
+            video_alert_hash = hashlib.sha256(
+                video_alert_path.read_bytes()
+            ).hexdigest()
+            record["gates"]["camera_alerts_deduplicated"]["evidence"] = (
+                "video-alert.json"
+                if unbound_video_alert
+                else f"sha256:{video_alert_hash} {video_alert_path.name}"
+            )
+            if tamper_video_alert:
+                video_alert_path.write_text("{}\n", encoding="utf-8")
             video_package = ROOT / "home-assistant/packages/muse_video_review.yaml"
             video_dashboard = (
                 ROOT / "home-assistant/dashboards/muse-video-review.yaml"
@@ -771,6 +805,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_routine=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_video_alert_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_video_alert=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_video_alert_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_video_alert=True,
         )
         self.assertNotEqual(result.returncode, 0)
 
