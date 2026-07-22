@@ -181,6 +181,8 @@ script:
               {{ source == destination
                  or source not in known_players
                  or destination not in known_players
+                 or not source.startswith('media_player.raspiaudio_muse_luxe')
+                 or not destination.startswith('media_player.raspiaudio_muse_luxe')
                  or states(source) in ['unknown', 'unavailable']
                  or states(destination) in ['unknown', 'unavailable'] }}
         then:

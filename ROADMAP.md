@@ -12,8 +12,8 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.19`: interphone lie aux deux satellites, sessions et candidat exact |
+| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.7`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
+| Distribution `hal.10` | `hal.10-alpha.20`: transfert musical lie aux deux satellites et au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -224,14 +224,17 @@ automatique et une file finale vide sans conserver de transcription.
 - Creer des groupes temporaires et conserver position, source et volume relatif.
 - Proposer un mode manuel pour eviter les transferts intempestifs.
 
-Etat source `hal.9.1-ha-alpha.5`: le transfert de file reste strictement manuel
+Etat source `hal.9.1-ha-alpha.7`: le transfert de file reste strictement manuel
 et desactive par defaut. Les groupes temporaires acceptent deux a quatre Muse
 disponibles pour 5 a 240 minutes, revendiquent leur etat avant `join`, restaurent
 les volumes individuels et ferment par le meme chemin sur demande ou expiration.
 Une creation/fermeture interrompue, un timer perdu ou un membre indisponible
 passe en `review`; seul un nettoyage humain confirme peut envoyer les commandes
-de recuperation. Position, volumes et absence de groupe fantome restent a
-qualifier avec un second satellite.
+de recuperation. Source et cible d'un transfert doivent aussi etre deux lecteurs
+Muse disponibles. Le dossier `hal.9.1-qualification.3` lie OTA, package, checker,
+modele, test HA et provisionneur; ses 18 scenarios mesurent musique, radio et
+podcast dans les deux sens, position, etat, volumes, fermetures et recuperations.
+La preuve physique attend le second satellite et la fin de l'endurance.
 
 Sortie: aucun canal fantome, message remis une fois au bon destinataire et
 transfert audio sans redemarrer le satellite.
@@ -384,7 +387,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.19`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.20`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -435,6 +438,10 @@ aux phrases, a l'UI/recuperation firmware et aux trois tests. Elle exige les deu
 appareils fixes, 20 appels par direction, boutons participants, sessions et
 relais non rejoues, timeouts et redemarrages sans canal fantome, latence et
 reconnaissance bornees, puis aucun transcript ni etat actif residuel.
+La porte transfert musical charge un dossier hashe lie a l'OTA, au package et
+aux quatre outils exacts. Elle exige les deux lecteurs Muse fermes, les trois
+types de medias dans les deux sens, une derive de position d'au plus cinq
+secondes, volumes relatifs, pannes et recuperations, puis zero groupe fantome.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

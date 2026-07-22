@@ -36,7 +36,7 @@
     "interactive_routine_handoff": {"passed": false, "evidence": "sha256:REPLACE routine-VERSION.json"},
     "intercom_two_satellite": {"passed": false, "evidence": "sha256:REPLACE intercom-VERSION.json"},
     "interpreter_bilingual": {"passed": false, "evidence": "sha256:REPLACE interpreter-VERSION.json"},
-    "music_transfer_two_satellite": {"passed": false, "evidence": "REPLACE"},
+    "music_transfer_two_satellite": {"passed": false, "evidence": "sha256:REPLACE music-transfer-VERSION.json"},
     "mode_api_transitions": {"passed": false, "evidence": "sha256:REPLACE modes-VERSION.json"},
     "night_led_profiles": {"passed": false, "evidence": "sha256:REPLACE night-led-VERSION.json"},
     "offline_rescue_physical": {"passed": false, "evidence": "sha256:REPLACE offline-rescue-VERSION.json"},

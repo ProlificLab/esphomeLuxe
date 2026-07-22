@@ -53,6 +53,15 @@ def main() -> None:
     rejected(package.replace("candidate_players | length > 4", "candidate_players | length > 8"), provision, "eight players")
     rejected(package.replace("group_minutes > 240", "group_minutes > 1440"), provision, "day-long group")
     rejected(package.replace("media_player.raspiaudio_muse_luxe", "media_player."), provision, "broad player prefix")
+    rejected(
+        package.replace(
+            "or not source.startswith('media_player.raspiaudio_muse_luxe')",
+            "or false",
+            1,
+        ),
+        provision,
+        "foreign transfer source",
+    )
     rejected(package.replace("not confirmed or not valid_players", "not valid_players"), provision, "missing confirmation")
     rejected(package.replace("continue_on_timeout: false", "continue_on_timeout: true", 1), provision, "join timeout ignored")
     rejected(package.replace("states(player) in ['unknown', 'unavailable']", "false", 1), provision, "unavailable player")

@@ -76,6 +76,8 @@ def main() -> None:
         "entity_id: timer.muse_audio_temporary_group",
         "Restart recovery never issues an automatic unjoin command.",
         "blocked_group_active",
+        "not source.startswith('media_player.raspiaudio_muse_luxe')",
+        "not destination.startswith('media_player.raspiaudio_muse_luxe')",
     ):
         require(package, marker, "policy marker")
 
@@ -87,6 +89,8 @@ def main() -> None:
         raise RuntimeError("Ungrouping must exist only in close and explicit recovery")
     if package.count("states(player) in ['unknown', 'unavailable']") != 3:
         raise RuntimeError("Every group lifecycle path must reject unavailable players")
+    if package.count(".startswith('media_player.raspiaudio_muse_luxe')") != 5:
+        raise RuntimeError("Every transfer and group player must use the Muse prefix")
 
     forbidden = (
         "notify.",

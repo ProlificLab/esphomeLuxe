@@ -119,6 +119,7 @@ jobs:
           python3 scripts/check_music_assistant_safety.py
           python3 scripts/test_music_assistant_safety.py
           python3 scripts/test_music_assistant_group_model.py
+          python3 scripts/test_music_transfer_evidence.py
           python3 scripts/check_night_led_safety.py
           python3 scripts/test_night_led_safety.py
           python3 scripts/test_night_led_model.py

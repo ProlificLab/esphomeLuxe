@@ -130,3 +130,24 @@ while any group is active, transitioning or awaiting review.
    recovery without losing the persisted member list.
 7. Make one member unavailable before close and prove no successful cleanup is
    claimed until the player returns and recovery is confirmed.
+
+Copy `docs/music-transfer-record.example.json` to
+`release/music-transfer-VERSION.json`, complete all 18 scenarios, then validate
+it against the exact candidate:
+
+```bash
+version="REPLACE_WITH_VERSION"
+python3 scripts/check_music_transfer_evidence.py \
+  "release/music-transfer-$version.json" \
+  --expected-version "$version" \
+  --expected-firmware-sha256 "$(sha256sum "release/muse-luxe-$version.ota.bin" | cut -d' ' -f1)" \
+  --expected-package-sha256 "$(sha256sum home-assistant/packages/muse_music_assistant.yaml | cut -d' ' -f1)" \
+  --expected-safety-checker-sha256 "$(sha256sum scripts/check_music_assistant_safety.py | cut -d' ' -f1)" \
+  --expected-model-test-sha256 "$(sha256sum scripts/test_music_assistant_group_model.py | cut -d' ' -f1)" \
+  --expected-ha-test-sha256 "$(sha256sum scripts/test_home_assistant_music_assistant.py | cut -d' ' -f1)" \
+  --expected-provisioner-sha256 "$(sha256sum scripts/provision_music_assistant.sh | cut -d' ' -f1)"
+```
+
+Bind the validated record as `sha256:DIGEST music-transfer-VERSION.json` in
+`music_transfer_two_satellite.evidence`. Source tests and the failed example do
+not constitute physical qualification.

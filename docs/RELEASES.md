@@ -166,6 +166,12 @@ physical gestures, session-bound queued relays, timeout/reboot/music checks,
 bounded latency and recognition errors, audible/LED parity, zero transcript
 artifacts and an entirely empty final state.
 
+`music_transfer_two_satellite.evidence` binds the OTA, Music Assistant package,
+safety checker, lifecycle model, HA test and provisioner. It requires music,
+radio and podcast transfers in both directions, bounded position drift,
+preserved queue/state/relative volume, manual and expiry closure, restart and
+failure recovery, and zero automatic transfer, external delivery or ghost group.
+
 The two stable offline gates must reference one identical hash-bound
 `offline-rescue` record. It binds the OTA, rescue package, read-only FAT
 component and unchanged card manifest, then requires all six clips, fifteen

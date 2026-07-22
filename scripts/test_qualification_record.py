@@ -21,6 +21,7 @@ from test_house_intelligence_evidence import (
 )
 from test_intercom_evidence import valid_evidence as valid_intercom_evidence
 from test_interpreter_evidence import valid_evidence as valid_interpreter_evidence
+from test_music_transfer_evidence import valid_evidence as valid_music_evidence
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
@@ -109,6 +110,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_video_alert: bool = False,
         tamper_intercom: bool = False,
         unbound_intercom: bool = False,
+        tamper_music: bool = False,
+        unbound_music: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -400,6 +403,34 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_intercom:
                 intercom_path.write_text("{}\n", encoding="utf-8")
+            music_package = (
+                ROOT / "home-assistant/packages/muse_music_assistant.yaml"
+            )
+            music_checker = ROOT / "scripts/check_music_assistant_safety.py"
+            music_model = ROOT / "scripts/test_music_assistant_group_model.py"
+            music_ha_test = (
+                ROOT / "scripts/test_home_assistant_music_assistant.py"
+            )
+            music_provisioner = ROOT / "scripts/provision_music_assistant.sh"
+            music_path = self.directory / "music-transfer.json"
+            music = valid_music_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(music_package.read_bytes()).hexdigest(),
+                hashlib.sha256(music_checker.read_bytes()).hexdigest(),
+                hashlib.sha256(music_model.read_bytes()).hexdigest(),
+                hashlib.sha256(music_ha_test.read_bytes()).hexdigest(),
+                hashlib.sha256(music_provisioner.read_bytes()).hexdigest(),
+            )
+            music_path.write_text(json.dumps(music), encoding="utf-8")
+            music_hash = hashlib.sha256(music_path.read_bytes()).hexdigest()
+            record["gates"]["music_transfer_two_satellite"]["evidence"] = (
+                "music-transfer.json"
+                if unbound_music
+                else f"sha256:{music_hash} {music_path.name}"
+            )
+            if tamper_music:
+                music_path.write_text("{}\n", encoding="utf-8")
             video_package = ROOT / "home-assistant/packages/muse_video_review.yaml"
             video_dashboard = (
                 ROOT / "home-assistant/dashboards/muse-video-review.yaml"
@@ -879,6 +910,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_intercom=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_music_transfer_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_music=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_music_transfer_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_music=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

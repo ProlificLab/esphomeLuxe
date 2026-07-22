@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "package_sha256": "REPLACE_WITH_PACKAGE_SHA256",
+    "safety_checker_sha256": "REPLACE_WITH_SAFETY_CHECKER_SHA256",
+    "model_test_sha256": "REPLACE_WITH_MODEL_TEST_SHA256",
+    "ha_test_sha256": "REPLACE_WITH_HA_TEST_SHA256",
+    "provisioner_sha256": "REPLACE_WITH_PROVISIONER_SHA256"
+  },
+  "observer": "REPLACE_WITH_REVIEWER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "players": [
+    "media_player.raspiaudio_muse_luxe_2",
+    "media_player.raspiaudio_muse_luxe_kitchen"
+  ],
+  "runtime": {
+    "manual_opt_in_default": "off",
+    "minimum_group_minutes": 5,
+    "maximum_group_minutes": 240,
+    "maximum_group_players": 4,
+    "automatic_presence_following": false,
+    "recovery_requires_confirmation": true
+  },
+  "metrics": {
+    "music_each_direction": 0,
+    "radio_each_direction": 0,
+    "podcast_each_direction": 0,
+    "position_samples": 0,
+    "maximum_position_drift_seconds": -1,
+    "playback_state_errors": -1,
+    "queue_or_title_errors": -1,
+    "volume_samples": 0,
+    "maximum_relative_volume_error": -1,
+    "manual_closes": 0,
+    "expiry_closes": 0,
+    "ha_restarts": 0,
+    "satellite_reboots": 0,
+    "join_failure_recoveries": 0,
+    "unjoin_failure_recoveries": 0,
+    "unavailable_member_rejections": 0,
+    "foreign_player_rejections": 0,
+    "ghost_groups": -1,
+    "automatic_transfers": -1,
+    "external_deliveries": -1,
+    "cleanup_errors": -1
+  },
+  "final_state": {
+    "enabled": "REPLACE",
+    "group_state": "REPLACE",
+    "group_master": "REPLACE",
+    "group_members": "REPLACE",
+    "transfer_status": "REPLACE",
+    "timer": "REPLACE",
+    "player_memberships": {
+      "media_player.raspiaudio_muse_luxe_2": ["REPLACE"],
+      "media_player.raspiaudio_muse_luxe_kitchen": ["REPLACE"]
+    },
+    "ghost_group": true
+  },
+  "scenarios": {
+    "disabled_opt_in_rejects_transfer": {"passed": false, "evidence": "REPLACE"},
+    "foreign_player_is_rejected": {"passed": false, "evidence": "REPLACE"},
+    "music_transfers_both_directions": {"passed": false, "evidence": "REPLACE"},
+    "radio_transfers_both_directions": {"passed": false, "evidence": "REPLACE"},
+    "podcast_transfers_both_directions": {"passed": false, "evidence": "REPLACE"},
+    "title_queue_position_and_play_state_are_preserved": {"passed": false, "evidence": "REPLACE"},
+    "paused_state_is_preserved": {"passed": false, "evidence": "REPLACE"},
+    "relative_volumes_survive_group_creation": {"passed": false, "evidence": "REPLACE"},
+    "manual_close_leaves_no_membership": {"passed": false, "evidence": "REPLACE"},
+    "expiry_close_leaves_no_membership": {"passed": false, "evidence": "REPLACE"},
+    "ha_restart_preserves_active_group_with_timer": {"passed": false, "evidence": "REPLACE"},
+    "lost_timer_enters_review": {"passed": false, "evidence": "REPLACE"},
+    "join_failure_enters_review": {"passed": false, "evidence": "REPLACE"},
+    "unjoin_failure_enters_review": {"passed": false, "evidence": "REPLACE"},
+    "unavailable_member_blocks_false_cleanup": {"passed": false, "evidence": "REPLACE"},
+    "confirmed_recovery_clears_all_members": {"passed": false, "evidence": "REPLACE"},
+    "transfer_is_blocked_during_group_or_review": {"passed": false, "evidence": "REPLACE"},
+    "satellite_reboots_leave_no_ghost_group": {"passed": false, "evidence": "REPLACE"}
+  }
+}
