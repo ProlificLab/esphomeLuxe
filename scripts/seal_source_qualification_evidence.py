@@ -52,6 +52,16 @@ def git_identity(root: Path) -> str:
     return commit
 
 
+def git_epoch(root: Path, commit: str) -> int:
+    value = subprocess.run(
+        ["git", "-C", str(root), "show", "-s", "--format=%ct", commit],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    if re.fullmatch(r"[1-9][0-9]{8,}", value) is None:
+        fail("Source evidence commit epoch is invalid")
+    return int(value)
+
+
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -87,7 +97,8 @@ def parse_size(path: Path) -> dict[str, str]:
 
 def derive_record(
     output_path: Path, logs_dir: Path, artifact: Path, version: str,
-    source_commit: str, reviewer: str, private_secrets: Path,
+    source_commit: str, source_date_epoch: int, reviewer: str,
+    private_secrets: Path,
 ) -> dict[str, object]:
     if output_path.exists() or output_path.is_symlink():
         fail(f"Refusing to overwrite sealed source evidence: {output_path}")
@@ -120,6 +131,8 @@ def derive_record(
             fail(f"Source {name} log does not contain exact OTA SHA-256")
         if f"SECRETS SHA256={secrets_sha}" not in build_log.splitlines():
             fail(f"Source {name} log does not bind the selected private secrets")
+        if f"SOURCE_DATE_EPOCH={source_date_epoch}" not in build_log.splitlines():
+            fail(f"Source {name} log does not bind the commit build epoch")
     size_values = parse_size(paths["firmware_size"])
     size = artifact.stat().st_size
     required_size = {
@@ -153,6 +166,7 @@ def derive_record(
             "hal6_baseline_bytes": HAL6_BASELINE_BYTES,
             "target_passed": size <= PARTITION_BYTES * TARGET_PERCENT // 100,
             "hard_limit_passed": size <= PARTITION_BYTES * HARD_PERCENT // 100,
+            "source_date_epoch": source_date_epoch,
             "container_image": ESPHOME_IMAGE, "esp_idf": "5.4.2",
         },
         "credentials": {
@@ -203,8 +217,10 @@ def main() -> None:
     parser.add_argument("--private-secrets", type=Path, required=True)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
+    source_commit = git_identity(root)
     record = derive_record(args.output, args.logs_dir, args.artifact, args.version,
-                           git_identity(root), args.reviewer, args.private_secrets)
+                           source_commit, git_epoch(root, source_commit), args.reviewer,
+                           args.private_secrets)
     seal(record, args.output)
     print(f"Sealed source qualification: path={args.output} sha256={digest(args.output)}")
 

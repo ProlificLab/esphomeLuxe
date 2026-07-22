@@ -56,6 +56,8 @@ class SourceQualificationCollectionTests(unittest.TestCase):
         self.assertIn("build_once", source)
         self.assertEqual(source.count('$SECRETS_ABS:/config/secrets.yaml:ro'), 2)
         self.assertIn("SECRETS SHA256=%s", source)
+        self.assertIn("SOURCE_DATE_EPOCH=%s", source)
+        self.assertEqual(source.count('-e SOURCE_DATE_EPOCH="$source_epoch"'), 2)
         self.assertIn("Private secrets changed before a source build", source)
         self.assertIn("Private secrets changed during a source build", source)
         self.assertIn('--private-secrets "$SECRETS_ABS"', source)

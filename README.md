@@ -65,7 +65,9 @@ Build that troubleshooting image only when a USB serial investigation is
 needed:
 
 ```bash
-docker run --rm -v "$PWD":/config -w /config \
+source_epoch="$(scripts/source_date_epoch.sh)"
+docker run --rm -e SOURCE_DATE_EPOCH="$source_epoch" \
+  -v "$PWD":/config -w /config \
   esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
   compile luxe_microWW_diagnostic.yaml
 ```
@@ -76,7 +78,9 @@ Copy `secrets.example.yaml` to the ignored `secrets.yaml`, replace all values,
 then compile with the pinned ESPHome image:
 
 ```bash
-docker run --rm -v "$PWD":/config -w /config \
+source_epoch="$(scripts/source_date_epoch.sh)"
+docker run --rm -e SOURCE_DATE_EPOCH="$source_epoch" \
+  -v "$PWD":/config -w /config \
   esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
   compile luxe_microWW.yaml
 ```
@@ -85,7 +89,7 @@ Production binaries contain device secrets and must not be attached to a public
 GitHub release. Publish them to Home Assistant's local web directory instead:
 
 ```bash
-version="2025.3.1-hal.9.0-alpha.5"
+version="2025.3.1-hal.9.0-alpha.6"
 artifact="release/muse-luxe-$version.ota.bin"
 PVE_HOST=user@proxmox-host scripts/deploy_local_update.sh \
   "$artifact" \

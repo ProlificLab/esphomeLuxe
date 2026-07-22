@@ -14,6 +14,7 @@ from seal_source_qualification_evidence import derive_record, seal
 
 VERSION = "2026.1.0-hal.10-beta.1"
 COMMIT = "b" * 40
+SOURCE_DATE_EPOCH = 1767225600
 
 
 class SealSourceQualificationTests(unittest.TestCase):
@@ -49,7 +50,8 @@ class SealSourceQualificationTests(unittest.TestCase):
         (self.root / "ci.log").write_text(json.dumps(ci), encoding="utf-8")
         for name in ("build-first.log", "build-second.log"):
             (self.root / name).write_text(
-                f"SECRETS SHA256={self.secrets_sha}\nOTA SHA256={self.sha}\n",
+                f"SECRETS SHA256={self.secrets_sha}\n"
+                f"SOURCE_DATE_EPOCH={SOURCE_DATE_EPOCH}\nOTA SHA256={self.sha}\n",
                 encoding="utf-8",
             )
         (self.root / "firmware-size.log").write_text(
@@ -64,8 +66,10 @@ class SealSourceQualificationTests(unittest.TestCase):
         (self.root / "secrets-audit.log").write_text(json.dumps(audit), encoding="utf-8")
 
     def derive(self) -> dict[str, object]:
-        return derive_record(self.output, self.root, self.artifact, VERSION, COMMIT,
-                             "Household release reviewer", self.secrets)
+        return derive_record(
+            self.output, self.root, self.artifact, VERSION, COMMIT,
+            SOURCE_DATE_EPOCH, "Household release reviewer", self.secrets,
+        )
 
     def test_derives_and_atomically_seals_exact_record(self) -> None:
         record = self.derive(); seal(record, self.output)
@@ -105,12 +109,22 @@ class SealSourceQualificationTests(unittest.TestCase):
         outside.mkdir()
         try:
             with self.assertRaises(RuntimeError):
-                derive_record(self.output, outside, self.artifact, VERSION, COMMIT,
-                              "Household release reviewer", self.secrets)
+                derive_record(
+                    self.output, outside, self.artifact, VERSION, COMMIT,
+                    SOURCE_DATE_EPOCH, "Household release reviewer", self.secrets,
+                )
         finally:
             outside.rmdir()
         log = self.root / "build-second.log"
         log.unlink(); log.symlink_to(self.root / "build-first.log")
+        with self.assertRaises(RuntimeError): self.derive()
+
+    def test_build_epoch_binding_is_mandatory(self) -> None:
+        first = self.root / "build-first.log"
+        first.write_text(
+            f"SECRETS SHA256={self.secrets_sha}\nOTA SHA256={self.sha}\n",
+            encoding="utf-8",
+        )
         with self.assertRaises(RuntimeError): self.derive()
 
     def test_private_secrets_and_both_build_bindings_are_mandatory(self) -> None:

@@ -67,9 +67,15 @@ def main() -> None:
     )
     rejected(promotion.replace('clean "$config"', 'config "$config"'), packager)
     rejected(promotion.replace('compile "$config"', 'config "$config"'), packager)
+    rejected(promotion.replace('-e SOURCE_DATE_EPOCH="$source_epoch"', "", 1), packager)
+    rejected(promotion.replace('source_epoch="$("$SCRIPT_DIR/source_date_epoch.sh" "$source_commit")"\n', ""), packager)
     rejected(
         promotion,
         packager.replace('"source_commit": "$(git rev-parse HEAD)",\n', ""),
+    )
+    rejected(
+        promotion,
+        packager.replace('  "source_date_epoch": $("$SCRIPT_DIR/source_date_epoch.sh"),\n', ""),
     )
     print("Promotion safety negative fixtures passed.")
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="${CONFIG:-luxe_microWW.yaml}"
 FIRMWARE="${FIRMWARE:-.esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.ota.bin}"
 OUTPUT_DIR="${OUTPUT_DIR:-release}"
@@ -89,6 +90,7 @@ cat > "$OUTPUT_DIR/build-metadata.json" <<EOF
   "version": "$version",
   "channel": "$CHANNEL",
   "source_commit": "$(git rev-parse HEAD)",
+  "source_date_epoch": $("$SCRIPT_DIR/source_date_epoch.sh"),
   "config": "$CONFIG",
   "artifact": "$(basename "$artifact")",
   "size_bytes": $(wc -c < "$artifact" | tr -d ' '),

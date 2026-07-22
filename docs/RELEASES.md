@@ -67,6 +67,10 @@ auditing one file while compiling another is a release-blocking failure.
 Source evidence schema v2 binds the SHA-256 of that private file into both
 build logs and the sealed record. The rotation installer compares this binding
 with the new bundle before any confirmation or device write.
+The two builds also share `SOURCE_DATE_EPOCH` derived from the exact source
+commit and bind it in both logs and the record. This neutralizes ESPHome's
+embedded `__DATE__`/`__TIME__`; dependency pinning alone is not a bit-for-bit
+reproducibility guarantee.
 
 Prepare the post-endurance credential transition with
 `scripts/prepare_secret_rotation.py` and `docs/SECRET_ROTATION.md`. Preparation
@@ -91,7 +95,9 @@ To obtain the candidate hash before review, run the pinned clean build, then
 package locally without publishing:
 
 ```bash
-docker run --rm -v "$PWD":/config -w /config \
+source_epoch="$(scripts/source_date_epoch.sh)"
+docker run --rm -e SOURCE_DATE_EPOCH="$source_epoch" \
+  -v "$PWD":/config -w /config \
   esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
   clean luxe_microWW.yaml
 docker run --rm -v "$PWD":/config -w /config \

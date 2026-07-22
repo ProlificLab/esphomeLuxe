@@ -25,6 +25,10 @@ commit and its single successful `compile` job before either build starts.
 Schema v2 records the SHA-256 of that exact private file and requires the same
 non-secret fingerprint in both build logs. This binds reproducibility, the OTA
 and the selected credentials without exposing their values.
+Both clean builds also receive one `SOURCE_DATE_EPOCH` derived from the exact
+Git commit timestamp. ESPHome emits `__DATE__` and `__TIME__` into the generated
+application; without this epoch, otherwise identical builds produce different
+OTA bytes. The epoch is recorded in both logs and the sealed build record.
 
 ## Required logs
 
@@ -43,6 +47,7 @@ and the selected credentials without exposing their values.
    output as `build-first.log` and `build-second.log`, then require both OTA
    SHA-256 values to equal the reviewed candidate SHA-256.
    The collector preserves the first OTA separately and refuses unequal hashes.
+   It also refuses a missing or different commit-derived epoch marker.
 3. Run `scripts/check_firmware_size.sh` on the reviewed OTA and retain
    `firmware-size.log`. Record exact bytes and the one-decimal usage generated
    by the checker; both 93% target and 97% hard limit must pass.

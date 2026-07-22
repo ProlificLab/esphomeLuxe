@@ -18,6 +18,7 @@ FIRMWARE_SHA = "a" * 64
 SOURCE_COMMIT = "b" * 40
 SIZE_BYTES = 1888912
 SECRETS_SHA = "c" * 64
+SOURCE_DATE_EPOCH = 1767225600
 
 
 def secret_report() -> dict[str, object]:
@@ -88,6 +89,7 @@ def valid_evidence() -> dict[str, object]:
             "hal6_baseline_bytes": 1948144,
             "target_passed": True,
             "hard_limit_passed": True,
+            "source_date_epoch": SOURCE_DATE_EPOCH,
             "container_image": "esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0",
             "esp_idf": "5.4.2",
         },
@@ -118,6 +120,7 @@ def write_log_fixtures(directory: Path, evidence: dict[str, object]) -> None:
         elif name in {"build_first", "build_second"}:
             path.write_text(
                 f"SECRETS SHA256={evidence['credentials']['file_sha256']}\n"
+                f"SOURCE_DATE_EPOCH={evidence['build']['source_date_epoch']}\n"
                 f"reviewed {name} SHA256={evidence['candidate']['firmware_sha256']}\n",
                 encoding="utf-8",
             )
@@ -196,6 +199,7 @@ class SourceQualificationEvidenceTests(unittest.TestCase):
             ("size_bytes", 1889403),
             ("usage_percent", 93.0),
             ("target_passed", False),
+            ("source_date_epoch", True),
             ("container_image", "esphome/esphome:latest"),
         )
         for field, value in mutations:

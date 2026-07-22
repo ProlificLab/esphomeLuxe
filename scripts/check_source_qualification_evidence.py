@@ -220,7 +220,7 @@ def validate_evidence(
 
     build = exact_keys(
         evidence["build"],
-        {"count", "first_sha256", "second_sha256", "reproducible", "size_bytes", "partition_bytes", "usage_percent", "target_percent", "hard_percent", "hal6_baseline_bytes", "target_passed", "hard_limit_passed", "container_image", "esp_idf"},
+        {"count", "first_sha256", "second_sha256", "reproducible", "size_bytes", "partition_bytes", "usage_percent", "target_percent", "hard_percent", "hal6_baseline_bytes", "target_passed", "hard_limit_passed", "source_date_epoch", "container_image", "esp_idf"},
         "build",
     )
     size = build["size_bytes"]
@@ -229,6 +229,7 @@ def validate_evidence(
     target_bytes = PARTITION_BYTES * TARGET_PERCENT // 100
     hard_bytes = PARTITION_BYTES * HARD_PERCENT // 100
     usage = size * 1000 // PARTITION_BYTES / 10
+    source_date_epoch = build["source_date_epoch"]
     if (
         build["count"] != 2
         or build["first_sha256"] != firmware_sha256
@@ -244,6 +245,8 @@ def validate_evidence(
         or size > target_bytes
         or size > hard_bytes
         or size > HAL6_BASELINE_BYTES
+        or type(source_date_epoch) is not int
+        or source_date_epoch < 100000000
         or build["container_image"] != ESPHOME_IMAGE
         or build["esp_idf"] != "5.4.2"
     ):
@@ -251,8 +254,11 @@ def validate_evidence(
     if expected_size_bytes is not None and size != expected_size_bytes:
         fail("Source qualification firmware size differs from the OTA artifact")
     for name in ("build_first", "build_second"):
-        if firmware_sha256 not in logs[name].read_text(encoding="utf-8"):
+        build_lines = logs[name].read_text(encoding="utf-8").splitlines()
+        if firmware_sha256 not in "\n".join(build_lines):
             fail(f"Source qualification {name} log does not contain candidate SHA-256")
+        if f"SOURCE_DATE_EPOCH={source_date_epoch}" not in build_lines:
+            fail(f"Source qualification {name} log is not bound to commit build epoch")
     size_log = logs["firmware_size"].read_text(encoding="utf-8").splitlines()
     required_size_lines = {
         f"size_bytes={size}",

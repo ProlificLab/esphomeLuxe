@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - name: Derive reproducible build epoch
+        run: echo "SOURCE_DATE_EPOCH=$(scripts/source_date_epoch.sh)" >> "$GITHUB_ENV"
       - name: Prepare non-production secrets
         run: |
           cp secrets.example.yaml secrets.yaml
@@ -23,6 +25,7 @@ jobs:
       - name: Compile firmware
         run: >-
           docker run --rm
+          -e SOURCE_DATE_EPOCH
           -v "$PWD":/config
           -w /config
           esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0
@@ -30,6 +33,7 @@ jobs:
       - name: Validate calibration configuration
         run: >-
           docker run --rm
+          -e SOURCE_DATE_EPOCH
           -v "$PWD":/config
           -w /config
           esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0
@@ -37,6 +41,7 @@ jobs:
       - name: Validate verbose diagnostic configuration
         run: >-
           docker run --rm
+          -e SOURCE_DATE_EPOCH
           -v "$PWD":/config
           -w /config
           esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0
@@ -105,6 +110,7 @@ jobs:
           python3 scripts/test_seal_source_qualification_evidence.py
           python3 scripts/test_source_qualification_collection.py
           python3 scripts/test_source_ci_preflight.py
+          python3 scripts/test_source_date_epoch.py
           python3 scripts/test_prepare_secret_rotation.py
           python3 scripts/test_secret_rotation_bundle.py
           python3 scripts/test_rotation_activation.py

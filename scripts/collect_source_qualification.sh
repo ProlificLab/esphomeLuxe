@@ -38,6 +38,7 @@ chmod 600 "$OUTPUT_DIR/ci.log"
 python3 "$SCRIPT_DIR/audit_tracked_secrets.py" --private-secrets "$SECRETS" \
   --require-private-keys 3 --output "$OUTPUT_DIR/secrets-audit.log" >/dev/null
 source_commit="$(git -C "$ROOT" rev-parse HEAD)"
+source_epoch="$("$SCRIPT_DIR/source_date_epoch.sh" "$source_commit")"
 python3 "$SCRIPT_DIR/check_source_ci_preflight.py" "$OUTPUT_DIR/ci.log" \
   "$source_commit" >/dev/null
 secrets_sha="$(shasum -a 256 "$SECRETS_ABS" | awk '{print $1}')"
@@ -50,9 +51,12 @@ build_once() {
     echo "Private secrets changed before a source build." >&2; exit 1;
   }
   printf 'SECRETS SHA256=%s\n' "$secrets_sha" >>"$log"
-  docker run --rm -v "$ROOT:/config" -v "$SECRETS_ABS:/config/secrets.yaml:ro" \
+  printf 'SOURCE_DATE_EPOCH=%s\n' "$source_epoch" >>"$log"
+  docker run --rm -e SOURCE_DATE_EPOCH="$source_epoch" \
+    -v "$ROOT:/config" -v "$SECRETS_ABS:/config/secrets.yaml:ro" \
     -w /config "$IMAGE" clean "$CONFIG" >>"$log" 2>&1
-  docker run --rm -v "$ROOT:/config" -v "$SECRETS_ABS:/config/secrets.yaml:ro" \
+  docker run --rm -e SOURCE_DATE_EPOCH="$source_epoch" \
+    -v "$ROOT:/config" -v "$SECRETS_ABS:/config/secrets.yaml:ro" \
     -w /config "$IMAGE" compile "$CONFIG" >>"$log" 2>&1
   local sha
   observed_sha="$(shasum -a 256 "$SECRETS_ABS" | awk '{print $1}')"

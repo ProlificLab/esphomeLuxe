@@ -24,6 +24,7 @@ fi
 
 target_ref="${RELEASE_TARGET_REF:-HEAD}"
 source_commit="$(git -C "$ROOT_DIR" rev-parse --verify "$target_ref^{commit}")"
+source_epoch="$("$SCRIPT_DIR/source_date_epoch.sh" "$source_commit")"
 head_commit="$(git -C "$ROOT_DIR" rev-parse --verify 'HEAD^{commit}')"
 if [[ "$source_commit" != "$head_commit" ]]; then
   echo "Promotion target must be the currently checked-out commit." >&2
@@ -32,9 +33,11 @@ fi
 
 config="${CONFIG:-luxe_microWW.yaml}"
 esphome_image="esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0"
-docker run --rm -v "$ROOT_DIR":/config -w /config "$esphome_image" \
+docker run --rm -e SOURCE_DATE_EPOCH="$source_epoch" \
+  -v "$ROOT_DIR":/config -w /config "$esphome_image" \
   clean "$config"
-docker run --rm -v "$ROOT_DIR":/config -w /config "$esphome_image" \
+docker run --rm -e SOURCE_DATE_EPOCH="$source_epoch" \
+  -v "$ROOT_DIR":/config -w /config "$esphome_image" \
   compile "$config"
 
 allow_variable="ALLOW_$(printf '%s' "$CHANNEL" | tr '[:lower:]' '[:upper:]')"

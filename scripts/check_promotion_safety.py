@@ -32,6 +32,7 @@ def main() -> None:
     packager = args.packager.read_text(encoding="utf-8")
 
     clean = require(promotion, "Promotion requires a clean Git worktree", "clean-tree guard")
+    epoch = require(promotion, 'source_epoch="$("$SCRIPT_DIR/source_date_epoch.sh" "$source_commit")"', "commit build epoch")
     clean_build = require(promotion, 'clean "$config"', "clean firmware build")
     compile_build = require(promotion, 'compile "$config"', "firmware compilation")
     versioned = require(
@@ -59,13 +60,16 @@ def main() -> None:
         '"$manifest" "muse-luxe/channels/$CHANNEL/manifest.json"',
         "manifest publication",
     )
-    if not clean < clean_build < compile_build < verified < qualified < versioned < activation_comment < manifest_destination:
+    if not clean < epoch < clean_build < compile_build < verified < qualified < versioned < activation_comment < manifest_destination:
         raise RuntimeError("Promotion verification/publication order is unsafe")
+    if promotion.count('-e SOURCE_DATE_EPOCH="$source_epoch"') != 2:
+        raise RuntimeError("Promotion clean and compile builds must share the commit epoch")
     if "publish_ha_file.sh" in promotion[manifest_destination + 1 :]:
         raise RuntimeError("A publication occurs after the activation manifest")
     if 'channels/$CHANNEL/firmware.ota.bin' in promotion:
         raise RuntimeError("Mutable beta/stable firmware path is forbidden")
     require(packager, '"source_commit": "$(git rev-parse HEAD)"', "source attestation")
+    require(packager, '"source_date_epoch": $("$SCRIPT_DIR/source_date_epoch.sh")', "build epoch attestation")
     require(
         packager,
         'firmware-$version.ota.bin',

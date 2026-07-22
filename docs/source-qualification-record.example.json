@@ -38,6 +38,7 @@
     "hal6_baseline_bytes": 1948144,
     "target_passed": false,
     "hard_limit_passed": false,
+    "source_date_epoch": 0,
     "container_image": "esphome/esphome@sha256:REPLACE",
     "esp_idf": "REPLACE"
   },
