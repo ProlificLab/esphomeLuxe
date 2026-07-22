@@ -148,6 +148,12 @@ It passes the reviewed OTA file directly to the pinned ESPHome `espota2`
 implementation, then requires the encrypted API to report the expected version,
 healthy voice state and no error. It never rebuilds, copies over the root
 manifest, or automatically installs a rollback image.
+All OTA entry points repeat their candidate checks after human confirmation;
+the `hal.6` rollback repeats its credential-domain check as well. The pinned
+uploader snapshots the mounted artifact inside its container, recomputes the
+reviewed SHA-256 and uploads only that immutable snapshot. Mutation between
+review, confirmation and container startup fails closed for normal canary,
+corrective canary and `hal.6` rollback paths.
 
 The one-shot `install_corrective_canary_ota.sh` path is not a promotion bypass.
 It accepts only the exact alpha.5-to-alpha.6 transition and requires a sealed
@@ -161,6 +167,8 @@ installation, rotation or promotion.
 The same preflight validates `build-metadata.json` against the candidate bytes,
 exact source commit, commit-derived epoch, pinned container and ESP-IDF version.
 Metadata from another build or a wall-clock build is rejected before confirmation.
+The complete corrective binding is checked again after confirmation and before
+the uploader can receive the candidate.
 
 `scripts/rollback_hal6_ota.sh` is the separate recovery path. It accepts only a
 retained binary whose SHA-256 is supplied explicitly and whose MD5 and version

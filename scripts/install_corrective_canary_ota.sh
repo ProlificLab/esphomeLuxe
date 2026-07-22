@@ -49,6 +49,17 @@ if [[ "${CORRECTIVE_INSTALL_CONFIRM:-}" != "$confirmation" ]]; then
   exit 1
 fi
 
+readiness="$(${PYTHON:-python3} "$SCRIPT_DIR/check_corrective_canary_readiness.py" \
+  "$FIRMWARE" "$MANIFEST" "$BUILD_METADATA" "$INCIDENT" "$RAW_JSONL" \
+  "$OLD_FIRMWARE" "$SOURCE_CI" \
+  --new-sha256 "$NEW_SHA256" --old-sha256 "$OLD_SHA256" \
+  --source-commit "$source_commit" --format json)"
+[[ "$(${PYTHON:-python3} -c 'import json,sys; print(json.load(sys.stdin)["incident_record_sha256"])' \
+  <<<"$readiness")" == "$incident_sha" ]] || {
+  echo "Corrective evidence changed after confirmation." >&2
+  exit 1
+}
+
 firmware_abs="$(${PYTHON:-python3} -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$FIRMWARE")"
 ota_secrets_abs="$(${PYTHON:-python3} -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$OTA_SECRETS")"
 docker run --rm \
@@ -57,6 +68,7 @@ docker run --rm \
   -v "$SCRIPT_DIR/upload_exact_ota.py:/tool/upload_exact_ota.py:ro" \
   --entrypoint python "$IMAGE" /tool/upload_exact_ota.py \
   --host "$DEVICE_HOST" --artifact /candidate/firmware.ota.bin \
+  --expected-sha256 "$NEW_SHA256" \
   --secrets /run/secrets/muse.yaml
 
 ${PYTHON:-python3} "$SCRIPT_DIR/verify_canary_boot.py" \

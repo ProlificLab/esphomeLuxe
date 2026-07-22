@@ -101,12 +101,15 @@ scripts/install_corrective_canary_ota.sh \
 This installer requires a clean checkout at the CI commit, validates both
 firmware hashes, the private development manifest, deterministic build metadata,
 raw incident hash and exact CI run before asking for `INSTALL CORRECTIVE CANARY VERSION NEW_SHA256
-INCIDENT_SHA256`. It mounts the candidate and existing credentials read-only,
-does not rotate secrets or publish a channel, and requires the encrypted API
-to report the unique alpha.6 version in `waiting/healthy` with an empty last
-error. Run a fresh schema-v2 24-hour endurance immediately afterward. The
-normal installer and every beta/stable gate continue to require clean passing
-v2 evidence.
+INCIDENT_SHA256`. After confirmation, it repeats the complete preflight. The
+uploader then copies the read-only candidate into a private container snapshot,
+recomputes the reviewed SHA-256 and sends only that independent copy. A host
+file changed during the confirmation window is therefore rejected rather than
+uploaded. The installer does not rotate secrets or publish a channel, and
+requires the encrypted API to report the unique alpha.6 version in
+`waiting/healthy` with an empty last error. Run a fresh schema-v2 24-hour
+endurance immediately afterward. The normal installer and every beta/stable
+gate continue to require clean passing v2 evidence.
 
 ## Exact hal.6 USB recovery gate
 

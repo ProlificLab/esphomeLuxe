@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.7`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.40`: provenance du candidat correctif liee aux octets |
+| Distribution `hal.10` | `hal.10-alpha.41`: instantane OTA immuable et revalidation post-confirmation |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -439,6 +439,11 @@ La preuve source v2 lie maintenant l'empreinte du fichier prive aux deux journau
 de build et au binaire reproductible. L'installateur de rotation exige cette
 preuve et compare l'empreinte au bundle avant confirmation ou ecriture; fournir
 un ancien binaire correctement signe ne peut donc plus atteindre l'appareil.
+Tous les chemins OTA repetent maintenant leurs controles apres confirmation.
+L'uploader epingle copie ensuite le candidat dans un instantane prive au
+conteneur, recalcule le SHA-256 revu et transmet uniquement cette copie; une
+mutation du fichier hote entre controle et usage est refusee. Le rollback
+`hal.6` repete en plus la compatibilite de son domaine de credentials.
 Le rollback OTA vers l'image `hal.6` immuable compare desormais en temps constant
 les trois credentials actifs a son domaine historique avant confirmation ou
 upload. Apres rotation il refuse donc l'OTA destructrice et impose le flash USB,

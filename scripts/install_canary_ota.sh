@@ -43,6 +43,15 @@ if [[ "${CANARY_INSTALL_CONFIRM:-}" != "$confirmation" ]]; then
   exit 1
 fi
 
+readiness="$(${PYTHON:-python3} "$SCRIPT_DIR/check_canary_deploy_readiness.py" \
+  "$FIRMWARE" "$MANIFEST" "$ENDURANCE_SUMMARY" \
+  --expected-firmware-sha256 "$EXPECTED_SHA256" --format json)"
+[[ "$(${PYTHON:-python3} -c 'import json,sys; print(json.load(sys.stdin)["sha256"])' \
+  <<<"$readiness")" == "$sha256" ]] || {
+  echo "Canary candidate changed after confirmation." >&2
+  exit 1
+}
+
 firmware_abs="$(${PYTHON:-python3} -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$FIRMWARE")"
 ota_secrets_abs="$(${PYTHON:-python3} -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$OTA_SECRETS")"
 
@@ -52,6 +61,7 @@ docker run --rm \
   -v "$SCRIPT_DIR/upload_exact_ota.py:/tool/upload_exact_ota.py:ro" \
   --entrypoint python "$IMAGE" /tool/upload_exact_ota.py \
   --host "$DEVICE_HOST" --artifact /candidate/firmware.ota.bin \
+  --expected-sha256 "$sha256" \
   --secrets /run/secrets/muse.yaml
 
 ${PYTHON:-python3} "$SCRIPT_DIR/verify_canary_boot.py" \

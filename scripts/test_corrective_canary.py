@@ -170,6 +170,12 @@ class CorrectiveCanaryTests(unittest.TestCase):
         ]
         positions = [source.index(marker) for marker in markers]
         self.assertEqual(positions, sorted(positions))
+        self.assertEqual(source.count("check_corrective_canary_readiness.py"), 2)
+        self.assertLess(
+            source.index("CORRECTIVE_INSTALL_CONFIRM"),
+            source.rindex("check_corrective_canary_readiness.py"),
+        )
+        self.assertIn('--expected-sha256 "$NEW_SHA256"', source)
         self.assertNotIn("install_canary_ota.sh", source)
         self.assertNotIn("rollback_hal6_ota.sh", source)
         self.assertNotIn("esphome upload", source)

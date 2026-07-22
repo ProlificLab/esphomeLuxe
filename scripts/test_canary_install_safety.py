@@ -68,6 +68,8 @@ class CanaryInstallSafetyTests(unittest.TestCase):
         ]
         positions = [source.index(marker) for marker in markers]
         self.assertEqual(positions, sorted(positions))
+        self.assertEqual(source.count("check_canary_deploy_readiness.py"), 2)
+        self.assertIn('--expected-sha256 "$sha256"', source)
         self.assertNotIn("esphome upload", source)
         self.assertNotIn("cp \"$FIRMWARE\"", source)
 
@@ -85,6 +87,9 @@ class CanaryInstallSafetyTests(unittest.TestCase):
             rollback.index("ROLLBACK $version $EXPECTED_SHA256"),
         )
         self.assertIn("verify_canary_boot.py", rollback)
+        self.assertEqual(rollback.count("check_rollback_artifact.py"), 2)
+        self.assertEqual(rollback.count("check_hal6_credential_compatibility.py"), 2)
+        self.assertIn('--expected-sha256 "$EXPECTED_SHA256"', rollback)
 
 
 if __name__ == "__main__":

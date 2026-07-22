@@ -34,6 +34,11 @@ if [[ "${ROLLBACK_CONFIRM:-}" != "$confirmation" ]]; then
   exit 1
 fi
 
+version="$(${PYTHON:-python3} "$SCRIPT_DIR/check_rollback_artifact.py" "$FIRMWARE" \
+  --manifest "$ROOT/manifest_update.json" --expected-sha256 "$EXPECTED_SHA256")"
+${PYTHON:-python3} "$SCRIPT_DIR/check_hal6_credential_compatibility.py" \
+  "$SECRETS" "$HAL6_REFERENCE_SECRETS" >/dev/null
+
 firmware_abs="$(${PYTHON:-python3} -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$FIRMWARE")"
 secrets_abs="$(${PYTHON:-python3} -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$SECRETS")"
 docker run --rm \
@@ -42,6 +47,7 @@ docker run --rm \
   -v "$SCRIPT_DIR/upload_exact_ota.py:/tool/upload_exact_ota.py:ro" \
   --entrypoint python "$IMAGE" /tool/upload_exact_ota.py \
   --host "$DEVICE_HOST" --artifact /candidate/firmware.ota.bin \
+  --expected-sha256 "$EXPECTED_SHA256" \
   --secrets /run/secrets/muse.yaml
 
 ${PYTHON:-python3} "$SCRIPT_DIR/verify_canary_boot.py" \
