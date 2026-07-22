@@ -57,6 +57,10 @@ The source record must be published with
 `seal_source_qualification_evidence.py`: it derives every identity and metric
 from the clean commit, exact OTA and five raw logs, validates the complete
 record, refuses overwrite and exposes it through an atomic no-clobber link.
+`collect_source_qualification.sh` is the supported producer: it requires the
+YAML version, clean Git and three real private values, performs two pinned clean
+builds, rejects unequal hashes or leaked values in any retained log, enforces
+the flash budget and only then invokes the source sealer.
 
 Prepare the post-endurance credential transition with
 `scripts/prepare_secret_rotation.py` and `docs/SECRET_ROTATION.md`. Preparation

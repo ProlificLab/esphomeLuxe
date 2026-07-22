@@ -4,6 +4,20 @@ This record binds the source-only beta and stable gates to one candidate. Keep
 all files in an ignored private `release/source-VERSION/` directory. It does not
 replace physical canary evidence.
 
+After saving the exact successful GitHub run as `CI_JSON`, the supported
+collection path runs both pinned clean builds, size/audit/disclosure checks and
+the atomic sealer:
+
+```bash
+scripts/collect_source_qualification.sh \
+  release/source-VERSION VERSION CI_JSON "REVIEWER"
+```
+
+The requested version must equal the version in the compiled YAML. The output
+directory must not exist. On any failure it is removed in full; an existing
+path is never touched. The detailed steps below remain the audit and manual
+recovery procedure.
+
 ## Required logs
 
 1. Run the tracked-secret audit against the actual private `secrets.yaml`:
@@ -20,6 +34,7 @@ replace physical canary evidence.
 2. From one clean commit, run two independent pinned clean builds. Save complete
    output as `build-first.log` and `build-second.log`, then require both OTA
    SHA-256 values to equal the reviewed candidate SHA-256.
+   The collector preserves the first OTA separately and refuses unequal hashes.
 3. Run `scripts/check_firmware_size.sh` on the reviewed OTA and retain
    `firmware-size.log`. Record exact bytes and the one-decimal usage generated
    by the checker; both 93% target and 97% hard limit must pass.
