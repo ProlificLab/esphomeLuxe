@@ -82,6 +82,7 @@ jobs:
           python3 scripts/test_diagnostics_safety.py
           python3 scripts/check_offline_rescue_safety.py
           python3 scripts/test_offline_rescue_safety.py
+          python3 scripts/test_offline_rescue_evidence.py
           python3 scripts/test_prepare_rescue_media.py
           python3 scripts/test_proxmox_permissions.py
           python3 scripts/check_opnsense_readonly.py \

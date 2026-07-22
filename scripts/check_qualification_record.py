@@ -14,6 +14,9 @@ import subprocess
 from check_endurance_summary import validate_summary
 from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
 from check_night_led_evidence import validate_evidence as validate_night_led_evidence
+from check_offline_rescue_evidence import (
+    validate_evidence as validate_offline_rescue_evidence,
+)
 from check_physical_controls_evidence import (
     validate_evidence as validate_physical_controls_evidence,
 )
@@ -260,6 +263,8 @@ def main() -> None:
         artifact_hash,
     )
     if args.channel == "stable":
+        if gate_evidence["emergency_offline"] != gate_evidence["offline_rescue_physical"]:
+            fail("Offline rescue stable gates must bind the same evidence record")
         package_path = (
             Path(__file__).resolve().parents[1]
             / "home-assistant/packages/muse_luxe.yaml"
@@ -290,6 +295,19 @@ def main() -> None:
             artifact_hash,
             sha256(package_path),
             sha256(timer_package_path),
+        )
+        rescue_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["offline_rescue_physical"],
+            "Offline rescue",
+        )
+        root = Path(__file__).resolve().parents[1]
+        validate_offline_rescue_evidence(
+            rescue_path,
+            version,
+            artifact_hash,
+            sha256(root / "packages/offline_rescue.yaml"),
+            sha256(root / "components/offline_media/offline_media.cpp"),
         )
         endurance_path = resolve_bound_evidence(
             args.record,

@@ -134,3 +134,8 @@ stable. It records twelve closed scenarios, two distinct timers, every allowed
 checkpoint exactly once at day and night levels, no reconnect replay and one
 local completion sound during HA loss. Promotion binds it to the OTA and
 recomputes both the base and timer-coach package hashes.
+
+The two stable offline gates must reference one identical hash-bound
+`offline-rescue` record. It binds the OTA, rescue package, read-only FAT
+component and unchanged card manifest, then requires all six clips, fifteen
+physical/failure scenarios, one reboot and one HA disconnect/reconnect cycle.

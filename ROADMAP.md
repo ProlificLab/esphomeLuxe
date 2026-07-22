@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.9`: contrôles, LED et minuteurs liés à l'OTA et aux packages HA |
+| Distribution `hal.10` | `hal.10-alpha.10`: contrôles, LED, minuteurs et secours liés au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -285,6 +285,11 @@ et des logs de production limites aux erreurs ramènent l'OTA a 92,9%; une image
 USB WARN sans auto-update garde le diagnostic verbeux. L'OTA attend la fin de
 l'endurance alpha 2 et une carte physique revue.
 
+Etat outil `hal.9.0-qualification.5`: les deux portes secours partagent
+obligatoirement le meme dossier hashé. Celui-ci lie version, OTA, package,
+composant FAT et manifeste de carte inchange, puis ferme quinze scenarios,
+les six lectures et les cycles de reboot et deconnexion/reconnexion HA.
+
 Sortie: fonctions desactivables independamment, politique audio respectee et
 mode secours valide pendant une panne simulee de HA.
 
@@ -297,7 +302,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.9`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.10`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -317,6 +322,8 @@ La porte LED nuit charge egalement un dossier hashé avec les neuf profils et si
 scenarios, lie au binaire OTA et au hash du package HA recalcule depuis la source.
 La porte minuteurs charge un dossier hashé de douze scenarios avec des mesures
 fermees, lie au binaire OTA et aux hashes des packages de base et timer coach.
+Les deux portes secours doivent partager un dossier hashé unique, lie au
+binaire OTA, au package ESPHome, au composant FAT et au manifeste microSD.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

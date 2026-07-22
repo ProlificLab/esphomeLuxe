@@ -14,6 +14,7 @@ import unittest
 import check_qualification_record as checker
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
+from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
 from test_timer_evidence import valid_evidence as valid_timer_evidence
 from test_endurance_summary import valid_summary
@@ -76,6 +77,9 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_night_led: bool = False,
         tamper_timer: bool = False,
         unbound_timer: bool = False,
+        tamper_offline_rescue: bool = False,
+        unbound_offline_rescue: bool = False,
+        split_offline_rescue_gates: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -141,6 +145,40 @@ class QualificationRecordTests(unittest.TestCase):
                 )
                 if tamper_timer:
                     timer_path.write_text("{}\n", encoding="utf-8")
+            if {
+                "emergency_offline",
+                "offline_rescue_physical",
+            } <= set(record["gates"]):
+                rescue_package = ROOT / "packages/offline_rescue.yaml"
+                rescue_component = (
+                    ROOT / "components/offline_media/offline_media.cpp"
+                )
+                rescue_path = self.directory / "offline-rescue.json"
+                rescue = valid_rescue_evidence(
+                    version,
+                    self.digest,
+                    hashlib.sha256(rescue_package.read_bytes()).hexdigest(),
+                    hashlib.sha256(rescue_component.read_bytes()).hexdigest(),
+                )
+                rescue_path.write_text(json.dumps(rescue), encoding="utf-8")
+                rescue_hash = hashlib.sha256(rescue_path.read_bytes()).hexdigest()
+                bound_rescue = (
+                    "offline-rescue.json"
+                    if unbound_offline_rescue
+                    else f"sha256:{rescue_hash} {rescue_path.name}"
+                )
+                record["gates"]["offline_rescue_physical"]["evidence"] = (
+                    bound_rescue
+                )
+                record["gates"]["emergency_offline"]["evidence"] = bound_rescue
+                if split_offline_rescue_gates:
+                    duplicate_path = self.directory / "emergency-offline.json"
+                    duplicate_path.write_bytes(rescue_path.read_bytes())
+                    record["gates"]["emergency_offline"]["evidence"] = (
+                        f"sha256:{rescue_hash} {duplicate_path.name}"
+                    )
+                if tamper_offline_rescue:
+                    rescue_path.write_text("{}\n", encoding="utf-8")
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
             summary["device"]["project_version"] = version
@@ -364,6 +402,36 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_timer=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_offline_rescue_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_offline_rescue=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_offline_rescue_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_offline_rescue=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_split_offline_rescue_gate_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            split_offline_rescue_gates=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

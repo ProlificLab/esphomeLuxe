@@ -79,6 +79,24 @@ access during playback, verify stop/exit/privacy/reboot behavior, and inspect
 `Rescue Media Status` plus `Rescue Media Errors`. Remove the card and restore
 `hal.9.0-alpha.2` to roll back; card contents are never modified by firmware.
 
+Copy `docs/offline-rescue-record.example.json` into the ignored release
+directory before testing. Record all fifteen scenarios, the six playback
+counts and the card-manifest hash before and after the session. Both stable
+gates, `emergency_offline` and `offline_rescue_physical`, must bind this exact
+same record. Validate it explicitly:
+
+```bash
+python3 scripts/check_offline_rescue_evidence.py \
+  release/offline-rescue-VERSION.json \
+  --expected-version "VERSION" \
+  --expected-firmware-sha256 "$(sha256sum release/muse-luxe-VERSION.ota.bin | cut -d' ' -f1)" \
+  --expected-package-sha256 "$(sha256sum packages/offline_rescue.yaml | cut -d' ' -f1)" \
+  --expected-component-sha256 "$(sha256sum components/offline_media/offline_media.cpp | cut -d' ' -f1)"
+```
+
+Stable promotion recalculates the source hashes and verifies the candidate OTA.
+The example remains failed and cannot serve as physical evidence.
+
 ## Hardware evidence
 
 - [Raspiaudio Muse Luxe original firmware](https://github.com/RASPIAUDIO/Simple_Bluetooth_Speaker_ESP32)
