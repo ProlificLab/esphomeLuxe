@@ -13,7 +13,7 @@ from pathlib import Path
 MODE_CASES = (
     ("privacy_on", True, False, "privacy", "privacy"),
     ("privacy_off", False, False, "waiting", "healthy"),
-    ("continuous_on", False, True, "listening", "healthy"),
+    ("continuous_on", False, True, "listening", "busy"),
     ("continuous_off", False, False, "waiting", "healthy"),
 )
 DIAGNOSTICS = {"voice_errors", "voice_timeouts", "voice_recoveries"}

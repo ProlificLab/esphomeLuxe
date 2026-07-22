@@ -31,7 +31,7 @@ def valid_evidence() -> dict:
         "cases": [
             {"name": "privacy_on", "observed_at": "2026-07-23T08:00:10+00:00", "privacy_mode": True, "continuous_conversation": False, "voice_state": "privacy", "voice_health": "privacy"},
             {"name": "privacy_off", "observed_at": "2026-07-23T08:00:20+00:00", "privacy_mode": False, "continuous_conversation": False, "voice_state": "waiting", "voice_health": "healthy"},
-            {"name": "continuous_on", "observed_at": "2026-07-23T08:00:30+00:00", "privacy_mode": False, "continuous_conversation": True, "voice_state": "listening", "voice_health": "healthy"},
+            {"name": "continuous_on", "observed_at": "2026-07-23T08:00:30+00:00", "privacy_mode": False, "continuous_conversation": True, "voice_state": "listening", "voice_health": "busy"},
             {"name": "continuous_off", "observed_at": "2026-07-23T08:00:40+00:00", "privacy_mode": False, "continuous_conversation": False, "voice_state": "waiting", "voice_health": "healthy"},
         ],
         "diagnostics_before": {"voice_errors": 0.0, "voice_timeouts": 0.0, "voice_recoveries": 0.0},

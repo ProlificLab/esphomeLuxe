@@ -7,6 +7,10 @@
 - Privacy, continuous conversation, active timers and voice health are checked
   before the first state change.
 - Four transitions are recorded in a closed order with timezone-aware times.
+- Continuous listening is bound to the firmware's `busy` health state; the
+  runtime, evidence validator and recovery package are checked together.
+- Both ESPHome API switches, privacy restoration policy and continuous
+  start/stop actions are part of the same source contract.
 - Voice errors, timeouts and recoveries must remain unchanged.
 - A `finally` path disables both modes and requires fresh switch publications
   before accepting `waiting/healthy` after a failure.
@@ -36,12 +40,12 @@
 ## Source evidence
 
 - Transactional runtime SHA-256:
-  `557ba6ac3437d1af6a793638acc96eac8f8084abadddb28b322d89ba27293830`.
+  `e921ad3c36fb3304602612487743d5ec304e9c81dba613f29c71a512e9fa5f17`.
 - Evidence validator SHA-256:
-  `67290ddbfd30589373a839f3e79f7e0774b69e1db634203dd9a64a0f8b7d123b`.
+  `522dcce412ea32562a1c545436da214ca394640bbcb4221f65f28424f33df963`.
 - Evidence fixtures SHA-256:
-  `1e151c164a4bdbdab502d3aff736c5809273a75a6d9b676922419a11eba11976`.
+  `2ff899063c77220701314fa2eb6646bd82cc4fcba1f602126f7059e649bfad78`.
 - Source contract SHA-256:
-  `2e59309a160d36c5471e3d0c43a82966d920463f38a344eac0346a3a30bb9418`.
+  `d2b69c84207d112a43c7333ee8d89aca4849ef4bce68b4bd91a31a540477288b`.
 - Negative source fixtures SHA-256:
-  `e7085a958293e34a1bd7e036baf5a40c88dc5b2f1310c1eaf6041f73b426caa9`.
+  `c5f23ca41d7a0648d916bb447e643f84d47cbf925aab0225da916029a6770e45`.

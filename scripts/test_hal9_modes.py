@@ -189,7 +189,7 @@ async def run(args: argparse.Namespace) -> None:
         await wait_until(
             lambda: latest.get("continuous_conversation") is True
             and latest.get("voice_state") == "listening"
-            and latest.get("voice_health") == "healthy",
+            and latest.get("voice_health") == "busy",
             "continuous conversation",
             args.timeout,
         )

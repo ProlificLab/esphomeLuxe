@@ -32,7 +32,9 @@ python3 scripts/check_hal9_modes_evidence.py \
 ```
 
 The test performs exactly four ordered transitions: privacy on/off, then
-continuous conversation on/off. A failure still enters the cleanup path and
+continuous conversation on/off. The active listening phase must report
+`voice_health=busy`, matching the firmware state machine; only the final waiting
+phase reports `healthy`. A failure still enters the cleanup path and
 requires fresh state publications after returning both switches to off, with
 `voice_state=waiting` and `voice_health=healthy`. A killed process cannot
 guarantee cleanup; in that case,

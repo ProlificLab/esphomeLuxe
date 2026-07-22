@@ -15,17 +15,29 @@ RUNTIME = (ROOT / "scripts/test_hal9_modes.py").read_text(encoding="utf-8")
 VALIDATOR = (ROOT / "scripts/check_hal9_modes_evidence.py").read_text(
     encoding="utf-8"
 )
+FIRMWARE = (ROOT / "packages/recovery.yaml").read_text(encoding="utf-8")
+VOICE = (ROOT / "packages/voice.yaml").read_text(encoding="utf-8")
 
 
 class ModesSafetyTests(unittest.TestCase):
-    def check(self, runtime: str = RUNTIME, validator: str = VALIDATOR) -> None:
+    def check(
+        self,
+        runtime: str = RUNTIME,
+        validator: str = VALIDATOR,
+        firmware: str = FIRMWARE,
+        voice: str = VOICE,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             runtime_path = root / "runtime.py"
             validator_path = root / "validator.py"
+            firmware_path = root / "recovery.yaml"
+            voice_path = root / "voice.yaml"
             runtime_path.write_text(runtime, encoding="utf-8")
             validator_path.write_text(validator, encoding="utf-8")
-            validate(runtime_path, validator_path)
+            firmware_path.write_text(firmware, encoding="utf-8")
+            voice_path.write_text(voice, encoding="utf-8")
+            validate(runtime_path, validator_path, firmware_path, voice_path)
 
     def test_current_sources_pass(self) -> None:
         self.check()
@@ -63,6 +75,25 @@ class ModesSafetyTests(unittest.TestCase):
         mutated = mutated.replace("    finally:\n", publication + "\n    finally:\n", 1)
         with self.assertRaises(RuntimeError):
             self.check(mutated)
+
+    def test_firmware_health_drift_fails(self) -> None:
+        mutated = FIRMWARE.replace(
+            'case ${P_answering}: return {"busy"};',
+            'case ${P_answering}: return {"healthy"};',
+        )
+        with self.assertRaises(RuntimeError):
+            self.check(firmware=mutated)
+
+    def test_api_switch_drift_fails(self) -> None:
+        for marker in (
+            "id: privacy_mode_switch",
+            "restore_mode: RESTORE_DEFAULT_OFF",
+            "script.execute: start_continuous_conversation",
+            "script.execute: stop_continuous_conversation",
+        ):
+            mutated = VOICE.replace(marker, "removed_mode_contract", 1)
+            with self.subTest(marker=marker), self.assertRaises(RuntimeError):
+                self.check(voice=mutated)
 
 
 if __name__ == "__main__":
