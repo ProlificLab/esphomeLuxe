@@ -17,6 +17,11 @@ firmware or install an OTA. Run it only from the private operator workstation.
    `secrets.yaml` preserves unrelated values while replacing the API encryption
    key, OTA password and fallback AP password with independent system-CSPRNG
    values. `transition-ota.yaml` contains only the old OTA password.
+   Validate the closed bundle without displaying its values:
+
+   ```bash
+   python3 scripts/check_secret_rotation_bundle.py release/rotation-VERSION
+   ```
 3. Build the exact candidate in an isolated clean worktree with the new
    `secrets.yaml`. Run the tracked-secret audit with `--require-private-keys 3`,
    two clean builds and the complete source qualification procedure.
