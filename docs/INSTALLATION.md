@@ -113,6 +113,14 @@ camera at a time. The repository policy is disabled and the generator writes a
 separate private candidate; it never edits or restarts Frigate. Do not apply a
 candidate until the one-day retention tradeoff and room consent are reviewed.
 
+## Physical modes gate
+
+After the active endurance run and the reviewed canary OTA, follow
+`docs/MODES.md`. The transactional API test requires the exact firmware version
+and a new evidence path, restores privacy and continuous-conversation state on
+failure, and emits JSON only after verified cleanup. Complete the separate
+button, audio and LED observation record before marking `physical_controls`.
+
 ## Offline rescue card
 
 Follow `docs/OFFLINE_RESCUE.md` to review the six messages, format a dedicated

@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
+| Distribution `hal.10` | `hal.10-alpha.5`: promotion atomique, endurance fraiche et preuve transactionnelle des modes |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -140,6 +140,12 @@ des planchers visibles. Le gradient minuteur `hal.9.0-alpha.5` conserve la
 luminosite courante au lieu de la reecrire chaque seconde, pour un OTA toujours
 sous 93%. Qualification physique de chaque phase et d'une transition pendant
 un minuteur reste requise apres l'endurance.
+
+Etat outil `hal.9.0-qualification.1`: le test API des modes refuse une mauvaise
+version, une enceinte occupee ou des minuteurs actifs, exige des compteurs voix
+stables et restaure les deux modes dans un bloc final. Sa preuve JSON n'est
+publiee atomiquement qu'apres retour verifie a `waiting/healthy`. Boutons, audio
+et LED restent volontairement une observation physique separee.
 
 Sortie: aucune session ouverte apres timeout, annonces prioritaires propres et
 minuteurs resilients a une reconnexion.
@@ -286,13 +292,16 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.4`: toute promotion reconstruit proprement le
-firmware epingle, exige un dossier JSON recent avec preuves pour 12 portes beta
-ou 24 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
+Etat source `hal.10-alpha.5`: toute promotion reconstruit proprement le
+firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
+ou 25 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
 une prerelease stable ou une porte ouverte stable sont refuses. La preuve
 d'endurance detecte aussi les telemetries figees et les redemarrages, refuse par
 defaut d'ecraser un journal et produit un resume JSON atomique.
+La porte modes charge aussi une preuve liee par hash, controle sa version, ses
+quatre transitions, ses compteurs et son nettoyage; elle ne remplace jamais
+l'observation physique des boutons et LED.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

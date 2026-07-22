@@ -20,11 +20,12 @@ record to all of the following:
 - reviewer, timezone-aware review time no older than 30 days and canary ID;
 - exact hardware, Home Assistant, ESPHome and ESP-IDF compatibility matrix;
 - qualified feature scope, explicit beta open gates and no stable open gate;
-- 12 mandatory beta gates or all 24 stable gates.
+- 13 mandatory beta gates or all 25 stable gates.
 
 Beta includes reproducible build, CI, hard size limit, secrets audit, rollback
 artifact, canary OTA, ten reboot/Wi-Fi/HA recovery cycles, privacy reboot,
-physical controls and 100 TTS cycles. Stable additionally requires the 93%
+version-bound API mode transitions, physical controls and 100 TTS cycles.
+Stable additionally requires the 93%
 size target, 24-hour idle, acoustic calibration, exercised rollback,
 second-person install and the physical `hal.9` feature gates.
 
@@ -107,3 +108,9 @@ version, fresh diagnostics, memory thresholds, zero reboot, zero voice error
 and zero timeout.
 The `uptime` heartbeat must remain fresher than 180 seconds by default, so a
 silent API disconnect cannot turn frozen values into apparently valid proof.
+
+`mode_api_transitions.evidence` uses the same `sha256:DIGEST relative-path`
+form. Promotion loads that exact JSON with
+`scripts/check_hal9_modes_evidence.py`, requires the candidate version, four
+ordered transitions, unchanged voice counters and a verified safe final state.
+This machine gate is additional to, not a replacement for, `physical_controls`.

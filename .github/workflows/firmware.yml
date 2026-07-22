@@ -105,6 +105,9 @@ jobs:
           python3 scripts/check_night_led_safety.py
           python3 scripts/test_night_led_safety.py
           python3 scripts/test_night_led_model.py
+          python3 scripts/check_hal9_modes_safety.py
+          python3 scripts/test_hal9_modes_safety.py
+          python3 scripts/test_hal9_modes_evidence.py
           bash -n scripts/*.sh
           python3 -m py_compile scripts/*.py frigate/*.py
       - name: Upload test build

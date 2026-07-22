@@ -12,6 +12,7 @@ import re
 import subprocess
 
 from check_endurance_summary import validate_summary
+from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
 
 
 BETA_GATES = {
@@ -20,6 +21,7 @@ BETA_GATES = {
     "ci_passed",
     "firmware_size_hard_limit",
     "ha_restart_recovery_10",
+    "mode_api_transitions",
     "physical_controls",
     "privacy_reboot",
     "reboot_recovery_10",
@@ -119,6 +121,25 @@ def validate_gate(name: str, value: object) -> str:
     return evidence
 
 
+def resolve_bound_evidence(record_path: Path, evidence: str, label: str) -> Path:
+    match = re.fullmatch(r"sha256:([0-9a-f]{64})\s+(.+)", evidence)
+    if match is None:
+        fail(f"{label} evidence must contain its SHA-256 and relative path")
+    expected_hash, evidence_name = match.groups()
+    relative_path = Path(evidence_name)
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        fail(f"{label} evidence must be a safe path relative to the record")
+    evidence_root = record_path.parent.resolve()
+    resolved = (evidence_root / relative_path).resolve()
+    if not resolved.is_relative_to(evidence_root):
+        fail(f"{label} evidence resolves outside the qualification directory")
+    if not resolved.is_file():
+        fail(f"{label} evidence file does not exist")
+    if sha256(resolved) != expected_hash:
+        fail(f"{label} evidence SHA-256 does not match the reviewed record")
+    return resolved
+
+
 def current_commit() -> str:
     return subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -206,24 +227,19 @@ def main() -> None:
     gate_evidence = {
         name: validate_gate(name, gates[name]) for name in sorted(required_gates)
     }
+    modes_path = resolve_bound_evidence(
+        args.record,
+        gate_evidence["mode_api_transitions"],
+        "Modes",
+    )
+    validate_modes_evidence(modes_path, version)
     if args.channel == "stable":
-        match = re.fullmatch(
-            r"sha256:([0-9a-f]{64})\s+(.+)",
+        endurance_path = resolve_bound_evidence(
+            args.record,
             gate_evidence["idle_endurance_24h"],
+            "Endurance",
         )
-        if match is None:
-            fail("Endurance evidence must contain its SHA-256 and relative path")
-        expected_evidence_hash, evidence_name = match.groups()
-        evidence_path = Path(evidence_name)
-        if evidence_path.is_absolute() or ".." in evidence_path.parts:
-            fail("Endurance evidence must be a safe path relative to the record")
-        evidence_root = args.record.parent.resolve()
-        resolved_evidence = (evidence_root / evidence_path).resolve()
-        if not resolved_evidence.is_relative_to(evidence_root):
-            fail("Endurance evidence resolves outside the qualification directory")
-        if sha256(resolved_evidence) != expected_evidence_hash:
-            fail("Endurance evidence SHA-256 does not match the reviewed record")
-        validate_summary(resolved_evidence, version)
+        validate_summary(endurance_path, version)
 
     print(
         f"Qualification passed for {args.channel} {version}: "

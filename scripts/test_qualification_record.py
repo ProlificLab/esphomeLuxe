@@ -12,6 +12,7 @@ import tempfile
 import unittest
 
 import check_qualification_record as checker
+from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
 from test_endurance_summary import valid_summary
 from monitor_endurance import write_summary
 
@@ -64,9 +65,20 @@ class QualificationRecordTests(unittest.TestCase):
         channel: str,
         version: str,
         tamper_endurance: bool = False,
+        tamper_modes: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
+        modes_path = self.directory / "modes.json"
+        modes = valid_modes_evidence()
+        modes["device"]["project_version"] = version
+        modes_path.write_text(json.dumps(modes), encoding="utf-8")
+        modes_hash = hashlib.sha256(modes_path.read_bytes()).hexdigest()
+        record["gates"]["mode_api_transitions"]["evidence"] = (
+            f"sha256:{modes_hash} {modes_path.name}"
+        )
+        if tamper_modes:
+            modes_path.write_text("{}\n", encoding="utf-8")
         if channel == "stable":
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
@@ -185,6 +197,34 @@ class QualificationRecordTests(unittest.TestCase):
         record = self.record("stable", version)
         result = self.run_check(
             record, "stable", version, tamper_endurance=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_modes_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        result = self.run_check(record, "beta", version, tamper_modes=True)
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_modes_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        record["gates"]["mode_api_transitions"]["evidence"] = "modes.json"
+        record_path = self.directory / "qualification.json"
+        manifest_path = self.directory / "manifest.json"
+        record_path.write_text(json.dumps(record), encoding="utf-8")
+        manifest_path.write_text(
+            json.dumps({"version": version, "channel": "beta"}), encoding="utf-8"
+        )
+        result = subprocess.run(
+            [
+                "python3", str(SCRIPT), "--record", str(record_path),
+                "--manifest", str(manifest_path), "--artifact", str(self.artifact),
+                "--channel", "beta", "--source-commit", COMMIT,
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

@@ -176,6 +176,10 @@ the existing Muse LED without moving color or effect ownership out of the
 firmware state machine. Timer ticks retain the selected brightness. See
 `docs/NIGHT_LED.md` for the profile table, paired deployment and rollback gate.
 
+The post-endurance mode gate uses a version-bound, transactional evidence
+writer. Follow `docs/MODES.md`; a passing API JSON never substitutes for the
+separate physical button, audio and LED observations.
+
 Canary mode and privacy-persistence tests use the encrypted ESPHome API:
 
 ```bash
