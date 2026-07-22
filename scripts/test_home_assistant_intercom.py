@@ -87,6 +87,16 @@ def set_status(token: str, status: str) -> None:
     wait_state(token, "input_select.muse_intercom_status", status)
 
 
+def set_text(token: str, entity_id: str, value: str) -> None:
+    service(
+        token,
+        "input_text",
+        "set_value",
+        {"entity_id": entity_id, "value": value},
+    )
+    wait_state(token, entity_id, value)
+
+
 def reset(token: str) -> None:
     current = state(token, "input_select.muse_intercom_status")
     if current in {"ringing", "connected"}:
@@ -107,6 +117,7 @@ def main() -> None:
         "input_boolean.muse_intercom_enabled",
         "input_select.muse_intercom_status",
         "input_text.muse_intercom_last_event",
+        "input_text.muse_intercom_session_id",
         "sensor.muse_intercom",
         "timer.muse_intercom_ring",
         "timer.muse_intercom_session",
@@ -147,7 +158,16 @@ def main() -> None:
     if state(token, "input_select.muse_intercom_status") != "idle":
         raise RuntimeError("Unavailable target guard allowed a call")
 
+    set_text(token, "input_text.muse_intercom_session_id", "runtime-session")
     set_status(token, "ringing")
+    service(
+        token,
+        "script",
+        "muse_intercom_accept",
+        {"session_id": "stale-session"},
+    )
+    if state(token, "input_select.muse_intercom_status") != "ringing":
+        raise RuntimeError("A stale session changed the ringing call")
     service(token, "script", "muse_intercom_timeout")
     wait_state(token, "input_select.muse_intercom_status", "timed_out")
     if state(token, "input_text.muse_intercom_last_event") != "timed_out:ringing":
@@ -164,7 +184,7 @@ def main() -> None:
     reset(token)
     print(
         "PASS Home Assistant intercom disabled_guard=blocked "
-        "unavailable_target=blocked ring_timeout=passed "
+        "unavailable_target=blocked stale_session=blocked ring_timeout=passed "
         "session_timeout=passed audio_playback=not_exercised enabled=off"
     )
 

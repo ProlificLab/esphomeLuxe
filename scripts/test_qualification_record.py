@@ -19,6 +19,7 @@ from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
 from test_house_intelligence_evidence import (
     valid_evidence as valid_house_intelligence_evidence,
 )
+from test_intercom_evidence import valid_evidence as valid_intercom_evidence
 from test_interpreter_evidence import valid_evidence as valid_interpreter_evidence
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
@@ -106,6 +107,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_routine: bool = False,
         tamper_video_alert: bool = False,
         unbound_video_alert: bool = False,
+        tamper_intercom: bool = False,
+        unbound_intercom: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -366,6 +369,37 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_video_alert:
                 video_alert_path.write_text("{}\n", encoding="utf-8")
+            intercom_package = ROOT / "home-assistant/packages/muse_intercom.yaml"
+            intercom_sentences = (
+                ROOT / "home-assistant/custom_sentences/fr/muse_intercom.yaml"
+            )
+            intercom_ui = ROOT / "packages/ui.yaml"
+            intercom_recovery = ROOT / "packages/recovery.yaml"
+            intercom_checker = ROOT / "scripts/check_intercom_safety.py"
+            intercom_model = ROOT / "scripts/test_intercom_model.py"
+            intercom_ha_test = ROOT / "scripts/test_home_assistant_intercom.py"
+            intercom_path = self.directory / "intercom.json"
+            intercom = valid_intercom_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(intercom_package.read_bytes()).hexdigest(),
+                package_hash,
+                hashlib.sha256(intercom_sentences.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_ui.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_recovery.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_checker.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_model.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_ha_test.read_bytes()).hexdigest(),
+            )
+            intercom_path.write_text(json.dumps(intercom), encoding="utf-8")
+            intercom_hash = hashlib.sha256(intercom_path.read_bytes()).hexdigest()
+            record["gates"]["intercom_two_satellite"]["evidence"] = (
+                "intercom.json"
+                if unbound_intercom
+                else f"sha256:{intercom_hash} {intercom_path.name}"
+            )
+            if tamper_intercom:
+                intercom_path.write_text("{}\n", encoding="utf-8")
             video_package = ROOT / "home-assistant/packages/muse_video_review.yaml"
             video_dashboard = (
                 ROOT / "home-assistant/dashboards/muse-video-review.yaml"
@@ -825,6 +859,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_video_alert=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_intercom_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_intercom=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_intercom_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_intercom=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

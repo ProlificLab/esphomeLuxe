@@ -108,6 +108,16 @@ script:
         default: false
         selector:
           boolean:
+      required_intercom_session:
+        name: Required intercom session
+        required: false
+        selector:
+          text:
+      required_intercom_status:
+        name: Required intercom status
+        required: false
+        selector:
+          text:
     variables:
       target_list: >-
         {% if targets is defined and targets %}
@@ -117,6 +127,10 @@ script:
         {% endif %}
       requested_priority: "{{ priority | default('normal') }}"
       requested_chime: "{{ chime | default(false) | bool }}"
+      requested_intercom_session: >-
+        {{ required_intercom_session | default('', true) | string | trim }}
+      requested_intercom_status: >-
+        {{ required_intercom_status | default('', true) | string | trim }}
       announcement_volume: >-
         {% if requested_priority == 'urgent' %}
           {{ states('input_number.muse_urgent_volume') | float(0.75) }}
@@ -155,6 +169,14 @@ script:
                         not muse_conversation) }}
                   timeout: "00:10:00"
                   continue_on_timeout: false
+            - condition: template
+              value_template: >-
+                {{ (requested_intercom_session == '' or
+                    requested_intercom_session ==
+                      states('input_text.muse_intercom_session_id')) and
+                   (requested_intercom_status == '' or
+                    requested_intercom_status ==
+                      states('input_select.muse_intercom_status')) }}
             - action: media_player.volume_set
               target:
                 entity_id: "{{ player }}"
@@ -174,6 +196,26 @@ script:
                 - wait_template: "{{ is_state(player, 'idle') }}"
                   timeout: "00:00:20"
                   continue_on_timeout: true
+            - if:
+                - condition: template
+                  value_template: >-
+                    {{ (requested_intercom_session != '' and
+                        requested_intercom_session !=
+                          states('input_text.muse_intercom_session_id')) or
+                       (requested_intercom_status != '' and
+                        requested_intercom_status !=
+                          states('input_select.muse_intercom_status')) }}
+              then:
+                - if:
+                    - condition: template
+                      value_template: "{{ previous_volume is not none }}"
+                  then:
+                    - action: media_player.volume_set
+                      target:
+                        entity_id: "{{ player }}"
+                      data:
+                        volume_level: "{{ previous_volume | float }}"
+                - stop: "Intercom announcement guard expired before TTS."
             - action: tts.speak
               continue_on_error: true
               target:

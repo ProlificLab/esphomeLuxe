@@ -10,6 +10,12 @@ Les volumes sont `0.60` le jour, `0.25` la nuit et `0.75` en urgence. Le volume
 precedent est restaure apres chaque tentative, y compris si le carillon ou Piper
 echoue. Le carillon est optionnel, mais lorsqu'il est demande il precede le TTS.
 
+Les appels interphone peuvent fournir une session et un etat obligatoires. Le
+script les controle apres l'attente normale, puis une seconde fois apres le
+carillon, immediatement avant Piper. Une annonce devenue obsolete est abandonnee
+et le volume precedent est restaure; les autres utilisateurs du script omettent
+ces deux champs et conservent le comportement normal.
+
 Le routage est volontairement ferme a
 `media_player.raspiaudio_muse_luxe` tant qu'un second satellite n'est pas
 qualifie. Le routage par piece, etage ou personne devra etendre simultanement le

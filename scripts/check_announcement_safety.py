@@ -26,6 +26,13 @@ def require_line(source: str, pattern: str, label: str) -> None:
         raise RuntimeError(f"Missing exact announcement {label}")
 
 
+def ordered(source: str, first: str, second: str, label: str) -> None:
+    first_index = source.find(first)
+    second_index = source.find(second)
+    if first_index < 0 or second_index < 0 or first_index >= second_index:
+        raise RuntimeError(f"Invalid announcement ordering for {label}")
+
+
 def main() -> None:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -57,8 +64,27 @@ def main() -> None:
         "['starting', 'listening', 'answering']",
         "previous_volume",
         "volume_level: \"{{ previous_volume | float }}\"",
+        "required_intercom_session:",
+        "required_intercom_status:",
+        "requested_intercom_session ==\n                      states('input_text.muse_intercom_session_id')",
+        "requested_intercom_status ==\n                      states('input_select.muse_intercom_status')",
+        "Intercom announcement guard expired before TTS.",
     ):
         require(script, marker, "policy marker")
+    if script.count('volume_level: "{{ previous_volume | float }}"') != 2:
+        raise RuntimeError("Announcement must restore volume after playback and stale guard")
+    ordered(
+        script,
+        "requested_intercom_session ==",
+        "action: media_player.volume_set",
+        "queued session guard before volume",
+    )
+    ordered(
+        script,
+        "Intercom announcement guard expired before TTS.",
+        "action: tts.speak",
+        "session guard immediately before TTS",
+    )
     if script.count("continue_on_error: true") < 3:
         raise RuntimeError(
             "Announcement stop, chime and TTS must continue to volume restoration"
@@ -77,7 +103,10 @@ def main() -> None:
             raise RuntimeError(f"Forbidden announcement behavior: {marker}")
     if package.count("media_player.raspiaudio_muse_luxe") < 2:
         raise RuntimeError("Default and whole-home announcement target are missing")
-    print("Announcement safety contract passed: bounded queue and volume restore.")
+    print(
+        "Announcement safety contract passed: bounded queue, session guard and "
+        "volume restore."
+    )
 
 
 if __name__ == "__main__":

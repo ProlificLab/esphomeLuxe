@@ -29,13 +29,14 @@ def main() -> None:
     parser.add_argument("--component", type=Path, default=root / "components/offline_media/offline_media.cpp")
     parser.add_argument("--package", type=Path, default=root / "packages/offline_rescue.yaml")
     parser.add_argument("--preparer", type=Path, default=root / "scripts/prepare_rescue_media.py")
+    parser.add_argument("--ui", type=Path, default=root / "packages/ui.yaml")
     args = parser.parse_args()
     component = args.component.read_text(encoding="utf-8")
     package = args.package.read_text(encoding="utf-8")
     preparer = args.preparer.read_text(encoding="utf-8")
     firmware = (root / "luxe_microWW.yaml").read_text(encoding="utf-8")
     calibration_firmware = (root / "luxe_microWW_nabu.yaml").read_text(encoding="utf-8")
-    ui = (root / "packages/ui.yaml").read_text(encoding="utf-8")
+    ui = args.ui.read_text(encoding="utf-8")
 
     for marker in (
         "cs_pin: 13",
@@ -49,7 +50,20 @@ def main() -> None:
         "internal: true",
     ):
         require(package, marker, "package guard")
-    require(ui, "gesture: quadruple_click", "physical entry/exit")
+    require(
+        ui,
+        'case 4: return std::string("quadruple_click")',
+        "physical entry/exit event",
+    )
+    if not re.search(
+        r"script\.execute: toggle_rescue_mode\s+"
+        r"- lambda: id\(muse_gesture_code\) = 4;\s+"
+        r"- script\.execute: publish_muse_gesture",
+        ui,
+    ):
+        raise RuntimeError(
+            "Missing offline-rescue ordered toggle/code-4/event sequence"
+        )
     require(ui, "clip: evacuation", "physical evacuation shortcut")
     require(component, "command_(17, address", "raw read-only sector access")
     require(component, "fixed 8.3 names, no write operations", "read-only policy")

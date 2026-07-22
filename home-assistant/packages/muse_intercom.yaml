@@ -103,8 +103,10 @@ script:
         cuisine: media_player.muse_luxe_cuisine
       source_player: "{{ room_players.get(requested_source, '') }}"
       target_player: "{{ room_players.get(requested_target, '') }}"
-      known_players: >-
-        {{ states.media_player | map(attribute='entity_id') | list }}
+      available_players: >-
+        {{ states.media_player
+           | rejectattr('state', 'in', ['unknown', 'unavailable'])
+           | map(attribute='entity_id') | list }}
       active_states:
         - ringing
         - connected
@@ -121,8 +123,8 @@ script:
             value_template: >-
               {{ requested_source == requested_target
                  or not source_player or not target_player
-                 or source_player not in known_players
-                 or target_player not in known_players }}
+                 or source_player not in available_players
+                 or target_player not in available_players }}
         then:
           - stop: "Both intercom rooms must map to different available players."
             error: true
@@ -133,6 +135,14 @@ script:
         then:
           - stop: "Another intercom session is already active."
             error: true
+      - action: script.muse_announce
+        data:
+          message: >-
+            Appel interphone du {{ requested_source }}. Dites accepte
+            l'interphone, refuse l'interphone, ou laissez l'appel expirer.
+          targets: "{{ [target_player] }}"
+          priority: normal
+          chime: true
       - action: timer.cancel
         target:
           entity_id:
@@ -182,21 +192,20 @@ script:
             Audible call from {{ requested_source }} to {{ requested_target }};
             session {{ states('input_text.muse_intercom_session_id') }}.
           entity_id: sensor.muse_intercom
-      - action: script.muse_announce
-        data:
-          message: >-
-            Appel interphone du {{ requested_source }}. Dites accepte
-            l'interphone, refuse l'interphone, ou laissez l'appel expirer.
-          targets: "{{ [target_player] }}"
-          priority: normal
-          chime: true
-
   muse_intercom_accept:
     alias: Muse - accept intercom call
     description: Accepts only the currently ringing, audibly announced call.
     icon: mdi:phone-in-talk
     mode: single
+    fields:
+      session_id:
+        name: Intercom session ID
+        required: true
+        selector:
+          text:
     variables:
+      requested_session: "{{ session_id | string | trim }}"
+      active_session: "{{ states('input_text.muse_intercom_session_id') }}"
       caller_room: "{{ states('input_text.muse_intercom_caller_room') }}"
       target_room: "{{ states('input_text.muse_intercom_target_room') }}"
       room_players:
@@ -204,8 +213,13 @@ script:
         cuisine: media_player.muse_luxe_cuisine
       caller_player: "{{ room_players.get(caller_room, '') }}"
       target_player: "{{ room_players.get(target_room, '') }}"
+      available_players: >-
+        {{ states.media_player
+           | rejectattr('state', 'in', ['unknown', 'unavailable'])
+           | map(attribute='entity_id') | list }}
       participants: >-
-        {{ [caller_player, target_player] | reject('eq', '') | unique | list }}
+        {{ [caller_player, target_player] | reject('eq', '')
+           | select('in', available_players) | unique | list }}
     sequence:
       - condition: state
         entity_id: input_boolean.muse_intercom_enabled
@@ -214,7 +228,25 @@ script:
         entity_id: input_select.muse_intercom_status
         state: ringing
       - condition: template
-        value_template: "{{ participants | count == 2 }}"
+        value_template: >-
+          {{ requested_session | length > 0 and requested_session == active_session
+             and participants | count == 2 }}
+      - action: script.muse_announce
+        data:
+          message: >-
+            Interphone connecté en push-to-talk pour cinq minutes maximum.
+            Chaque message sera précédé d'un carillon.
+          targets: "{{ participants }}"
+          priority: normal
+          chime: true
+          required_intercom_session: "{{ requested_session }}"
+          required_intercom_status: ringing
+      - condition: state
+        entity_id: input_select.muse_intercom_status
+        state: ringing
+      - condition: template
+        value_template: >-
+          {{ requested_session == states('input_text.muse_intercom_session_id') }}
       - action: timer.cancel
         target:
           entity_id: timer.muse_intercom_ring
@@ -245,15 +277,6 @@ script:
             Session {{ states('input_text.muse_intercom_session_id') }} accepted;
             push-to-talk only, five-minute limit.
           entity_id: sensor.muse_intercom
-      - action: script.muse_announce
-        data:
-          message: >-
-            Interphone connecté en push-to-talk pour cinq minutes maximum.
-            Chaque message sera précédé d'un carillon.
-          targets: "{{ participants }}"
-          priority: normal
-          chime: true
-
   muse_intercom_relay:
     alias: Muse - relay transcribed intercom message
     description: >-
@@ -277,7 +300,14 @@ script:
         selector:
           text:
             multiline: true
+      session_id:
+        name: Intercom session ID
+        required: true
+        selector:
+          text:
     variables:
+      requested_session: "{{ session_id | string | trim }}"
+      active_session: "{{ states('input_text.muse_intercom_session_id') }}"
       caller_room: "{{ states('input_text.muse_intercom_caller_room') }}"
       target_room: "{{ states('input_text.muse_intercom_target_room') }}"
       requested_source: "{{ from_room | string | lower | trim }}"
@@ -294,8 +324,10 @@ script:
         bureau: media_player.raspiaudio_muse_luxe
         cuisine: media_player.muse_luxe_cuisine
       destination_player: "{{ room_players.get(destination_room, '') }}"
-      known_players: >-
-        {{ states.media_player | map(attribute='entity_id') | list }}
+      available_players: >-
+        {{ states.media_player
+           | rejectattr('state', 'in', ['unknown', 'unavailable'])
+           | map(attribute='entity_id') | list }}
     sequence:
       - condition: state
         entity_id: input_boolean.muse_intercom_enabled
@@ -308,12 +340,28 @@ script:
             value_template: >-
               {{ destination_room == 'invalid'
                  or not destination_player
-                 or destination_player not in known_players
+                 or destination_player not in available_players
+                 or requested_session | length < 1
+                 or requested_session != active_session
                  or bounded_message | length < 1
                  or bounded_message | length > 240 }}
         then:
           - stop: "Invalid participant, unavailable destination or message length."
             error: true
+      - action: script.muse_announce
+        data:
+          message: "Interphone du {{ requested_source }}. {{ bounded_message }}"
+          targets: "{{ [destination_player] }}"
+          priority: normal
+          chime: true
+          required_intercom_session: "{{ requested_session }}"
+          required_intercom_status: connected
+      - condition: state
+        entity_id: input_select.muse_intercom_status
+        state: connected
+      - condition: template
+        value_template: >-
+          {{ requested_session == states('input_text.muse_intercom_session_id') }}
       - action: timer.start
         target:
           entity_id: timer.muse_intercom_session
@@ -336,18 +384,19 @@ script:
             Relayed a transient transcript from {{ requested_source }} to
             {{ destination_room }}; content intentionally omitted.
           entity_id: sensor.muse_intercom
-      - action: script.muse_announce
-        data:
-          message: "Interphone du {{ requested_source }}. {{ bounded_message }}"
-          targets: "{{ [destination_player] }}"
-          priority: normal
-          chime: true
-
   muse_intercom_decline:
     alias: Muse - decline intercom call
     icon: mdi:phone-cancel
     mode: single
+    fields:
+      session_id:
+        name: Intercom session ID
+        required: true
+        selector:
+          text:
     variables:
+      requested_session: "{{ session_id | string | trim }}"
+      active_session: "{{ states('input_text.muse_intercom_session_id') }}"
       caller_room: "{{ states('input_text.muse_intercom_caller_room') }}"
       room_players:
         bureau: media_player.raspiaudio_muse_luxe
@@ -357,6 +406,9 @@ script:
       - condition: state
         entity_id: input_select.muse_intercom_status
         state: ringing
+      - condition: template
+        value_template: >-
+          {{ requested_session | length > 0 and requested_session == active_session }}
       - action: timer.cancel
         target:
           entity_id: timer.muse_intercom_ring
@@ -385,12 +437,22 @@ script:
               targets: "{{ [caller_player] }}"
               priority: normal
               chime: true
+              required_intercom_session: "{{ requested_session }}"
+              required_intercom_status: declined
 
   muse_intercom_hangup:
     alias: Muse - hang up intercom
     icon: mdi:phone-hangup
     mode: single
+    fields:
+      session_id:
+        name: Intercom session ID
+        required: true
+        selector:
+          text:
     variables:
+      requested_session: "{{ session_id | string | trim }}"
+      active_session: "{{ states('input_text.muse_intercom_session_id') }}"
       caller_room: "{{ states('input_text.muse_intercom_caller_room') }}"
       target_room: "{{ states('input_text.muse_intercom_target_room') }}"
       room_players:
@@ -403,7 +465,8 @@ script:
     sequence:
       - condition: template
         value_template: >-
-          {{ states('input_select.muse_intercom_status') in
+          {{ requested_session | length > 0 and requested_session == active_session
+             and states('input_select.muse_intercom_status') in
              ['ringing', 'connected'] }}
       - action: timer.cancel
         target:
@@ -435,6 +498,8 @@ script:
               targets: "{{ participants }}"
               priority: normal
               chime: true
+              required_intercom_session: "{{ requested_session }}"
+              required_intercom_status: ended
 
   muse_intercom_timeout:
     alias: Muse - expire intercom session
@@ -443,6 +508,7 @@ script:
     mode: single
     variables:
       previous_status: "{{ states('input_select.muse_intercom_status') }}"
+      active_session: "{{ states('input_text.muse_intercom_session_id') }}"
       caller_room: "{{ states('input_text.muse_intercom_caller_room') }}"
       target_room: "{{ states('input_text.muse_intercom_target_room') }}"
       room_players:
@@ -499,6 +565,8 @@ script:
               targets: "{{ participants }}"
               priority: normal
               chime: true
+              required_intercom_session: "{{ active_session }}"
+              required_intercom_status: timed_out
 
   muse_intercom_reset:
     alias: Muse - reset inactive intercom
@@ -530,6 +598,62 @@ script:
           value: ""
 
 automation:
+  - id: muse_intercom_physical_control
+    alias: Muse - route trusted intercom button gesture
+    triggers:
+      - trigger: event
+        event_type: esphome.muse_luxe_gesture
+    variables:
+      requested_device: "{{ trigger.event.data.get('device', '') | string | trim }}"
+      requested_action: "{{ trigger.event.data.get('gesture', '') | string | trim }}"
+      device_rooms:
+        muse-luxe: bureau
+        muse-luxe-cuisine: cuisine
+      device_room: "{{ device_rooms.get(requested_device, '') }}"
+      caller_room: "{{ states('input_text.muse_intercom_caller_room') }}"
+      target_room: "{{ states('input_text.muse_intercom_target_room') }}"
+      active_session: "{{ states('input_text.muse_intercom_session_id') }}"
+      active_status: "{{ states('input_select.muse_intercom_status') }}"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_intercom_enabled
+        state: "on"
+      - condition: template
+        value_template: >-
+          {{ device_room in [caller_room, target_room]
+             and active_session not in ['', 'unknown', 'unavailable'] }}
+    actions:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ requested_action == 'single_click' and active_status == 'ringing'
+                     and device_room == target_room }}
+            sequence:
+              - action: script.muse_intercom_accept
+                data:
+                  session_id: "{{ active_session }}"
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ requested_action == 'double_click' and active_status == 'ringing'
+                     and device_room == target_room }}
+            sequence:
+              - action: script.muse_intercom_decline
+                data:
+                  session_id: "{{ active_session }}"
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ requested_action == 'double_click'
+                     and active_status in ['ringing', 'connected'] }}
+            sequence:
+              - action: script.muse_intercom_hangup
+                data:
+                  session_id: "{{ active_session }}"
+    mode: queued
+    max: 4
+
   - id: muse_intercom_ring_timeout
     alias: Muse - expire unanswered intercom call
     triggers:
@@ -589,19 +713,35 @@ intent_script:
       text: >-
         Appel interphone demandé vers {{ room }}. Le carillon confirmera
         uniquement si les deux enceintes sont disponibles.
+  MuseIntercomCallFrom:
+    action:
+      - action: script.muse_intercom_call
+        data:
+          source_room: "{{ source_room }}"
+          target_room: "{{ target_room }}"
+    speech:
+      text: >-
+        Appel interphone demandé de {{ source_room }} vers {{ target_room }}.
+        Le carillon confirmera uniquement les deux enceintes disponibles.
   MuseIntercomAccept:
     action:
       - action: script.muse_intercom_accept
+        data:
+          session_id: "{{ states('input_text.muse_intercom_session_id') }}"
     speech:
       text: "J'accepte l'interphone en push-to-talk."
   MuseIntercomDecline:
     action:
       - action: script.muse_intercom_decline
+        data:
+          session_id: "{{ states('input_text.muse_intercom_session_id') }}"
     speech:
       text: "Je refuse l'appel interphone."
   MuseIntercomHangup:
     action:
       - action: script.muse_intercom_hangup
+        data:
+          session_id: "{{ states('input_text.muse_intercom_session_id') }}"
     speech:
       text: "Je termine l'interphone."
   MuseIntercomRelay:
@@ -610,6 +750,7 @@ intent_script:
         data:
           from_room: "{{ room }}"
           message: "{{ message }}"
+          session_id: "{{ states('input_text.muse_intercom_session_id') }}"
     speech:
       text: "Message interphone transmis avec carillon."
   MuseIntercomStatus:

@@ -25,6 +25,7 @@ from check_house_intelligence_evidence import (
     validate_evidence as validate_house_intelligence_evidence,
 )
 from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
+from check_intercom_evidence import validate_evidence as validate_intercom_evidence
 from check_interpreter_evidence import validate_evidence as validate_interpreter_evidence
 from check_night_led_evidence import validate_evidence as validate_night_led_evidence
 from check_offline_rescue_evidence import (
@@ -343,6 +344,26 @@ def main() -> None:
                 / "home-assistant/packages/muse_house_intelligence.yaml"
             ),
             sha256(root / "home-assistant/packages/muse_luxe.yaml"),
+        )
+        intercom_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["intercom_two_satellite"],
+            "Intercom",
+        )
+        validate_intercom_evidence(
+            intercom_path,
+            version,
+            artifact_hash,
+            sha256(root / "home-assistant/packages/muse_intercom.yaml"),
+            sha256(root / "home-assistant/packages/muse_luxe.yaml"),
+            sha256(
+                root / "home-assistant/custom_sentences/fr/muse_intercom.yaml"
+            ),
+            sha256(root / "packages/ui.yaml"),
+            sha256(root / "packages/recovery.yaml"),
+            sha256(root / "scripts/check_intercom_safety.py"),
+            sha256(root / "scripts/test_intercom_model.py"),
+            sha256(root / "scripts/test_home_assistant_intercom.py"),
         )
         night_led_path = resolve_bound_evidence(
             args.record,

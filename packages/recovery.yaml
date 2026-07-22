@@ -493,17 +493,6 @@ script:
                       else:
                         - script.execute: enter_waiting
 
-  - id: toggle_audio_mute
-    mode: restart
-    then:
-      - if:
-          condition:
-            lambda: 'return id(mute);'
-          then:
-            - script.execute: mute_off
-          else:
-            - script.execute: mute_on
-
   - id: toggle_privacy
     mode: restart
     then:

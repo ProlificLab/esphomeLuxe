@@ -158,6 +158,14 @@ requires both closed cameras, fresh-event boundaries, seven-ID persistent FIFO,
 cross-camera cooldown, night/privacy filters, audible count parity and zero
 control action, delivery error or external delivery.
 
+`intercom_two_satellite.evidence` binds the OTA, intercom/base packages, French
+sentences, firmware UI/recovery, safety checker, state model and HA lifecycle
+test. The common announcement queue revalidates the exact intercom session and
+status immediately before TTS. The gate requires 20 calls each way, trusted
+physical gestures, session-bound queued relays, timeout/reboot/music checks,
+bounded latency and recognition errors, audible/LED parity, zero transcript
+artifacts and an entirely empty final state.
+
 The two stable offline gates must reference one identical hash-bound
 `offline-rescue` record. It binds the OTA, rescue package, read-only FAT
 component and unchanged card manifest, then requires all six clips, fifteen

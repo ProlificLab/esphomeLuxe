@@ -1,5 +1,27 @@
 # Muse Luxe ui package. Included by luxe_microWW.yaml.
 
+globals:
+  - id: muse_gesture_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+
+script:
+  - id: publish_muse_gesture
+    then:
+      - homeassistant.event:
+          event: esphome.muse_luxe_gesture
+          data:
+            device: ${name}
+            gesture: !lambda |-
+              switch (id(muse_gesture_code)) {
+                case 1: return std::string("single_click");
+                case 2: return std::string("double_click");
+                case 3: return std::string("triple_click");
+                case 4: return std::string("quadruple_click");
+                default: return std::string("invalid");
+              }
+
 binary_sensor:
   - platform: gpio
     pin:
@@ -23,17 +45,14 @@ binary_sensor:
         pullup: true
     name: Volume Up
     on_click:
-        - lambda: |-
-                id(Vol) += 0.05;
-                if(id(Vol) > 1) id(Vol) = 1;
-        - if:
-            condition:
-              lambda: 'return fabsf(id(last_volume_cmd) - id(Vol)) > 0.005f;'
-            then:
-              - media_player.volume_set:
-                  id: luxe_media_player
-                  volume: !lambda return id(Vol);
-              - lambda: id(last_volume_cmd) = id(Vol);
+      - lambda: |-
+          id(Vol) = std::min(1.0f, id(Vol) + 0.05f);
+          if (fabsf(id(last_volume_cmd) - id(Vol)) > 0.005f) {
+            auto call = id(luxe_media_player).make_call();
+            call.set_volume(id(Vol));
+            call.perform();
+            id(last_volume_cmd) = id(Vol);
+          }
 
   - platform: gpio
     pin:
@@ -44,17 +63,14 @@ binary_sensor:
         pullup: true
     name: Volume Down
     on_click:
-        - lambda: |-
-                id(Vol) -= 0.05;
-                if(id(Vol) < 0) id(Vol) = 0;
-        - if:
-            condition:
-              lambda: 'return fabsf(id(last_volume_cmd) - id(Vol)) > 0.005f;'
-            then:
-              - media_player.volume_set:
-                  id: luxe_media_player
-                  volume: !lambda return id(Vol);
-              - lambda: id(last_volume_cmd) = id(Vol);
+      - lambda: |-
+          id(Vol) = std::max(0.0f, id(Vol) - 0.05f);
+          if (fabsf(id(last_volume_cmd) - id(Vol)) > 0.005f) {
+            auto call = id(luxe_media_player).make_call();
+            call.set_volume(id(Vol));
+            call.perform();
+            id(last_volume_cmd) = id(Vol);
+          }
 
   - platform: gpio
     pin:
@@ -78,10 +94,8 @@ binary_sensor:
           - OFF for at least 400ms
         then:
           - script.execute: toggle_rescue_mode
-          - homeassistant.event:
-              event: esphome.muse_luxe_gesture
-              data:
-                gesture: quadruple_click
+          - lambda: id(muse_gesture_code) = 4;
+          - script.execute: publish_muse_gesture
       - timing:
           - ON for at most 350ms
           - OFF for at most 350ms
@@ -105,10 +119,8 @@ binary_sensor:
                       - script.execute: stop_continuous_conversation
                     else:
                       - script.execute: start_continuous_conversation
-          - homeassistant.event:
-              event: esphome.muse_luxe_gesture
-              data:
-                gesture: triple_click
+          - lambda: id(muse_gesture_code) = 3;
+          - script.execute: publish_muse_gesture
       - timing:
           - ON for at most 350ms
           - OFF for at most 350ms
@@ -122,6 +134,8 @@ binary_sensor:
                 - script.execute: stop_rescue_audio
               else:
                 - script.execute: stop_everything
+          - lambda: id(muse_gesture_code) = 2;
+          - script.execute: publish_muse_gesture
       - timing:
           - ON for at least 1s
         then:
@@ -136,7 +150,9 @@ binary_sensor:
               then:
                 - script.execute: play_next_rescue_clip
               else:
-                - script.execute: toggle_audio_mute
+                - script.execute: manual_listen
+          - lambda: id(muse_gesture_code) = 1;
+          - script.execute: publish_muse_gesture
 
 light:
   - platform: esp32_rmt_led_strip

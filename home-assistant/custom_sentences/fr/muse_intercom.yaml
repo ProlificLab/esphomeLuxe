@@ -5,6 +5,11 @@ intents:
       - sentences:
           - "appelle [la] {room}"
           - "ouvre [l']interphone avec [la] {room}"
+  MuseIntercomCallFrom:
+    data:
+      - sentences:
+          - "depuis [le] {source_room} appelle [le] {target_room}"
+          - "ouvre [l']interphone (du|depuis [le]) {source_room} (au|vers [le]) {target_room}"
   MuseIntercomAccept:
     data:
       - sentences:
@@ -34,6 +39,18 @@ intents:
           - "[l']interphone est il actif"
 lists:
   room:
+    values:
+      - in: "bureau"
+        out: bureau
+      - in: "cuisine"
+        out: cuisine
+  source_room:
+    values:
+      - in: "bureau"
+        out: bureau
+      - in: "cuisine"
+        out: cuisine
+  target_room:
     values:
       - in: "bureau"
         out: bureau

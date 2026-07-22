@@ -12,8 +12,8 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.18`: alertes video liees a la FIFO et au candidat exact |
+| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
+| Distribution `hal.10` | `hal.10-alpha.19`: interphone lie aux deux satellites, sessions et candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -117,7 +117,7 @@ Sortie: profils jour/nuit mesures, faux reveils quantifies et stabilite egale a
 - LED representant le temps restant et annonces intermediaires.
 - Son local de secours si HA tombe apres la creation du minuteur.
 
-Etat source `hal.9.0-ha-alpha.4`: la file d'annonces est bornee a 25 et les
+Etat source `hal.9.0-ha-alpha.5`: la file d'annonces est bornee a 25 et les
 annonces normales expirent apres dix minutes d'attente de la musique, d'Assist
 ou d'une conversation continue. Jour, nuit et urgence ont des volumes distincts;
 une urgence peut interrompre l'audio. Le volume precedent est maintenant
@@ -128,7 +128,9 @@ Etat outil `hal.9.0-qualification.6`: le dossier annonces lie version, OTA et
 package de base. Il ferme quinze scenarios de routage, FIFO, priorite, attente,
 expiration, carillon et erreurs, exige la restauration du volume apres chaque
 tentative et interdit toute livraison externe. Les observations physiques
-restent a effectuer apres l'endurance.
+restent a effectuer apres l'endurance. Les annonces interphone portent en plus
+une session et un etat optionnels, verifies apres l'attente puis juste avant le
+TTS, afin qu'un ancien relais en file ne soit jamais lu dans un nouvel appel.
 
 Etat source `hal.9.0-ha-alpha.2`: les minuteurs Assist natifs restent portes
 par l'ESP32 avec nom, compte, LED et son final local. Un package HA optionnel,
@@ -177,12 +179,24 @@ minuteurs resilients a une reconnexion.
 - Commencer en push-to-talk; n'evaluer le duplex qu'apres mesure de l'echo.
 - Carillon et LED obligatoires: aucune ecoute silencieuse.
 
-Etat source `hal.9.1-ha-alpha.3`: le coordinateur Home Assistant impose des
-pieces mappees, un opt-in, un carillon sur ouverture et relais, 45 secondes de
-sonnerie et cinq minutes de session. Le transport est une transcription locale
+Etat source `hal.9.1-ha-alpha.6`: le coordinateur Home Assistant impose deux
+pieces et appareils fixes, un opt-in, des lecteurs reellement disponibles, un
+carillon avant revendication, 45 secondes de sonnerie et cinq minutes de
+session. Acceptation, refus, raccrochage et chaque relais en file portent l'ID
+de session; le coordinateur et la file commune le revalident au moment de la
+diffusion: un ancien message ne peut pas entrer dans un nouvel appel. Un appel
+inverse fournit explicitement ses deux pieces; les gestes du bouton central
+sont lies a l'appareil participant. Le transport reste une transcription locale
 ephemere rendue par Piper, sans audio brut ni duplex; un redemarrage HA ferme
-tout etat actif. La qualification reste ouverte jusqu'au second satellite et a
-l'origine de piece materielle fiable.
+tout etat actif.
+
+Etat outil `hal.9.1-qualification.2`: le dossier interphone lie version, OTA,
+packages HA, phrases, UI/recuperation firmware, checker, modele et test HA. Il ferme 31
+scenarios et exige 20 appels dans chaque direction, gestes des deux appareils,
+relais bilateraux lies aux sessions, timeouts/redemarrages/musique, latence et
+erreurs bornees, parite carillon/LED, zero transcript conserve et nettoyage
+final complet. La preuve physique attend le second satellite et la fin de
+l'endurance.
 
 #### Messages differes
 
@@ -370,7 +384,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.18`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.19`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -416,6 +430,11 @@ La porte alertes video charge un dossier hashe lie au binaire OTA, aux packages,
 au checker, au modele, a MQTT et a Frigate. Elle exige les deux cameras fermees,
 la FIFO de sept IDs persistante, les seuils de fraicheur et cooldown, les comptes
 audibles exacts et zero action critique ou livraison externe.
+La porte interphone charge un dossier hashe lie au binaire OTA, aux packages,
+aux phrases, a l'UI/recuperation firmware et aux trois tests. Elle exige les deux lecteurs et
+appareils fixes, 20 appels par direction, boutons participants, sessions et
+relais non rejoues, timeouts et redemarrages sans canal fantome, latence et
+reconnaissance bornees, puis aucun transcript ni etat actif residuel.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

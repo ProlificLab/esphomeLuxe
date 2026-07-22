@@ -64,6 +64,22 @@ def main() -> None:
     )
     rejected(
         package.replace(
+            "requested_intercom_session ==\n                      states('input_text.muse_intercom_session_id')",
+            "true",
+            1,
+        ),
+        "queued session bypass",
+    )
+    rejected(
+        package.replace(
+            "Intercom announcement guard expired before TTS.",
+            "Guard moved after TTS.",
+            1,
+        ),
+        "missing pre-TTS guard",
+    )
+    rejected(
+        package.replace(
             "            - action: tts.speak",
             "            - action: notify.send_message\n            - action: tts.speak",
             1,
