@@ -75,11 +75,11 @@ def main() -> None:
         "id(rescue_media).stop();",
         "privacy stop",
     )
-    require(firmware, 'version: "2025.3.1-hal.9.0-alpha.5"', "firmware version")
+    require(firmware, 'version: "2025.3.1-hal.9.0-alpha.6"', "firmware version")
     for marker in (
         'P_rescue: "8"',
         "offline_rescue: !include packages/offline_rescue.yaml",
-        'version: "2025.3.1-hal.9.0-alpha.5-nabu"',
+        'version: "2025.3.1-hal.9.0-alpha.6-nabu"',
     ):
         require(calibration_firmware, marker, "calibration parity")
 

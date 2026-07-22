@@ -100,9 +100,9 @@ def main() -> None:
         raise RuntimeError("Timer ticks still overwrite the selected LED profile")
 
     for source, version in (
-        (firmware, 'version: "2025.3.1-hal.9.0-alpha.5"'),
-        (nabu, 'version: "2025.3.1-hal.9.0-alpha.5-nabu"'),
-        (diagnostic, 'version: "2025.3.1-hal.9.0-alpha.5-diagnostic"'),
+        (firmware, 'version: "2025.3.1-hal.9.0-alpha.6"'),
+        (nabu, 'version: "2025.3.1-hal.9.0-alpha.6-nabu"'),
+        (diagnostic, 'version: "2025.3.1-hal.9.0-alpha.6-diagnostic"'),
     ):
         require(source, version, "version")
 

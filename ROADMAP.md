@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.7`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.37`: erreurs vocales classees et endurance v2 |
+| Distribution `hal.10` | `hal.10-alpha.38`: candidat correctif identifie et deploiement ferme |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer

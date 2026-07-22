@@ -47,13 +47,13 @@ def main() -> None:
     require(firmware, "logger_level: ERROR", "production compile level")
     require(
         firmware,
-        'version: "2025.3.1-hal.9.0-alpha.5"',
+        'version: "2025.3.1-hal.9.0-alpha.6"',
         "production version",
     )
     require(diagnostic, "logger_level: WARN", "verbose compile level")
     require(
         diagnostic,
-        'version: "2025.3.1-hal.9.0-alpha.5-diagnostic"',
+        'version: "2025.3.1-hal.9.0-alpha.6-diagnostic"',
         "diagnostic identity",
     )
     if "updates: !include" in diagnostic or "platform: http_request" in diagnostic:

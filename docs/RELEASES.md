@@ -143,6 +143,16 @@ implementation, then requires the encrypted API to report the expected version,
 healthy voice state and no error. It never rebuilds, copies over the root
 manifest, or automatically installs a rollback image.
 
+The one-shot `install_corrective_canary_ota.sh` path is not a promotion bypass.
+It accepts only the exact alpha.5-to-alpha.6 transition and requires a sealed
+24-hour raw incident with one no-text error, one recovery, zero timeout and no
+uptime regression, plus both reviewed firmware hashes and the exact successful
+source CI report. The historical hal.8 collector did not generate a summary;
+`seal_corrective_incident.py` derives a closed failed incident record instead
+of inventing one. The record cannot satisfy normal endurance validation. After
+the corrective boot, a new schema-v2 24-hour run is mandatory before any other
+installation, rotation or promotion.
+
 `scripts/rollback_hal6_ota.sh` is the separate recovery path. It accepts only a
 retained binary whose SHA-256 is supplied explicitly and whose MD5 and version
 match the immutable `hal.6` manifest. Before confirmation it also requires API,

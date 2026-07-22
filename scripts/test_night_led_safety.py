@@ -68,7 +68,7 @@ def main() -> None:
         "timer overwrite",
     )
     rejected(
-        {"firmware": ("2025.3.1-hal.9.0-alpha.5", "2025.3.1-hal.9.0-alpha.4")},
+        {"firmware": ("2025.3.1-hal.9.0-alpha.6", "2025.3.1-hal.9.0-alpha.5")},
         "stale firmware version",
     )
     rejected(

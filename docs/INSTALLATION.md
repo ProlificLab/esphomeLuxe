@@ -62,6 +62,51 @@ API after reboot. After credential rotation this check intentionally fails
 before confirmation or upload: restore immutable `hal.6` over USB instead.
 Never weaken authentication or retain/reuse the retired OTA password.
 
+### One-shot alpha.6 corrective canary
+
+The unattended alpha.5 run was started with the original hal.8 collector. It
+writes a JSONL trace and exits nonzero on the observed fault, but it does not
+produce the later schema-v1 summary. Do not fabricate or hand-edit a summary.
+After the original process has reached a full 24 hours, seal its exact trace:
+
+```bash
+python3 scripts/seal_corrective_incident.py \
+  release/hal9-alpha5-corrective-incident.json \
+  release/hal9-endurance-24h-final.jsonl \
+  release/muse-luxe-2025.3.1-hal.9.0-alpha.5.ota.bin \
+  --old-sha256 REVIEWED_ALPHA5_SHA256
+```
+
+The sealer refuses fewer than 1,400 samples, less than 24 hours, uptime or
+counter regressions, any timeout, any error other than the exact
+`stt-no-text-recognized: No text recognized`, or anything other than one new
+error and one new recovery. Its failed record is eligible only for this
+corrective transition; it is never passing endurance or promotion evidence.
+
+Save the exact successful GitHub CI report for the corrective source commit,
+then install only the versioned alpha.6 artifact with:
+
+```bash
+scripts/install_corrective_canary_ota.sh \
+  release/muse-luxe-2025.3.1-hal.9.0-alpha.6.ota.bin \
+  release/manifest-development.json \
+  release/hal9-alpha5-corrective-incident.json \
+  release/hal9-endurance-24h-final.jsonl \
+  release/muse-luxe-2025.3.1-hal.9.0-alpha.5.ota.bin \
+  release/alpha6-source-ci.json \
+  REVIEWED_ALPHA6_SHA256 REVIEWED_ALPHA5_SHA256 10.10.40.100
+```
+
+This installer requires a clean checkout at the CI commit, validates both
+firmware hashes, the private development manifest, raw incident hash and exact
+CI run before asking for `INSTALL CORRECTIVE CANARY VERSION NEW_SHA256
+INCIDENT_SHA256`. It mounts the candidate and existing credentials read-only,
+does not rotate secrets or publish a channel, and requires the encrypted API
+to report the unique alpha.6 version in `waiting/healthy` with an empty last
+error. Run a fresh schema-v2 24-hour endurance immediately afterward. The
+normal installer and every beta/stable gate continue to require clean passing
+v2 evidence.
+
 ## Exact hal.6 USB recovery gate
 
 An ESPHome factory image is not interchangeable with its OTA application. The

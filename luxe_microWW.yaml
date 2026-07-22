@@ -38,7 +38,7 @@ esphome:
     board_build.arduino.memory_type: qio_opi
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1-hal.9.0-alpha.5"
+    version: "2025.3.1-hal.9.0-alpha.6"
   on_boot:
     priority: -100.0
     then:

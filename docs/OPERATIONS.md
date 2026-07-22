@@ -92,7 +92,7 @@ first-line diagnostic action.
 
 ## Verbose USB diagnosis
 
-The primary `hal.9.0-alpha.5` image compiles only `ERROR` logs. Health, memory,
+The primary `hal.9.0-alpha.6` image compiles only `ERROR` logs. Health, memory,
 timeouts and recovery reasons remain available as API entities. When serial
 WARN logs are required, compile and flash `luxe_microWW_diagnostic.yaml` over
 USB. It identifies as `muse-luxe-diagnostic` and has no HTTP updater.

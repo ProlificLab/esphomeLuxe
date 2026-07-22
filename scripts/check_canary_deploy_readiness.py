@@ -33,6 +33,20 @@ def validate_readiness(
     summary_path: Path,
     expected_firmware_sha256: str,
 ) -> dict[str, str]:
+    result = validate_candidate(artifact, manifest_path, expected_firmware_sha256)
+    summary = validate_summary(summary_path, result["version"])
+    return {
+        **result,
+        "endurance_finished_at": summary["finished_at"],
+    }
+
+
+def validate_candidate(
+    artifact: Path,
+    manifest_path: Path,
+    expected_firmware_sha256: str,
+) -> dict[str, str]:
+    """Validate an exact private development artifact without relaxing its gate."""
     if not artifact.is_file() or artifact.stat().st_size == 0:
         fail("Canary artifact is missing or empty")
     if re.fullmatch(r"[0-9a-f]{64}", expected_firmware_sha256) is None:
@@ -73,13 +87,11 @@ def validate_readiness(
     if ota.get("path") != expected_url:
         fail("Canary manifest path is not the closed private development URL")
 
-    summary = validate_summary(summary_path, version)
     return {
         "version": version,
         "sha256": actual_sha256,
         "firmware_destination": "muse-luxe/channels/development/firmware.ota.bin",
         "manifest_destination": "muse-luxe/channels/development/manifest.json",
-        "endurance_finished_at": summary["finished_at"],
     }
 
 
