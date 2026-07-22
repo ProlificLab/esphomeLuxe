@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.7`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.24`: scellement atomique du dossier canari depuis les preuves exactes |
+| Distribution `hal.10` | `hal.10-alpha.25`: build, CI, taille et secrets lies a un dossier source exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -387,7 +387,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.24`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.25`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -416,6 +416,13 @@ la porte endurance/candidat, valide l'artefact prive `hal.6`, recalcule toutes
 les identites et empreintes et ignore l'identite non fiable du brouillon. Il
 ecrit d'abord un fichier temporaire synchronise, valide le dossier complet puis
 le publie atomiquement sans ecrasement; tout echec laisse son dossier final absent.
+Les quatre portes source beta partagent un dossier hashe: deux builds propres
+identiques, le run CI du commit exact, la taille recalculee et un audit des
+fichiers suivis comparant au moins trois vrais secrets sans jamais les imprimer.
+Stable lie aussi sa cible 93% au meme dossier. Journaux modifies, dossiers
+divises, build flottant, mauvais commit, depassement ou secret exemple sont
+refuses. Les secrets actuellement reconnaissables comme fixtures devront etre
+rotes apres l'endurance et avant toute qualification beta.
 La porte modes charge aussi une preuve liee par hash, controle sa version, ses
 quatre transitions, ses compteurs et son nettoyage; elle ne remplace jamais
 l'observation physique des boutons et LED.

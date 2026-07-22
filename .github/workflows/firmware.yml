@@ -17,7 +17,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Prepare non-production secrets
-        run: cp secrets.example.yaml secrets.yaml
+        run: |
+          cp secrets.example.yaml secrets.yaml
+          python3 scripts/audit_tracked_secrets.py --private-secrets secrets.yaml
       - name: Compile firmware
         run: >-
           docker run --rm
@@ -90,6 +92,8 @@ jobs:
           python3 scripts/test_canary_install_safety.py
           python3 scripts/test_canary_core_evidence.py
           python3 scripts/test_seal_canary_core_evidence.py
+          python3 scripts/test_audit_tracked_secrets.py
+          python3 scripts/test_source_qualification_evidence.py
           python3 scripts/check_diagnostics_safety.py
           python3 scripts/test_diagnostics_safety.py
           python3 scripts/check_offline_rescue_safety.py

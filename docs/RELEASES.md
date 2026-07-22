@@ -45,6 +45,15 @@ reviewed draft into a passing record. It recalculates identity and every hash,
 requires the clean source commit and passing endurance preflight, refuses
 overwrite, and atomically publishes the record only after full validation.
 
+Four beta source gates share one hash-bound `source-VERSION.json`:
+`build_reproducible`, `ci_passed`, `firmware_size_hard_limit` and
+`secrets_audit`; stable adds `firmware_size_target` to that same record. It
+requires two identical pinned builds, the exact successful-commit CI run,
+recomputed OTA size limits and five raw logs. The secret audit compares at
+least three real private values against every tracked file without writing
+those values to its report. Follow `docs/SOURCE_QUALIFICATION.md`; example
+credentials cannot pass.
+
 Starting with `hal.9.0-alpha.4`, the 93% target is also a blocking source-CI
 gate. Any main OTA larger than 1,889,402 bytes must be optimized or explicitly
 reworked; it can no longer pass with a warning.

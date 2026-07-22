@@ -41,6 +41,9 @@ from check_physical_controls_evidence import (
     validate_evidence as validate_physical_controls_evidence,
 )
 from check_routine_evidence import validate_evidence as validate_routine_evidence
+from check_source_qualification_evidence import (
+    validate_evidence as validate_source_qualification_evidence,
+)
 from check_timer_evidence import validate_evidence as validate_timer_evidence
 from check_video_alert_evidence import validate_evidence as validate_video_alert_evidence
 from check_video_review_evidence import validate_evidence as validate_video_evidence
@@ -70,6 +73,13 @@ CANARY_CORE_GATES = {
     "rollback_artifact_verified",
     "tts_cycles_100",
     "wifi_recovery_10",
+}
+
+SOURCE_QUALIFICATION_GATES = {
+    "build_reproducible",
+    "ci_passed",
+    "firmware_size_hard_limit",
+    "secrets_audit",
 }
 
 ROADMAP_FEATURE_GATES = {
@@ -299,6 +309,24 @@ def main() -> None:
         expected_commit,
         record["canary_device"],
         rollback_md5,
+    )
+    source_gate_names = set(SOURCE_QUALIFICATION_GATES)
+    if args.channel == "stable":
+        source_gate_names.add("firmware_size_target")
+    source_records = {gate_evidence[name] for name in source_gate_names}
+    if len(source_records) != 1:
+        fail("Source qualification gates must bind the same evidence record")
+    source_path = resolve_bound_evidence(
+        args.record,
+        source_records.pop(),
+        "Source qualification",
+    )
+    validate_source_qualification_evidence(
+        source_path,
+        version,
+        artifact_hash,
+        expected_commit,
+        args.artifact.stat().st_size,
     )
     modes_path = resolve_bound_evidence(
         args.record,

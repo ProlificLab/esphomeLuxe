@@ -30,6 +30,10 @@ from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
 from test_routine_evidence import valid_evidence as valid_routine_evidence
+from test_source_qualification_evidence import (
+    valid_evidence as valid_source_evidence,
+    write_log_fixtures as write_source_logs,
+)
 from test_timer_evidence import valid_evidence as valid_timer_evidence
 from test_video_alert_evidence import valid_evidence as valid_video_alert_evidence
 from test_video_review_evidence import valid_evidence as valid_video_evidence
@@ -120,6 +124,10 @@ class QualificationRecordTests(unittest.TestCase):
         tamper_canary_log: bool = False,
         unbound_canary_core: bool = False,
         split_canary_core: bool = False,
+        tamper_source: bool = False,
+        tamper_source_log: bool = False,
+        unbound_source: bool = False,
+        split_source: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -149,6 +157,44 @@ class QualificationRecordTests(unittest.TestCase):
             canary_core_path.write_text("{}\n", encoding="utf-8")
         if tamper_canary_log:
             (self.directory / "tts_cycles.log").write_text(
+                "tampered after review\n", encoding="utf-8"
+            )
+        source_path = self.directory / "source.json"
+        source = valid_source_evidence()
+        source["candidate"]["project_version"] = version
+        source["candidate"]["firmware_sha256"] = self.digest
+        source["candidate"]["source_commit"] = COMMIT
+        source["ci"]["head_sha"] = COMMIT
+        source["build"]["first_sha256"] = self.digest
+        source["build"]["second_sha256"] = self.digest
+        source["build"]["size_bytes"] = self.artifact.stat().st_size
+        source["build"]["usage_percent"] = (
+            self.artifact.stat().st_size * 1000 // 2031616 / 10
+        )
+        write_source_logs(self.directory, source)
+        source_path.write_text(json.dumps(source), encoding="utf-8")
+        source_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        bound_source = (
+            "source.json"
+            if unbound_source
+            else f"sha256:{source_hash} {source_path.name}"
+        )
+        source_gates = set(checker.SOURCE_QUALIFICATION_GATES)
+        if channel == "stable":
+            source_gates.add("firmware_size_target")
+        for gate_name in source_gates:
+            if gate_name in record["gates"]:
+                record["gates"][gate_name]["evidence"] = bound_source
+        if split_source:
+            duplicate_path = self.directory / "source-duplicate.json"
+            duplicate_path.write_bytes(source_path.read_bytes())
+            record["gates"]["ci_passed"]["evidence"] = (
+                f"sha256:{source_hash} {duplicate_path.name}"
+            )
+        if tamper_source:
+            source_path.write_text("{}\n", encoding="utf-8")
+        if tamper_source_log:
+            (self.directory / "ci.log").write_text(
                 "tampered after review\n", encoding="utf-8"
             )
         modes_path = self.directory / "modes.json"
@@ -649,6 +695,29 @@ class QualificationRecordTests(unittest.TestCase):
         version = "2026.1.0-hal.10-beta.1"
         record = self.record("beta", version)
         result = self.run_check(record, "beta", version, tamper_modes=True)
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_source_evidence_or_log_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        for option in ({"tamper_source": True}, {"tamper_source_log": True}):
+            with self.subTest(option=option):
+                result = self.run_check(
+                    self.record("beta", version), "beta", version, **option
+                )
+                self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_source_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version), "beta", version, unbound_source=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_split_source_gate_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version), "beta", version, split_source=True
+        )
         self.assertNotEqual(result.returncode, 0)
 
     def test_tampered_canary_core_evidence_is_rejected(self) -> None:
