@@ -25,9 +25,9 @@ so its raw trace must be preserved rather than represented as newer evidence.
 - The sealed record is derived atomically and binds the raw JSONL SHA-256, old
   artifact SHA-256, duration, timestamps, counters and final state. It remains
   explicitly `passed: false` and `purpose: corrective-canary-only`.
-- Readiness binds that record to the exact old artifact, exact alpha.6 artifact
-  and development manifest, clean source commit and exact successful GitHub CI
-  report.
+- Readiness binds that record to the exact old artifact, exact alpha.6 artifact,
+  development manifest and deterministic build metadata, clean source commit
+  and exact successful GitHub CI report.
 - Installation requires a literal confirmation containing the new version,
   new artifact SHA-256 and incident-record SHA-256. It performs no rebuild,
   publication, rollback or secret rotation.

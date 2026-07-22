@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-usage="Usage: install_corrective_canary_ota.sh NEW_ARTIFACT MANIFEST INCIDENT RAW_JSONL OLD_ARTIFACT SOURCE_CI NEW_SHA256 OLD_SHA256 HOST"
+usage="Usage: install_corrective_canary_ota.sh NEW_ARTIFACT MANIFEST BUILD_METADATA INCIDENT RAW_JSONL OLD_ARTIFACT SOURCE_CI NEW_SHA256 OLD_SHA256 HOST"
 FIRMWARE="${1:?$usage}"
 MANIFEST="${2:?$usage}"
-INCIDENT="${3:?$usage}"
-RAW_JSONL="${4:?$usage}"
-OLD_FIRMWARE="${5:?$usage}"
-SOURCE_CI="${6:?$usage}"
-NEW_SHA256="${7:?$usage}"
-OLD_SHA256="${8:?$usage}"
-DEVICE_HOST="${9:?$usage}"
+BUILD_METADATA="${3:?$usage}"
+INCIDENT="${4:?$usage}"
+RAW_JSONL="${5:?$usage}"
+OLD_FIRMWARE="${6:?$usage}"
+SOURCE_CI="${7:?$usage}"
+NEW_SHA256="${8:?$usage}"
+OLD_SHA256="${9:?$usage}"
+DEVICE_HOST="${10:?$usage}"
 SECRETS="${SECRETS:-secrets.yaml}"
 OTA_SECRETS="${OTA_SECRETS:-$SECRETS}"
 VERIFY_SECRETS="${VERIFY_SECRETS:-$SECRETS}"
@@ -31,7 +32,8 @@ for secrets_file in "$OTA_SECRETS" "$VERIFY_SECRETS"; do
 done
 
 readiness="$(${PYTHON:-python3} "$SCRIPT_DIR/check_corrective_canary_readiness.py" \
-  "$FIRMWARE" "$MANIFEST" "$INCIDENT" "$RAW_JSONL" "$OLD_FIRMWARE" "$SOURCE_CI" \
+  "$FIRMWARE" "$MANIFEST" "$BUILD_METADATA" "$INCIDENT" "$RAW_JSONL" \
+  "$OLD_FIRMWARE" "$SOURCE_CI" \
   --new-sha256 "$NEW_SHA256" --old-sha256 "$OLD_SHA256" \
   --source-commit "$source_commit" --format json)"
 version="$(${PYTHON:-python3} -c 'import json,sys; print(json.load(sys.stdin)["new_version"])' <<<"$readiness")"

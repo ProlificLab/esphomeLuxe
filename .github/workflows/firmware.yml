@@ -111,6 +111,7 @@ jobs:
           python3 scripts/test_source_qualification_collection.py
           python3 scripts/test_source_ci_preflight.py
           python3 scripts/test_source_date_epoch.py
+          python3 scripts/test_build_metadata.py
           python3 scripts/test_prepare_secret_rotation.py
           python3 scripts/test_secret_rotation_bundle.py
           python3 scripts/test_rotation_activation.py

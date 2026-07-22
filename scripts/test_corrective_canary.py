@@ -7,16 +7,25 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
 from check_corrective_canary_readiness import NEW_VERSION, validate_readiness
+from check_build_metadata import ESPHOME_IMAGE
 from check_corrective_incident import ERROR_TEXT, derive, validate_record
 from seal_corrective_incident import seal
 
 
 ROOT = Path(__file__).resolve().parents[1]
-COMMIT = "a" * 40
+COMMIT = subprocess.run(
+    ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+    check=True, capture_output=True, text=True,
+).stdout.strip()
+EPOCH = int(subprocess.run(
+    ["git", "-C", str(ROOT), "show", "-s", "--format=%ct", COMMIT],
+    check=True, capture_output=True, text=True,
+).stdout.strip())
 
 
 class CorrectiveCanaryTests(unittest.TestCase):
@@ -35,6 +44,8 @@ class CorrectiveCanaryTests(unittest.TestCase):
         self.new_sha = hashlib.sha256(self.new.read_bytes()).hexdigest()
         self.manifest = self.root / "manifest-development.json"
         self.write_manifest()
+        self.metadata = self.root / "build-metadata.json"
+        self.write_metadata()
         self.ci = self.root / "ci.json"
         self.ci.write_text(json.dumps({
             "conclusion": "success", "databaseId": 123, "event": "pull_request",
@@ -76,10 +87,23 @@ class CorrectiveCanaryTests(unittest.TestCase):
             }}],
         }), encoding="utf-8")
 
+    def write_metadata(self, **changes: object) -> None:
+        metadata = {
+            "version": NEW_VERSION, "channel": "development",
+            "source_commit": COMMIT, "source_date_epoch": EPOCH,
+            "config": "luxe_microWW.yaml", "artifact": self.new.name,
+            "size_bytes": self.new.stat().st_size,
+            "md5": hashlib.md5(self.new.read_bytes()).hexdigest(),
+            "sha256": self.new_sha, "esphome_image": ESPHOME_IMAGE,
+            "esp_idf": "5.4.2",
+        }
+        metadata.update(changes)
+        self.metadata.write_text(json.dumps(metadata), encoding="utf-8")
+
     def readiness(self) -> dict:
         return validate_readiness(
-            self.new, self.manifest, self.record, self.raw, self.old, self.ci,
-            self.new_sha, self.old_sha, COMMIT,
+            self.new, self.manifest, self.metadata, self.record, self.raw,
+            self.old, self.ci, self.new_sha, self.old_sha, COMMIT,
         )
 
     def test_exact_incident_and_candidate_pass(self) -> None:
@@ -121,9 +145,19 @@ class CorrectiveCanaryTests(unittest.TestCase):
         for new_sha, commit in (("0" * 64, COMMIT), (self.new_sha, "b" * 40)):
             with self.subTest(new_sha=new_sha, commit=commit), self.assertRaises(RuntimeError):
                 validate_readiness(
-                    self.new, self.manifest, self.record, self.raw, self.old,
-                    self.ci, new_sha, self.old_sha, commit,
+                    self.new, self.manifest, self.metadata, self.record, self.raw,
+                    self.old, self.ci, new_sha, self.old_sha, commit,
                 )
+
+    def test_wrong_build_metadata_fails(self) -> None:
+        for changes in (
+            {"source_commit": "0" * 40},
+            {"source_date_epoch": EPOCH + 1},
+            {"sha256": "0" * 64},
+        ):
+            self.write_metadata(**changes)
+            with self.subTest(changes=changes), self.assertRaises(RuntimeError):
+                self.readiness()
 
     def test_installer_is_closed_and_orders_all_gates_before_upload(self) -> None:
         source = (ROOT / "scripts/install_corrective_canary_ota.sh").read_text(encoding="utf-8")

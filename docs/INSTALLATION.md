@@ -90,6 +90,7 @@ then install only the versioned alpha.6 artifact with:
 scripts/install_corrective_canary_ota.sh \
   release/muse-luxe-2025.3.1-hal.9.0-alpha.6.ota.bin \
   release/manifest-development.json \
+  release/build-metadata.json \
   release/hal9-alpha5-corrective-incident.json \
   release/hal9-endurance-24h-final.jsonl \
   release/muse-luxe-2025.3.1-hal.9.0-alpha.5.ota.bin \
@@ -98,8 +99,8 @@ scripts/install_corrective_canary_ota.sh \
 ```
 
 This installer requires a clean checkout at the CI commit, validates both
-firmware hashes, the private development manifest, raw incident hash and exact
-CI run before asking for `INSTALL CORRECTIVE CANARY VERSION NEW_SHA256
+firmware hashes, the private development manifest, deterministic build metadata,
+raw incident hash and exact CI run before asking for `INSTALL CORRECTIVE CANARY VERSION NEW_SHA256
 INCIDENT_SHA256`. It mounts the candidate and existing credentials read-only,
 does not rotate secrets or publish a channel, and requires the encrypted API
 to report the unique alpha.6 version in `waiting/healthy` with an empty last

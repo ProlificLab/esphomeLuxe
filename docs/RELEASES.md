@@ -158,6 +158,9 @@ source CI report. The historical hal.8 collector did not generate a summary;
 of inventing one. The record cannot satisfy normal endurance validation. After
 the corrective boot, a new schema-v2 24-hour run is mandatory before any other
 installation, rotation or promotion.
+The same preflight validates `build-metadata.json` against the candidate bytes,
+exact source commit, commit-derived epoch, pinned container and ESP-IDF version.
+Metadata from another build or a wall-clock build is rejected before confirmation.
 
 `scripts/rollback_hal6_ota.sh` is the separate recovery path. It accepts only a
 retained binary whose SHA-256 is supplied explicitly and whose MD5 and version
