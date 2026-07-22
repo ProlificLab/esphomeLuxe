@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import math
 from pathlib import Path
@@ -15,6 +15,8 @@ MINIMUM_SAMPLE_COUNT = 1400
 MAXIMUM_DIAGNOSTIC_AGE_SECONDS = 180
 MAXIMUM_HEAP_LOSS = 32768
 MAXIMUM_PSRAM_LOSS = 131072
+MAXIMUM_EVIDENCE_AGE = timedelta(days=30)
+MAXIMUM_FUTURE_SKEW = timedelta(minutes=5)
 METRIC_KEYS = {
     "heap_loss",
     "psram_loss",
@@ -73,6 +75,12 @@ def validate_summary(path: Path, expected_version: str | None = None) -> dict:
     finished = parse_time(summary["finished_at"], "finished_at")
     if finished <= started:
         fail("Endurance timestamps are not increasing")
+    now = datetime.now(timezone.utc)
+    finished_utc = finished.astimezone(timezone.utc)
+    if finished_utc > now + MAXIMUM_FUTURE_SKEW:
+        fail("Endurance finished_at is implausibly in the future")
+    if finished_utc < now - MAXIMUM_EVIDENCE_AGE:
+        fail("Endurance evidence is older than 30 days")
     duration = float(summary["observed_duration_seconds"])
     if not math.isfinite(duration) or duration < MINIMUM_DURATION_SECONDS:
         fail(f"Endurance duration {duration:g}s is shorter than 24 hours")

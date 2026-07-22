@@ -72,7 +72,10 @@ Prepare the post-endurance credential transition with
 `scripts/prepare_secret_rotation.py` and `docs/SECRET_ROTATION.md`. Preparation
 is offline, no-clobber and non-disclosing: it generates three independent
 credentials, keeps only the old OTA password in a private transition file and
-performs no device or network action.
+performs no device or network action. It now requires a fresh successful 24-hour
+summary for the exact candidate before generating anything, and binds its digest,
+version and finish time into rotation-manifest schema v2. Installation requires
+the same summary, so a premature or recycled bundle cannot pass.
 `install_rotated_canary_ota.sh` is the only supported transition path after
 endurance: old OTA upload and new encrypted-API verification are separate,
 ordered credentials. It additionally requires the exact schema-v2 source

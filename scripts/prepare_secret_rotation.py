@@ -6,16 +6,21 @@ from __future__ import annotations
 import argparse
 import base64
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import shutil
 
 import yaml
 
+from check_endurance_summary import validate_summary
+
 
 ROTATED_KEYS = ("api_encryption_key", "ota_password", "fallback_ap_password")
+VERSION_PATTERN = r"[0-9]{4}\.[0-9]+\.[0-9]+-[A-Za-z0-9.-]+"
 
 
 def fail(message: str) -> None:
@@ -96,8 +101,25 @@ def write_private_json(path: Path, value: dict[str, object]) -> None:
         raise
 
 
-def prepare(current_path: Path, output_directory: Path) -> dict[str, object]:
+def digest(path: Path) -> str:
+    if not path.is_file() or path.is_symlink() or path.stat().st_size == 0:
+        fail("Endurance summary must be a non-empty regular file")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def prepare(
+    current_path: Path,
+    output_directory: Path,
+    endurance_summary: Path,
+    expected_version: str,
+) -> dict[str, object]:
     current = load_current(current_path)
+    if re.fullmatch(VERSION_PATTERN, expected_version) is None:
+        fail("Expected rotation version is not release-formatted")
+    summary_sha256 = digest(endurance_summary)
+    summary = validate_summary(endurance_summary, expected_version)
+    if digest(endurance_summary) != summary_sha256:
+        fail("Endurance summary changed while preparing rotation")
     generated = generate_values()
     validate_generated(current, generated)
     if output_directory.exists() or output_directory.is_symlink():
@@ -116,7 +138,7 @@ def prepare(current_path: Path, output_directory: Path) -> dict[str, object]:
             {"ota_password": current["ota_password"]},
         )
         manifest: dict[str, object] = {
-            "schema_version": 1,
+            "schema_version": 2,
             "status": "prepared_offline",
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "rotated_keys": list(ROTATED_KEYS),
@@ -127,6 +149,12 @@ def prepare(current_path: Path, output_directory: Path) -> dict[str, object]:
             },
             "required_permissions": {"directory": "0700", "files": "0600"},
             "network_actions_performed": 0,
+            "endurance": {
+                "passed": True,
+                "project_version": summary["device"]["project_version"],
+                "finished_at": summary["finished_at"],
+                "summary_sha256": summary_sha256,
+            },
         }
         write_private_json(output_directory / "rotation-manifest.json", manifest)
         directory_fd = os.open(output_directory, os.O_RDONLY)
@@ -144,8 +172,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("current_secrets", type=Path)
     parser.add_argument("output_directory", type=Path)
+    parser.add_argument("endurance_summary", type=Path)
+    parser.add_argument("--expected-version", required=True)
     args = parser.parse_args()
-    manifest = prepare(args.current_secrets.absolute(), args.output_directory.absolute())
+    manifest = prepare(
+        args.current_secrets.absolute(), args.output_directory.absolute(),
+        args.endurance_summary.absolute(), args.expected_version,
+    )
     print(
         "Prepared offline credential rotation: "
         f"directory={args.output_directory} status={manifest['status']}."

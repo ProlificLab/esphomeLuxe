@@ -13,7 +13,9 @@ import unittest
 import yaml
 
 from check_rotated_candidate_binding import validate_binding
+from monitor_endurance import write_summary
 from prepare_secret_rotation import prepare
+from test_endurance_summary import VERSION as ENDURANCE_VERSION, valid_summary
 from test_source_qualification_evidence import (
     SIZE_BYTES,
     SOURCE_COMMIT,
@@ -22,7 +24,7 @@ from test_source_qualification_evidence import (
 )
 
 
-VERSION = "2026.1.0-hal.10-beta.1"
+VERSION = ENDURANCE_VERSION
 CURRENT = {
     "api_encryption_key": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=",
     "ota_password": "replace-with-a-long-random-password",
@@ -40,8 +42,10 @@ class RotatedCandidateBindingTests(unittest.TestCase):
             encoding="utf-8",
         )
         self.current.chmod(0o600)
+        self.endurance = self.root / "endurance-summary.json"
+        write_summary(self.endurance, valid_summary())
         self.bundle = self.root / "rotation"
-        prepare(self.current, self.bundle)
+        prepare(self.current, self.bundle, self.endurance, ENDURANCE_VERSION)
         self.artifact = self.root / "candidate.ota.bin"
         self.artifact.write_bytes(b"x" * SIZE_BYTES)
         self.evidence_path = self.root / "source.json"
@@ -70,7 +74,7 @@ class RotatedCandidateBindingTests(unittest.TestCase):
 
     def test_exact_rotated_candidate_binding_passes_without_values(self) -> None:
         result = validate_binding(
-            self.artifact, self.evidence_path, self.bundle, VERSION
+            self.artifact, self.evidence_path, self.bundle, self.endurance, VERSION
         )
         self.assertTrue(result["credentials_bound"])
         self.assertEqual(result["build_count"], 2)
@@ -80,29 +84,41 @@ class RotatedCandidateBindingTests(unittest.TestCase):
     def test_wrong_artifact_or_version_fails(self) -> None:
         self.artifact.write_bytes(b"y" * SIZE_BYTES)
         with self.assertRaises(RuntimeError):
-            validate_binding(self.artifact, self.evidence_path, self.bundle, VERSION)
+            validate_binding(
+                self.artifact, self.evidence_path, self.bundle,
+                self.endurance, VERSION,
+            )
         self.artifact.write_bytes(b"x" * SIZE_BYTES)
         with self.assertRaises(RuntimeError):
             validate_binding(
-                self.artifact, self.evidence_path, self.bundle, VERSION + ".2"
+                self.artifact, self.evidence_path, self.bundle,
+                self.endurance, VERSION + ".2",
             )
 
     def test_different_rotation_bundle_fails_before_install(self) -> None:
         other = self.root / "other"
-        prepare(self.current, other)
+        prepare(self.current, other, self.endurance, ENDURANCE_VERSION)
         with self.assertRaises(RuntimeError):
-            validate_binding(self.artifact, self.evidence_path, other, VERSION)
+            validate_binding(
+                self.artifact, self.evidence_path, other, self.endurance, VERSION
+            )
 
     def test_tampered_evidence_or_build_log_fails(self) -> None:
         evidence = json.loads(self.evidence_path.read_text())
         evidence["credentials"]["file_sha256"] = "0" * 64
         self.evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
         with self.assertRaises(RuntimeError):
-            validate_binding(self.artifact, self.evidence_path, self.bundle, VERSION)
+            validate_binding(
+                self.artifact, self.evidence_path, self.bundle,
+                self.endurance, VERSION,
+            )
         self.write_evidence()
         (self.root / "build_first.log").write_text("tampered\n", encoding="utf-8")
         with self.assertRaises(RuntimeError):
-            validate_binding(self.artifact, self.evidence_path, self.bundle, VERSION)
+            validate_binding(
+                self.artifact, self.evidence_path, self.bundle,
+                self.endurance, VERSION,
+            )
 
 
 if __name__ == "__main__":

@@ -10,7 +10,9 @@ firmware or install an OTA. Run it only from the private operator workstation.
    ```bash
    chmod 600 secrets.yaml
    python3 scripts/prepare_secret_rotation.py \
-     secrets.yaml release/rotation-VERSION
+     secrets.yaml release/rotation-VERSION \
+     release/hal9-endurance-24h-final.jsonl.summary.json \
+     --expected-version VERSION
    ```
 
 2. Confirm the directory is `0700` and its three files are `0600`. The new
@@ -20,8 +22,13 @@ firmware or install an OTA. Run it only from the private operator workstation.
    Validate the closed bundle without displaying its values:
 
    ```bash
-   python3 scripts/check_secret_rotation_bundle.py release/rotation-VERSION
+   python3 scripts/check_secret_rotation_bundle.py release/rotation-VERSION \
+     --endurance-summary release/hal9-endurance-24h-final.jsonl.summary.json \
+     --expected-version VERSION
    ```
+   The schema-v2 manifest binds the exact successful 24-hour summary SHA-256,
+   candidate version and finish time. Future, expired, incomplete, modified or
+   different-version endurance evidence is rejected before secrets are created.
 3. Build the exact candidate in an isolated clean worktree with the new
    `secrets.yaml`. Run the tracked-secret audit with `--require-private-keys 3`,
    two clean builds and the complete source qualification procedure.
@@ -49,7 +56,8 @@ evidence schema v2 and proves that both clean builds mounted the bundle's exact
 new secrets. A different artifact, bundle, fingerprint or modified build log is
 rejected before confirmation. It then requires the literal
 `ROTATE CANARY VERSION SHA256` confirmation and repeats the complete binding
-check immediately afterward. The old OTA value is
+check immediately afterward, including the same endurance-summary digest. The
+old OTA value is
 mounted read-only only for upload. The new API key must then prove the exact
 version, `waiting`, `healthy` and empty error state before local activation.
 Never set its confirmation variable in shell history or automation.

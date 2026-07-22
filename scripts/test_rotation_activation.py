@@ -11,7 +11,9 @@ import unittest
 import yaml
 
 from activate_secret_rotation import activate
+from monitor_endurance import write_summary
 from prepare_secret_rotation import prepare
+from test_endurance_summary import VERSION, valid_summary
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,8 +31,10 @@ class RotationActivationTests(unittest.TestCase):
         self.active = self.root / "active.yaml"
         self.active.write_text(yaml.safe_dump(CURRENT), encoding="utf-8")
         self.active.chmod(0o600)
+        self.endurance = self.root / "endurance-summary.json"
+        write_summary(self.endurance, valid_summary())
         self.bundle = self.root / "rotation"
-        prepare(self.active, self.bundle)
+        prepare(self.active, self.bundle, self.endurance, VERSION)
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -77,6 +81,7 @@ class RotationActivationTests(unittest.TestCase):
         self.assertIn('OTA_SECRETS="$ROTATION_DIR/transition-ota.yaml"', wrapper)
         self.assertIn('VERIFY_SECRETS="$ROTATION_DIR/secrets.yaml"', wrapper)
         self.assertIn('SOURCE_EVIDENCE="${7:?$usage}"', wrapper)
+        self.assertEqual(wrapper.count('"$ENDURANCE_SUMMARY" --expected-version'), 2)
         self.assertEqual(wrapper.count("check_rotated_candidate_binding.py"), 2)
         self.assertLess(
             wrapper.rindex("check_rotated_candidate_binding.py"),

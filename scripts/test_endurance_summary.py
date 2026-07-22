@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import unittest
@@ -29,8 +30,10 @@ def valid_summary() -> dict:
             "project_version": VERSION,
         },
     )
+    finished = datetime.now(timezone.utc) - timedelta(minutes=1)
     result["sample_count"] = 1441
-    result["finished_at"] = "2026-07-23T00:00:00+00:00"
+    result["started_at"] = (finished - timedelta(hours=24)).isoformat()
+    result["finished_at"] = finished.isoformat()
     return result
 
 
@@ -63,6 +66,15 @@ class EnduranceSummaryTests(unittest.TestCase):
     def test_wrong_firmware_fails(self) -> None:
         with self.assertRaises(RuntimeError):
             self.check(valid_summary(), "2026.1.0-hal.10.1")
+
+    def test_future_or_expired_evidence_fails(self) -> None:
+        for offset in (timedelta(minutes=6), -timedelta(days=31)):
+            summary = valid_summary()
+            finished = datetime.now(timezone.utc) + offset
+            summary["started_at"] = (finished - timedelta(hours=24)).isoformat()
+            summary["finished_at"] = finished.isoformat()
+            with self.subTest(offset=offset), self.assertRaises(RuntimeError):
+                self.check(summary)
 
     def test_failed_summary_fails(self) -> None:
         summary = valid_summary()

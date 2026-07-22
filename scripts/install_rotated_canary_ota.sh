@@ -22,7 +22,7 @@ version="$(${PYTHON:-python3} -c 'import json,sys; print(json.load(sys.stdin)["v
 sha256="$(${PYTHON:-python3} -c 'import json,sys; print(json.load(sys.stdin)["sha256"])' <<<"$readiness")"
 ${PYTHON:-python3} "$SCRIPT_DIR/check_rotated_candidate_binding.py" \
   "$FIRMWARE" "$SOURCE_EVIDENCE" "$ROTATION_DIR" \
-  --expected-version "$version" >/dev/null
+  "$ENDURANCE_SUMMARY" --expected-version "$version" >/dev/null
 confirmation="ROTATE CANARY $version $sha256"
 if [[ -z "${ROTATION_INSTALL_CONFIRM:-}" && -t 0 ]]; then
   printf 'Type exactly: %s\n> ' "$confirmation" >&2
@@ -34,7 +34,7 @@ if [[ "${ROTATION_INSTALL_CONFIRM:-}" != "$confirmation" ]]; then
 fi
 ${PYTHON:-python3} "$SCRIPT_DIR/check_rotated_candidate_binding.py" \
   "$FIRMWARE" "$SOURCE_EVIDENCE" "$ROTATION_DIR" \
-  --expected-version "$version" >/dev/null
+  "$ENDURANCE_SUMMARY" --expected-version "$version" >/dev/null
 
 OTA_SECRETS="$ROTATION_DIR/transition-ota.yaml" \
 VERIFY_SECRETS="$ROTATION_DIR/secrets.yaml" \

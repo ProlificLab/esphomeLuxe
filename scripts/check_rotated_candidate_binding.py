@@ -27,9 +27,10 @@ def validate_binding(
     artifact: Path,
     source_evidence: Path,
     rotation_directory: Path,
+    endurance_summary: Path,
     expected_version: str,
 ) -> dict[str, object]:
-    validate_bundle(rotation_directory)
+    validate_bundle(rotation_directory, endurance_summary, expected_version)
     firmware_sha = digest(artifact)
     digest(source_evidence)
     secrets_sha = digest(rotation_directory / "secrets.yaml")
@@ -58,11 +59,12 @@ def main() -> None:
     parser.add_argument("artifact", type=Path)
     parser.add_argument("source_evidence", type=Path)
     parser.add_argument("rotation_directory", type=Path)
+    parser.add_argument("endurance_summary", type=Path)
     parser.add_argument("--expected-version", required=True)
     args = parser.parse_args()
     result = validate_binding(
         args.artifact, args.source_evidence, args.rotation_directory,
-        args.expected_version,
+        args.endurance_summary, args.expected_version,
     )
     print(json.dumps(result, sort_keys=True))
 

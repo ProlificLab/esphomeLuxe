@@ -8,11 +8,14 @@ import base64
 import binascii
 from datetime import datetime, timedelta, timezone
 import json
+import hashlib
 import os
 from pathlib import Path
+import re
 
 import yaml
 
+from check_endurance_summary import validate_summary
 from prepare_secret_rotation import ROTATED_KEYS
 
 
@@ -25,8 +28,10 @@ MANIFEST_KEYS = {
     "files",
     "required_permissions",
     "network_actions_performed",
+    "endurance",
 }
 PLACEHOLDERS = ("replace", "example", "placeholder", "changeme")
+VERSION_PATTERN = r"[0-9]{4}\.[0-9]+\.[0-9]+-[A-Za-z0-9.-]+"
 
 
 def fail(message: str) -> None:
@@ -64,7 +69,17 @@ def load_mapping(path: Path, label: str) -> dict[str, object]:
     return value
 
 
-def validate_bundle(directory: Path) -> dict[str, object]:
+def digest(path: Path) -> str:
+    if not path.is_file() or path.is_symlink() or path.stat().st_size == 0:
+        fail("Rotation endurance summary must be a non-empty regular file")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def validate_bundle(
+    directory: Path,
+    endurance_summary: Path | None = None,
+    expected_version: str | None = None,
+) -> dict[str, object]:
     require_private(directory, 0o700, "directory")
     manifest_path = directory / "rotation-manifest.json"
     new_path = directory / "secrets.yaml"
@@ -80,7 +95,7 @@ def validate_bundle(directory: Path) -> dict[str, object]:
         fail("Rotation manifest keys differ from schema")
     if (
         type(manifest["schema_version"]) is not int
-        or manifest["schema_version"] != 1
+        or manifest["schema_version"] != 2
         or manifest["status"] != "prepared_offline"
         or manifest["rotated_keys"] != list(ROTATED_KEYS)
         or manifest["transition_keys"] != ["ota_password"]
@@ -92,6 +107,32 @@ def validate_bundle(directory: Path) -> dict[str, object]:
     ):
         fail("Rotation manifest identity or safety contract is invalid")
     generated_at = parse_time(manifest["generated_at"])
+    endurance = manifest["endurance"]
+    if not isinstance(endurance, dict) or set(endurance) != {
+        "passed", "project_version", "finished_at", "summary_sha256"
+    }:
+        fail("Rotation endurance binding keys differ from schema")
+    if (
+        endurance["passed"] is not True
+        or not isinstance(endurance["project_version"], str)
+        or re.fullmatch(VERSION_PATTERN, endurance["project_version"]) is None
+        or not isinstance(endurance["summary_sha256"], str)
+        or len(endurance["summary_sha256"]) != 64
+        or any(character not in "0123456789abcdef" for character in endurance["summary_sha256"])
+    ):
+        fail("Rotation endurance identity is invalid")
+    endurance_finished_at = parse_time(endurance["finished_at"])
+    if datetime.fromisoformat(endurance_finished_at) > datetime.fromisoformat(generated_at):
+        fail("Rotation bundle was generated before its endurance finished")
+    if expected_version is not None and endurance["project_version"] != expected_version:
+        fail("Rotation endurance version differs from the expected candidate")
+    if endurance_summary is not None:
+        summary = validate_summary(endurance_summary, endurance["project_version"])
+        if (
+            digest(endurance_summary) != endurance["summary_sha256"]
+            or summary["finished_at"] != endurance["finished_at"]
+        ):
+            fail("Rotation endurance summary differs from the bound evidence")
 
     rotated = load_mapping(new_path, "new secrets")
     transition = load_mapping(transition_path, "transition secrets")
@@ -127,14 +168,20 @@ def validate_bundle(directory: Path) -> dict[str, object]:
         "rotated_key_count": len(ROTATED_KEYS),
         "transition_key_count": len(transition),
         "network_actions_performed": 0,
+        "endurance_summary_bound": True,
+        "project_version": endurance["project_version"],
     }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
+    parser.add_argument("--endurance-summary", type=Path)
+    parser.add_argument("--expected-version")
     args = parser.parse_args()
-    result = validate_bundle(args.directory.absolute())
+    result = validate_bundle(
+        args.directory.absolute(), args.endurance_summary, args.expected_version
+    )
     print(json.dumps(result, sort_keys=True))
 
 
