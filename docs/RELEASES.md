@@ -40,6 +40,10 @@ source commit, version and OTA SHA-256, enforces exact counts and strict
 recovery deadlines, and itself binds seven raw logs by SHA-256. All seven gate
 strings must be identical; prose, split records and modified logs are rejected.
 Follow `docs/CANARY_QUALIFICATION.md` for the closed physical order.
+`scripts/seal_canary_core_evidence.py` is the only supported way to turn the
+reviewed draft into a passing record. It recalculates identity and every hash,
+requires the clean source commit and passing endurance preflight, refuses
+overwrite, and atomically publishes the record only after full validation.
 
 Starting with `hal.9.0-alpha.4`, the 93% target is also a blocking source-CI
 gate. Any main OTA larger than 1,889,402 bytes must be optimized or explicitly

@@ -39,15 +39,42 @@ or an inaudible TTS fails the entire record; do not average it away.
 
 ## Evidence binding
 
-Fill the candidate identity, observer, start/finish times, exact metrics and
-all seven `logs` bindings in `canary-core-VERSION.json`. Each binding has this
-form:
+Copy `docs/canary-core-record.example.json` to `draft.json` before the tests.
+Fill only the measured `tests` values, the strict `limits`, and
+`rollback_artifact.stored_offline`; do not trust manually entered identity,
+hashes or pass status. Keep the seven logs under the same evidence directory.
+
+Seal the record only after reviewing every log:
+
+```bash
+python3 scripts/seal_canary_core_evidence.py \
+  release/qualification-VERSION/draft.json \
+  release/qualification-VERSION/canary-core-VERSION.json \
+  release/muse-luxe-VERSION.ota.bin \
+  release/manifest-development.json \
+  release/hal9-endurance-24h-final.summary.json \
+  REVIEWED_OTA_SHA256 \
+  /private/offline/muse-luxe-hal6.ota.bin REVIEWED_HAL6_SHA256 \
+  --logs-dir release/qualification-VERSION/logs \
+  --device muse-luxe-canary-bureau \
+  --observer "REVIEWER NAME" \
+  --started-at "ISO-8601 WITH TIMEZONE" \
+  --finished-at "ISO-8601 WITH TIMEZONE"
+```
+
+The sealer refuses a dirty worktree or existing output, repeats the reviewed
+24-hour/artifact preflight, validates the private rollback artifact, computes
+all candidate/rollback/log hashes itself and writes through an `fsync` temporary
+file followed by an atomic no-clobber publication in the same directory.
+Validation failure or a concurrent output removes the temporary file without
+overwriting the winner. Each resulting log binding has this form:
 
 ```text
 sha256:LOWERCASE_DIGEST relative-log-name.log
 ```
 
-Validate it before editing the beta qualification record:
+The sealer validates the final record automatically. It can be checked again
+independently before editing the beta qualification record:
 
 ```bash
 python3 scripts/check_canary_core_evidence.py \

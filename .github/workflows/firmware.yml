@@ -89,6 +89,7 @@ jobs:
           python3 scripts/test_canary_deploy_safety.py
           python3 scripts/test_canary_install_safety.py
           python3 scripts/test_canary_core_evidence.py
+          python3 scripts/test_seal_canary_core_evidence.py
           python3 scripts/check_diagnostics_safety.py
           python3 scripts/test_diagnostics_safety.py
           python3 scripts/check_offline_rescue_safety.py
