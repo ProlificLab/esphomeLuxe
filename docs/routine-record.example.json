@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "routine_package_sha256": "REPLACE_WITH_ROUTINE_PACKAGE_SHA256",
+    "sentences_sha256": "REPLACE_WITH_SENTENCES_SHA256",
+    "live_test_sha256": "REPLACE_WITH_LIVE_TEST_SHA256",
+    "house_package_sha256": "REPLACE_WITH_HOUSE_PACKAGE_SHA256",
+    "base_package_sha256": "REPLACE_WITH_BASE_PACKAGE_SHA256"
+  },
+  "observer": "REPLACE_WITH_REVIEWER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "observed_targets": [
+    "media_player.raspiaudio_muse_luxe",
+    "REPLACE_WITH_SECOND_MEDIA_PLAYER"
+  ],
+  "runtime": {
+    "routines": ["alarm", "bedtime", "departure", "evacuation", "power_outage", "server_shutdown"],
+    "steps_per_routine": 4,
+    "victron_stale_seconds": 300,
+    "default_target": "media_player.raspiaudio_muse_luxe",
+    "handoff_policy": "explicit_existing_available_media_player",
+    "enabled_by_default": false,
+    "safety_policy": "guidance_only_no_critical_actions"
+  },
+  "metrics": {
+    "routine_starts": 0,
+    "distinct_targets": 0,
+    "handoffs": 0,
+    "manual_guard_checks": 0,
+    "sensor_verifications": 0,
+    "stale_blocks": 0,
+    "restart_recoveries": 0,
+    "local_intents": 0,
+    "session_id_preservation_checks": 0,
+    "max_handoff_state_latency_seconds": -1,
+    "critical_actions": -1,
+    "external_deliveries": -1
+  },
+  "final_state": {
+    "enabled": "REPLACE",
+    "status": "REPLACE",
+    "kind": "REPLACE",
+    "verification": "REPLACE",
+    "step": -1,
+    "target": "REPLACE",
+    "session_id": "REPLACE",
+    "last_event": "REPLACE",
+    "player_states": {
+      "media_player.raspiaudio_muse_luxe": "REPLACE",
+      "REPLACE_WITH_SECOND_MEDIA_PLAYER": "REPLACE"
+    },
+    "voice_state": "REPLACE",
+    "voice_health": "REPLACE"
+  },
+  "scenarios": {
+    "active_routine_rejects_second_start": {"passed": false, "evidence": "REPLACE"},
+    "alarm_urgent_chime": {"passed": false, "evidence": "REPLACE"},
+    "cancel_blocked": {"passed": false, "evidence": "REPLACE"},
+    "cancel_paused": {"passed": false, "evidence": "REPLACE"},
+    "cancel_running": {"passed": false, "evidence": "REPLACE"},
+    "departure_manual_guard": {"passed": false, "evidence": "REPLACE"},
+    "disabled_start_rejected": {"passed": false, "evidence": "REPLACE"},
+    "evacuation_urgent_chime": {"passed": false, "evidence": "REPLACE"},
+    "final_reset_clears_identity": {"passed": false, "evidence": "REPLACE"},
+    "ha_restart_paused_persists": {"passed": false, "evidence": "REPLACE"},
+    "ha_restart_running_persists": {"passed": false, "evidence": "REPLACE"},
+    "handoff_preserves_kind": {"passed": false, "evidence": "REPLACE"},
+    "handoff_preserves_session_id": {"passed": false, "evidence": "REPLACE"},
+    "handoff_preserves_step": {"passed": false, "evidence": "REPLACE"},
+    "handoff_second_target_plays": {"passed": false, "evidence": "REPLACE"},
+    "handoff_unavailable_rejected_without_mutation": {"passed": false, "evidence": "REPLACE"},
+    "local_cancel_intent": {"passed": false, "evidence": "REPLACE"},
+    "local_confirm_intent": {"passed": false, "evidence": "REPLACE"},
+    "local_pause_intent": {"passed": false, "evidence": "REPLACE"},
+    "local_resume_intent": {"passed": false, "evidence": "REPLACE"},
+    "local_start_intent": {"passed": false, "evidence": "REPLACE"},
+    "local_status_intent": {"passed": false, "evidence": "REPLACE"},
+    "nonurgent_normal_priority": {"passed": false, "evidence": "REPLACE"},
+    "power_outage_fresh_sensor_verified": {"passed": false, "evidence": "REPLACE"},
+    "power_outage_stale_blocks": {"passed": false, "evidence": "REPLACE"},
+    "same_target_resume": {"passed": false, "evidence": "REPLACE"},
+    "server_shutdown_has_no_control": {"passed": false, "evidence": "REPLACE"},
+    "six_routine_kinds_start": {"passed": false, "evidence": "REPLACE"},
+    "target_missing_rejected": {"passed": false, "evidence": "REPLACE"},
+    "voice_confirmation_cannot_override_stale": {"passed": false, "evidence": "REPLACE"}
+  }
+}

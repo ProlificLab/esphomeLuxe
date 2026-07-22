@@ -29,4 +29,18 @@ printf '\nscript:\n  unsafe:\n    sequence:\n      - action: script.shutdown_ser
   >> "$TEMP_DIR/unreviewed-script.yaml"
 expect_rejected "$TEMP_DIR/unreviewed-script.yaml"
 
+awk 'BEGIN { removed=0 }
+  !removed && index($0, "states(target_player) in [\047unknown\047, \047unavailable\047]") {
+    removed=1; next
+  }
+  { print }' "$PACKAGE" > "$TEMP_DIR/start-unavailable.yaml"
+expect_rejected "$TEMP_DIR/start-unavailable.yaml"
+
+awk 'BEGIN { removed=0 }
+  !removed && index($0, "states(target_player) in [\047unknown\047, \047unavailable\047]") {
+    removed=1; next
+  }
+  { print }' "$TEMP_DIR/start-unavailable.yaml" > "$TEMP_DIR/all-unavailable.yaml"
+expect_rejected "$TEMP_DIR/all-unavailable.yaml"
+
 echo "Routine safety negative fixtures passed."

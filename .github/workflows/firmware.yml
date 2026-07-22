@@ -66,6 +66,7 @@ jobs:
           scripts/check_production_manifest.sh
           scripts/check_routine_safety.sh
           scripts/test_routine_safety.sh
+          python3 scripts/test_routine_evidence.py
           scripts/check_house_intelligence_safety.sh
           scripts/test_house_intelligence_safety.sh
           python3 scripts/test_house_intelligence_evidence.py

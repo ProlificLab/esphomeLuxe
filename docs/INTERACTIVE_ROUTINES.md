@@ -33,7 +33,9 @@ any LLM fallback:
 
 The service `script.muse_resume_routine` accepts another explicit
 `media_player` target, so a paused routine can move to a second satellite once
-one exists. Physical room-to-room validation remains required.
+one exists. Start and resume now reject both missing and `unavailable` targets
+before changing persisted state. Physical room-to-room validation remains
+required.
 
 ## Installation and test
 
@@ -69,6 +71,42 @@ CI also runs `scripts/check_routine_safety.sh`. It requires the opt-in,
 verification and logbook markers and accepts only an explicit action allowlist;
 critical infrastructure, arbitrary scripts and templated service actions are
 rejected.
+
+## Stable qualification
+
+Copy `docs/routine-record.example.json` into `release/` only after two distinct
+satellites are available. Exercise all six routine kinds and all six local
+intents. Pause on the first satellite, resume explicitly on the second, and
+verify that kind, step and session ID are unchanged before hearing that same
+step from the second target. Repeat once in the other direction. An unavailable
+handoff target must leave both the old target and paused state unchanged.
+
+Restart Home Assistant once while `running` and once while `paused`; persisted
+state must survive. Verify manual confirmation, fresh Victron sensor proof and
+the stale Victron block that voice cannot override. Alarm and evacuation must
+use urgent audio; the other routines stay normal. No routine may call an
+infrastructure control or deliver data externally.
+
+Finish by cancelling or completing, resetting, disabling the opt-in and
+checking both players `idle`, voice `waiting/healthy`, status `idle`, kind and
+verification `none`, step zero, and all identity text helpers empty.
+
+```sh
+version="REPLACE_WITH_VERSION"
+python3 scripts/check_routine_evidence.py \
+  "release/routine-$version.json" \
+  --expected-version "$version" \
+  --expected-firmware-sha256 "$(sha256sum "release/muse-luxe-$version.ota.bin" | cut -d' ' -f1)" \
+  --expected-package-sha256 "$(sha256sum home-assistant/packages/muse_interactive_routines.yaml | cut -d' ' -f1)" \
+  --expected-sentences-sha256 "$(sha256sum home-assistant/custom_sentences/fr/muse_routines.yaml | cut -d' ' -f1)" \
+  --expected-live-test-sha256 "$(sha256sum scripts/test_home_assistant_routines.py | cut -d' ' -f1)" \
+  --expected-house-package-sha256 "$(sha256sum home-assistant/packages/muse_house_intelligence.yaml | cut -d' ' -f1)" \
+  --expected-base-package-sha256 "$(sha256sum home-assistant/packages/muse_luxe.yaml | cut -d' ' -f1)"
+```
+
+Bind the validated record in `interactive_routine_handoff.evidence` as
+`sha256:DIGEST routine-VERSION.json`. Neither this guide nor the failed example
+is physical evidence.
 
 ## Adding sensors
 

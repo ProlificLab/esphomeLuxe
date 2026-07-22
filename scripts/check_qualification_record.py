@@ -33,6 +33,7 @@ from check_offline_rescue_evidence import (
 from check_physical_controls_evidence import (
     validate_evidence as validate_physical_controls_evidence,
 )
+from check_routine_evidence import validate_evidence as validate_routine_evidence
 from check_timer_evidence import validate_evidence as validate_timer_evidence
 from check_video_review_evidence import validate_evidence as validate_video_evidence
 
@@ -317,6 +318,30 @@ def main() -> None:
             ),
             sha256(root / "scripts/check_proxmox_permissions.py"),
             sha256(root / "scripts/check_frigate_readonly.py"),
+        )
+        routine_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["interactive_routine_handoff"],
+            "Interactive routine",
+        )
+        validate_routine_evidence(
+            routine_path,
+            version,
+            artifact_hash,
+            sha256(
+                root
+                / "home-assistant/packages/muse_interactive_routines.yaml"
+            ),
+            sha256(
+                root
+                / "home-assistant/custom_sentences/fr/muse_routines.yaml"
+            ),
+            sha256(root / "scripts/test_home_assistant_routines.py"),
+            sha256(
+                root
+                / "home-assistant/packages/muse_house_intelligence.yaml"
+            ),
+            sha256(root / "home-assistant/packages/muse_luxe.yaml"),
         )
         night_led_path = resolve_bound_evidence(
             args.record,

@@ -156,9 +156,10 @@ script:
           - condition: template
             value_template: >-
               {{ target_player not in states.media_player
-                 | map(attribute='entity_id') | list }}
+                 | map(attribute='entity_id') | list or
+                 states(target_player) in ['unknown', 'unavailable'] }}
         then:
-          - stop: "The requested routine speaker does not exist."
+          - stop: "The requested routine speaker is missing or unavailable."
             error: true
       - action: input_select.select_option
         target:
@@ -499,9 +500,10 @@ script:
           - condition: template
             value_template: >-
               {{ target_player not in states.media_player
-                 | map(attribute='entity_id') | list }}
+                 | map(attribute='entity_id') | list or
+                 states(target_player) in ['unknown', 'unavailable'] }}
         then:
-          - stop: "The requested resume speaker does not exist."
+          - stop: "The requested resume speaker is missing or unavailable."
             error: true
       - action: input_text.set_value
         target:
@@ -640,7 +642,7 @@ intent_script:
     action:
       - action: script.muse_resume_routine
     speech:
-      text: "Je reprends la routine sur cette enceinte."
+      text: "Je reprends la routine sur l'enceinte sélectionnée."
   MuseRoutineCancel:
     action:
       - action: script.muse_cancel_routine

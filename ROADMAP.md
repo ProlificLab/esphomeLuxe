@@ -12,8 +12,8 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; narrateur `9.2-ha-alpha.7`; revue video `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.16`: fraicheur maison liee aux politiques et au candidat exact |
+| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; revue video `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
+| Distribution `hal.10` | `hal.10-alpha.17`: transfert de routine lie aux deux cibles et au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -255,6 +255,17 @@ injections physiques attendent la fin de l'endurance.
 - Verifier chaque etape avec les capteurs, avec pause, reprise et annulation.
 - Permettre de reprendre la routine sur une autre enceinte.
 
+Etat source `hal.9.2-ha-alpha.8`: demarrage et reprise refusent desormais une
+cible absente ou indisponible avant toute mutation de l'etat persiste. La
+reprise locale ne pretend plus connaitre l'enceinte d'origine; un transfert
+reste un choix explicite de `media_player` jusqu'a une origine materielle fiable.
+
+Etat outil `hal.9.2-qualification.3`: le dossier routines lie version, OTA,
+packages routine, maison et annonces, phrases locales et test HA. Il ferme 30
+scenarios, exige deux satellites distincts, deux handoffs avec session, type et
+etape preserves, deux redemarrages, six intentions, blocage Victron et nettoyage
+complet. La preuve physique attend le second satellite et la fin de l'endurance.
+
 #### Carillon video intelligent
 
 - Frigate annonce personne ou evenement pertinent avec zone.
@@ -347,7 +358,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.16`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.17`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -385,6 +396,10 @@ La porte fraicheur maison charge un dossier hashe lie au binaire OTA, au
 package, a l'endpoint et l'ACL OPNsense ainsi qu'aux politiques Proxmox et
 Frigate. Elle exige les quatre sources fraiches, perimees puis restaurees, la
 source requise la plus ancienne, les ACL exactes et zero action d'infrastructure.
+La porte routines charge un dossier hashe lie au binaire OTA, aux trois
+packages, aux phrases et au test HA. Elle exige deux cibles, la conservation de
+session pendant le transfert, les reprises apres redemarrage, les gardes humains
+et Victron, puis un etat final vide sans action critique.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

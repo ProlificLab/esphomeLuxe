@@ -23,6 +23,7 @@ from test_interpreter_evidence import valid_evidence as valid_interpreter_eviden
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
+from test_routine_evidence import valid_evidence as valid_routine_evidence
 from test_timer_evidence import valid_evidence as valid_timer_evidence
 from test_video_review_evidence import valid_evidence as valid_video_evidence
 from test_endurance_summary import valid_summary
@@ -100,6 +101,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_announcement: bool = False,
         tamper_house_intelligence: bool = False,
         unbound_house_intelligence: bool = False,
+        tamper_routine: bool = False,
+        unbound_routine: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -178,6 +181,32 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_house_intelligence:
                 house_path.write_text("{}\n", encoding="utf-8")
+            routine_package = (
+                ROOT / "home-assistant/packages/muse_interactive_routines.yaml"
+            )
+            routine_sentences = (
+                ROOT / "home-assistant/custom_sentences/fr/muse_routines.yaml"
+            )
+            routine_live_test = ROOT / "scripts/test_home_assistant_routines.py"
+            routine_path = self.directory / "routine.json"
+            routine = valid_routine_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(routine_package.read_bytes()).hexdigest(),
+                hashlib.sha256(routine_sentences.read_bytes()).hexdigest(),
+                hashlib.sha256(routine_live_test.read_bytes()).hexdigest(),
+                hashlib.sha256(house_package.read_bytes()).hexdigest(),
+                package_hash,
+            )
+            routine_path.write_text(json.dumps(routine), encoding="utf-8")
+            routine_hash = hashlib.sha256(routine_path.read_bytes()).hexdigest()
+            record["gates"]["interactive_routine_handoff"]["evidence"] = (
+                "routine.json"
+                if unbound_routine
+                else f"sha256:{routine_hash} {routine_path.name}"
+            )
+            if tamper_routine:
+                routine_path.write_text("{}\n", encoding="utf-8")
             night_led_path = self.directory / "night-led.json"
             night_led = valid_night_led_evidence(
                 version,
@@ -722,6 +751,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_house_intelligence=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_routine_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_routine=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_routine_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_routine=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

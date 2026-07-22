@@ -14,6 +14,8 @@ required_markers=(
   "sensor_verified"
   "logbook.log"
   "guidance_only_no_critical_actions"
+  "states(target_player) in ['unknown', 'unavailable']"
+  "target_player not in states.media_player"
 )
 
 for marker in "${required_markers[@]}"; do
@@ -22,6 +24,11 @@ for marker in "${required_markers[@]}"; do
     exit 1
   fi
 done
+
+if [[ "$(grep -Fc "states(target_player) in ['unknown', 'unavailable']" "$PACKAGE")" -ne 2 ]]; then
+  echo "Routine start and handoff must both reject unavailable speakers." >&2
+  exit 1
+fi
 
 forbidden_action_pattern='^[[:space:]]*-[[:space:]]+action:[[:space:]]+(alarm_control_panel|lock|cover|button|switch|number|select|shell_command|homeassistant)\.'
 if grep -En "$forbidden_action_pattern" "$PACKAGE"; then

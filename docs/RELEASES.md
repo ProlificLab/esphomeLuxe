@@ -146,6 +146,12 @@ requires fresh, stale and recovered observations for all four domains, oldest
 required-source behavior, deterministic narration, exact read-only roles and
 zero infrastructure actions or external deliveries.
 
+`interactive_routine_handoff.evidence` binds the OTA, routine and narration
+packages, French intents, live test and fresh-house package. It requires two
+distinct available players, preserved session/kind/step across handoff, restart
+recovery, all local intents, stale Victron refusal, full reset and zero critical
+actions or external deliveries.
+
 The two stable offline gates must reference one identical hash-bound
 `offline-rescue` record. It binds the OTA, rescue package, read-only FAT
 component and unchanged card manifest, then requires all six clips, fifteen

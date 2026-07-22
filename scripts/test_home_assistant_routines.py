@@ -12,6 +12,7 @@ import urllib.request
 
 BASE_URL = "http://127.0.0.1:8123"
 PLAYER = "media_player.raspiaudio_muse_luxe"
+UNAVAILABLE_PLAYER = "media_player.muse_routine_unavailable_fixture"
 
 
 def request(path: str, token: str, data: dict | None = None):
@@ -58,6 +59,20 @@ def state(token: str, entity_id: str) -> str:
 
 def service(token: str, domain: str, name: str, data: dict | None = None):
     return request(f"/api/services/{domain}/{name}", token, data or {})
+
+
+def delete_state(token: str, entity_id: str) -> None:
+    req = urllib.request.Request(
+        f"{BASE_URL}/api/states/{entity_id}",
+        method="DELETE",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30):
+            pass
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise
 
 
 def conversation(token: str, text: str):
@@ -138,6 +153,35 @@ def main() -> None:
 
     try:
         service(token, "input_boolean", "turn_on", {"entity_id": "input_boolean.muse_routines_enabled"})
+        try:
+            service(
+                token,
+                "script",
+                "muse_start_routine",
+                {"routine": "departure", "target": "media_player.missing_fixture"},
+            )
+        except urllib.error.HTTPError:
+            pass
+        if state(token, "input_select.muse_routine_status") != "idle":
+            raise RuntimeError("Missing target changed routine state")
+
+        request(
+            f"/api/states/{UNAVAILABLE_PLAYER}",
+            token,
+            {"state": "unavailable", "attributes": {"friendly_name": "Fixture"}},
+        )
+        try:
+            service(
+                token,
+                "script",
+                "muse_start_routine",
+                {"routine": "departure", "target": UNAVAILABLE_PLAYER},
+            )
+        except urllib.error.HTTPError:
+            pass
+        if state(token, "input_select.muse_routine_status") != "idle":
+            raise RuntimeError("Unavailable target changed routine state")
+
         service(
             token,
             "script",
@@ -157,6 +201,28 @@ def main() -> None:
         wait_state(token, "input_number.muse_routine_step", "2.0")
         service(token, "script", "muse_pause_routine")
         wait_state(token, "input_select.muse_routine_status", "paused")
+        preserved = {
+            entity_id: state(token, entity_id)
+            for entity_id in (
+                "input_text.muse_routine_target",
+                "input_text.muse_routine_session_id",
+                "input_number.muse_routine_step",
+            )
+        }
+        try:
+            service(
+                token,
+                "script",
+                "muse_resume_routine",
+                {"target": UNAVAILABLE_PLAYER},
+            )
+        except urllib.error.HTTPError:
+            pass
+        if state(token, "input_select.muse_routine_status") != "paused":
+            raise RuntimeError("Unavailable handoff changed paused state")
+        for entity_id, expected in preserved.items():
+            if state(token, entity_id) != expected:
+                raise RuntimeError(f"Unavailable handoff changed {entity_id}")
         service(token, "script", "muse_resume_routine", {"target": PLAYER})
         wait_state(token, "input_select.muse_routine_status", "running")
         service(token, "script", "muse_cancel_routine")
@@ -189,11 +255,16 @@ def main() -> None:
         service(token, "script", "muse_reset_routine")
         wait_state(token, "input_select.muse_routine_status", "idle")
     finally:
-        cleanup(token)
+        try:
+            cleanup(token)
+        finally:
+            delete_state(token, UNAVAILABLE_PLAYER)
 
     print(
         "PASS Home Assistant routines "
         "disabled_guard=blocked manual_guard=blocked pause_resume=passed "
+        "missing_target=blocked unavailable_target=blocked "
+        "unavailable_handoff=preserved "
         "local_french_intents=passed victron_sensor_guard=passed "
         "cancel_reset=passed enabled=off"
     )
