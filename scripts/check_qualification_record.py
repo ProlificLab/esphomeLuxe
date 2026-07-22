@@ -21,6 +21,9 @@ from check_endurance_summary import validate_summary
 from check_family_message_evidence import (
     validate_evidence as validate_family_message_evidence,
 )
+from check_house_intelligence_evidence import (
+    validate_evidence as validate_house_intelligence_evidence,
+)
 from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
 from check_interpreter_evidence import validate_evidence as validate_interpreter_evidence
 from check_night_led_evidence import validate_evidence as validate_night_led_evidence
@@ -276,9 +279,9 @@ def main() -> None:
     if args.channel == "stable":
         if gate_evidence["emergency_offline"] != gate_evidence["offline_rescue_physical"]:
             fail("Offline rescue stable gates must bind the same evidence record")
+        root = Path(__file__).resolve().parents[1]
         package_path = (
-            Path(__file__).resolve().parents[1]
-            / "home-assistant/packages/muse_luxe.yaml"
+            root / "home-assistant/packages/muse_luxe.yaml"
         )
         announcement_path = resolve_bound_evidence(
             args.record,
@@ -290,6 +293,30 @@ def main() -> None:
             version,
             artifact_hash,
             sha256(package_path),
+        )
+        house_intelligence_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["house_intelligence_freshness"],
+            "House intelligence",
+        )
+        validate_house_intelligence_evidence(
+            house_intelligence_path,
+            version,
+            artifact_hash,
+            sha256(
+                root
+                / "home-assistant/packages/muse_house_intelligence.yaml"
+            ),
+            sha256(
+                root
+                / "opnsense/muse-readonly/controllers/OPNsense/Muse/Api/StatusController.php"
+            ),
+            sha256(
+                root
+                / "opnsense/muse-readonly/models/OPNsense/Muse/ACL/ACL.xml"
+            ),
+            sha256(root / "scripts/check_proxmox_permissions.py"),
+            sha256(root / "scripts/check_frigate_readonly.py"),
         )
         night_led_path = resolve_bound_evidence(
             args.record,
@@ -323,7 +350,6 @@ def main() -> None:
             gate_evidence["offline_rescue_physical"],
             "Offline rescue",
         )
-        root = Path(__file__).resolve().parents[1]
         validate_offline_rescue_evidence(
             rescue_path,
             version,

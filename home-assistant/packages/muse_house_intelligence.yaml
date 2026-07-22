@@ -81,8 +81,8 @@ template:
               as_timestamp(states.sensor.gx_device_dc_battery_power.last_updated, 0)
                 if states.sensor.gx_device_dc_battery_power is defined else 0
             ] %}
-            {% set newest = updates | max %}
-            {{ as_datetime(newest).isoformat() if newest > 0 else 'unavailable' }}
+            {% set oldest = updates | min %}
+            {{ as_datetime(oldest).isoformat() if oldest > 0 else 'unavailable' }}
           source_age_seconds: >-
             {% set updates = [
               as_timestamp(states.sensor.pylontech_charge.last_updated, 0)
@@ -94,8 +94,8 @@ template:
               as_timestamp(states.sensor.gx_device_dc_battery_power.last_updated, 0)
                 if states.sensor.gx_device_dc_battery_power is defined else 0
             ] %}
-            {% set newest = updates | max %}
-            {{ ((as_timestamp(now()) - newest) | int) if newest > 0 else -1 }}
+            {% set oldest = updates | min %}
+            {{ ((as_timestamp(now()) - oldest) | int) if oldest > 0 else -1 }}
 
       - name: Muse Proxmox status
         unique_id: muse_proxmox_status
@@ -138,8 +138,8 @@ template:
               as_timestamp(states.sensor.haos_cpu_usage.last_updated, 0)
                 if states.sensor.haos_cpu_usage is defined else 0
             ] %}
-            {% set newest = updates | max %}
-            {{ ((as_timestamp(now()) - newest) | int) if newest > 0 else -1 }}
+            {% set oldest = updates | min %}
+            {{ ((as_timestamp(now()) - oldest) | int) if oldest > 0 else -1 }}
 
       - name: Muse Internet status
         unique_id: muse_internet_status
@@ -251,7 +251,7 @@ template:
                 if states.camera.cuisine is defined else 0,
               as_timestamp(states.camera.sonnette.last_reported, 0)
                 if states.camera.sonnette is defined else 0
-            ] | max %}
+            ] | min %}
             {{ ((as_timestamp(now()) - reported) | int) if reported > 0 else -1 }}
 
   - binary_sensor:
@@ -271,12 +271,12 @@ template:
             as_timestamp(states.sensor.gx_device_dc_battery_power.last_updated, 0)
               if states.sensor.gx_device_dc_battery_power is defined else 0
           ] %}
-          {% set newest = updates | max %}
+          {% set oldest = updates | min %}
           {{ not is_state(
                'binary_sensor.multiplus_ii_48_5000_70_50_id_276_connected', 'on')
              or states('sensor.pylontech_charge') in unavailable
-             or newest == 0
-             or as_timestamp(now()) - newest > 300 }}
+             or oldest == 0
+             or as_timestamp(now()) - oldest > 300 }}
 
       - name: Muse Proxmox data stale
         unique_id: muse_proxmox_data_stale
@@ -295,12 +295,12 @@ template:
             as_timestamp(states.sensor.haos_cpu_usage.last_updated, 0)
               if states.sensor.haos_cpu_usage is defined else 0
           ] %}
-          {% set newest = updates | max %}
+          {% set oldest = updates | min %}
           {{ states('sensor.chuwi_pve_status') in unavailable
              or states('sensor.haos_status') in unavailable
              or states('sensor.frigate_status') in unavailable
-             or newest == 0
-             or as_timestamp(now()) - newest > 300 }}
+             or oldest == 0
+             or as_timestamp(now()) - oldest > 300 }}
 
       - name: Muse OPNsense data stale
         unique_id: muse_opnsense_data_stale
@@ -363,7 +363,7 @@ script:
           {{ state_attr('sensor.muse_house_energy_status', 'grid_power_w') }}
           watts. Source active
           {{ state_attr('sensor.muse_house_energy_status', 'ac_source') }}.
-          Dernier changement de télémétrie il y a
+          Plus ancienne télémétrie requise mise à jour il y a
           {{ state_attr('sensor.muse_house_energy_status', 'source_age_seconds')
              | int(-1) }} secondes.
         {% endif %}

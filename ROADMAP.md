@@ -12,8 +12,8 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.15`: annonces routees liees au package et au candidat exact |
+| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; narrateur `9.2-ha-alpha.7`; revue video `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
+| Distribution `hal.10` | `hal.10-alpha.16`: fraicheur maison liee aux politiques et au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -237,6 +237,18 @@ transfert audio sans redemarrer le satellite.
 - Proposer des delestages via scripts bornes et confirmation explicite.
 - Maintenir les alertes essentielles sans Internet.
 
+Etat source `hal.9.2-ha-alpha.7`: les faits Victron, Proxmox, OPNsense et
+Frigate restent deterministes et en lecture seule. Victron, Proxmox et les
+cameras sentinelles calculent maintenant leur age depuis la source requise la
+plus ancienne: une seule metrique active ne peut plus masquer ses pairs figes.
+Les seuils restent respectivement 300, 300, 120 et 30 secondes.
+
+Etat outil `hal.9.2-qualification.2`: le dossier narrateur lie version, OTA,
+package HA, endpoint et ACL OPNsense, politiques Proxmox et Frigate. Il ferme 23
+scenarios de fraicheur, peremption, recuperation, ACL et narration, exige les
+quatre roles bornes et zero action d'infrastructure ou livraison externe. Les
+injections physiques attendent la fin de l'endurance.
+
 #### Routines interactives
 
 - Guider depart, coucher, fermeture serveur, panne, alarme ou evacuation.
@@ -335,7 +347,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.15`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.16`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -369,6 +381,10 @@ La porte annonces charge un dossier hashe lie au binaire OTA et au package de
 base exact. Elle exige les quinze observations, une file vide, le retour au
 volume precedent apres succes et erreurs, des cibles fermees et zero livraison
 externe.
+La porte fraicheur maison charge un dossier hashe lie au binaire OTA, au
+package, a l'endpoint et l'ACL OPNsense ainsi qu'aux politiques Proxmox et
+Frigate. Elle exige les quatre sources fraiches, perimees puis restaurees, la
+source requise la plus ancienne, les ACL exactes et zero action d'infrastructure.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

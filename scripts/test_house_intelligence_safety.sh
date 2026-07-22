@@ -15,6 +15,22 @@ if "$SCRIPT_DIR/check_house_intelligence_safety.sh" \
   exit 1
 fi
 
+sed 's/updates | min/updates | max/' "$PACKAGE" \
+  > "$TEMP_DIR/newest-masks-stale.yaml"
+if "$SCRIPT_DIR/check_house_intelligence_safety.sh" \
+  "$TEMP_DIR/newest-masks-stale.yaml" >/dev/null 2>&1; then
+  echo "House-intelligence guard accepted newest-only freshness." >&2
+  exit 1
+fi
+
+sed 's/oldest > 300/oldest > 3600/' "$PACKAGE" \
+  > "$TEMP_DIR/inflated-threshold.yaml"
+if "$SCRIPT_DIR/check_house_intelligence_safety.sh" \
+  "$TEMP_DIR/inflated-threshold.yaml" >/dev/null 2>&1; then
+  echo "House-intelligence guard accepted an inflated stale threshold." >&2
+  exit 1
+fi
+
 awk 'BEGIN { removed=0 } !removed && /{% endif %}/ { removed=1; next } { print }' \
   "$PACKAGE" > "$TEMP_DIR/unbalanced-template.yaml"
 if "$SCRIPT_DIR/check_house_intelligence_safety.sh" \

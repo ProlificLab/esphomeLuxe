@@ -17,6 +17,9 @@ required_markers=(
   "binary_sensor.muse_frigate_data_stale"
   "credential_role: page-muse-readonly"
   "credential_role: viewer"
+  "as_timestamp(now()) - oldest > 300"
+  "as_timestamp(now()) - as_timestamp(generated) > 120"
+  "| int(999) > 30"
 )
 for marker in "${required_markers[@]}"; do
   if ! grep -Fq "$marker" "$PACKAGE"; then
@@ -24,6 +27,17 @@ for marker in "${required_markers[@]}"; do
     exit 1
   fi
 done
+
+min_count="$(grep -F '| min %}' "$PACKAGE" | wc -l | tr -d ' ')"
+if [[ "$min_count" -lt 5 ]]; then
+  echo "House-intelligence freshness must use every required source: min=$min_count" >&2
+  exit 1
+fi
+if grep -Fq 'set newest = updates | max' "$PACKAGE" ||
+   grep -Fq '] | max %}' "$PACKAGE"; then
+  echo "House-intelligence freshness cannot let one newest source mask stale peers." >&2
+  exit 1
+fi
 
 if_count="$(grep -o '{% if' "$PACKAGE" | wc -l | tr -d ' ')"
 endif_count="$(grep -o '{% endif %}' "$PACKAGE" | wc -l | tr -d ' ')"

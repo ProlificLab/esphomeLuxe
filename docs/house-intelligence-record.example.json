@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "ha_package_sha256": "REPLACE_WITH_HOUSE_PACKAGE_SHA256",
+    "opnsense_controller_sha256": "REPLACE_WITH_OPNSENSE_CONTROLLER_SHA256",
+    "opnsense_acl_sha256": "REPLACE_WITH_OPNSENSE_ACL_SHA256",
+    "proxmox_policy_sha256": "REPLACE_WITH_PROXMOX_POLICY_SHA256",
+    "frigate_policy_sha256": "REPLACE_WITH_FRIGATE_POLICY_SHA256"
+  },
+  "observer": "REPLACE_WITH_REVIEWER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "runtime": {
+    "domains": ["frigate", "opnsense", "proxmox", "victron"],
+    "stale_thresholds": {
+      "frigate_seconds": 30,
+      "opnsense_seconds": 120,
+      "proxmox_seconds": 300,
+      "victron_seconds": 300
+    },
+    "credential_roles": {
+      "frigate": "viewer",
+      "opnsense": "page-muse-readonly",
+      "proxmox": "PVEAuditor",
+      "victron": "read-only entities"
+    },
+    "narration_target": "media_player.raspiaudio_muse_luxe"
+  },
+  "metrics": {
+    "successful_narrations": 0,
+    "fresh_domain_checks": 0,
+    "stale_domain_checks": 0,
+    "recovery_checks": 0,
+    "oldest_source_checks": 0,
+    "opnsense_denied_writes": 0,
+    "max_narration_latency_seconds": -1,
+    "infrastructure_actions": -1,
+    "external_deliveries": -1
+  },
+  "final_state": {
+    "narrator_state": "REPLACE",
+    "player_state": "REPLACE",
+    "voice_state": "REPLACE",
+    "voice_health": "REPLACE",
+    "queue_drained": false,
+    "stale_guards": {
+      "frigate": "REPLACE",
+      "opnsense": "REPLACE",
+      "proxmox": "REPLACE",
+      "victron": "REPLACE"
+    },
+    "normalized_states": {
+      "frigate": "REPLACE",
+      "opnsense": "REPLACE",
+      "proxmox": "REPLACE",
+      "victron": "REPLACE"
+    }
+  },
+  "scenarios": {
+    "assist_exposes_normalized_facts_only": {"passed": false, "evidence": "REPLACE"},
+    "combined_fresh_narration": {"passed": false, "evidence": "REPLACE"},
+    "frigate_fresh_camera_counts": {"passed": false, "evidence": "REPLACE"},
+    "frigate_oldest_sentinel_wins": {"passed": false, "evidence": "REPLACE"},
+    "frigate_recovers_after_fresh_data": {"passed": false, "evidence": "REPLACE"},
+    "frigate_stale_refuses_values": {"passed": false, "evidence": "REPLACE"},
+    "frigate_viewer_controls_disabled": {"passed": false, "evidence": "REPLACE"},
+    "narration_uses_deterministic_template": {"passed": false, "evidence": "REPLACE"},
+    "opnsense_forbidden_api_returns_403": {"passed": false, "evidence": "REPLACE"},
+    "opnsense_fresh_multiwan": {"passed": false, "evidence": "REPLACE"},
+    "opnsense_get_succeeds": {"passed": false, "evidence": "REPLACE"},
+    "opnsense_post_returns_405": {"passed": false, "evidence": "REPLACE"},
+    "opnsense_recovers_after_fresh_data": {"passed": false, "evidence": "REPLACE"},
+    "opnsense_stale_refuses_values": {"passed": false, "evidence": "REPLACE"},
+    "proxmox_fresh_values": {"passed": false, "evidence": "REPLACE"},
+    "proxmox_oldest_required_source_wins": {"passed": false, "evidence": "REPLACE"},
+    "proxmox_pveauditor_only": {"passed": false, "evidence": "REPLACE"},
+    "proxmox_recovers_after_fresh_data": {"passed": false, "evidence": "REPLACE"},
+    "proxmox_stale_refuses_values": {"passed": false, "evidence": "REPLACE"},
+    "victron_fresh_values": {"passed": false, "evidence": "REPLACE"},
+    "victron_oldest_required_source_wins": {"passed": false, "evidence": "REPLACE"},
+    "victron_recovers_after_fresh_data": {"passed": false, "evidence": "REPLACE"},
+    "victron_stale_refuses_values": {"passed": false, "evidence": "REPLACE"}
+  }
+}

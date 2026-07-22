@@ -32,7 +32,7 @@
     "firmware_size_target": {"passed": false, "evidence": "REPLACE"},
     "ha_restart_recovery_10": {"passed": false, "evidence": "REPLACE"},
     "idle_endurance_24h": {"passed": false, "evidence": "sha256:REPLACE endurance-VERSION.jsonl.summary.json"},
-    "house_intelligence_freshness": {"passed": false, "evidence": "REPLACE"},
+    "house_intelligence_freshness": {"passed": false, "evidence": "sha256:REPLACE house-intelligence-VERSION.json"},
     "interactive_routine_handoff": {"passed": false, "evidence": "REPLACE"},
     "intercom_two_satellite": {"passed": false, "evidence": "REPLACE"},
     "interpreter_bilingual": {"passed": false, "evidence": "sha256:REPLACE interpreter-VERSION.json"},

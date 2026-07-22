@@ -140,6 +140,12 @@ requires fifteen closed routing, priority, queue, timeout, volume and failure
 scenarios, including restoration after both chime and TTS errors. Targets remain
 closed and external deliveries must stay at zero.
 
+`house_intelligence_freshness.evidence` binds the OTA, narrator package,
+OPNsense endpoint and ACL, Proxmox audit policy and Frigate read-only policy. It
+requires fresh, stale and recovered observations for all four domains, oldest
+required-source behavior, deterministic narration, exact read-only roles and
+zero infrastructure actions or external deliveries.
+
 The two stable offline gates must reference one identical hash-bound
 `offline-rescue` record. It binds the OTA, rescue package, read-only FAT
 component and unchanged card manifest, then requires all six clips, fifteen

@@ -16,6 +16,9 @@ from test_acoustic_guardian_evidence import valid_evidence as valid_acoustic_evi
 from test_announcement_evidence import valid_evidence as valid_announcement_evidence
 from test_family_message_evidence import valid_evidence as valid_family_message_evidence
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
+from test_house_intelligence_evidence import (
+    valid_evidence as valid_house_intelligence_evidence,
+)
 from test_interpreter_evidence import valid_evidence as valid_interpreter_evidence
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
@@ -95,6 +98,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_family_message: bool = False,
         tamper_announcement: bool = False,
         unbound_announcement: bool = False,
+        tamper_house_intelligence: bool = False,
+        unbound_house_intelligence: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -141,6 +146,38 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_announcement:
                 announcement_path.write_text("{}\n", encoding="utf-8")
+            house_package = (
+                ROOT / "home-assistant/packages/muse_house_intelligence.yaml"
+            )
+            opnsense_controller = (
+                ROOT
+                / "opnsense/muse-readonly/controllers/OPNsense/Muse/Api/StatusController.php"
+            )
+            opnsense_acl = (
+                ROOT
+                / "opnsense/muse-readonly/models/OPNsense/Muse/ACL/ACL.xml"
+            )
+            proxmox_policy = ROOT / "scripts/check_proxmox_permissions.py"
+            frigate_policy = ROOT / "scripts/check_frigate_readonly.py"
+            house_path = self.directory / "house-intelligence.json"
+            house = valid_house_intelligence_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(house_package.read_bytes()).hexdigest(),
+                hashlib.sha256(opnsense_controller.read_bytes()).hexdigest(),
+                hashlib.sha256(opnsense_acl.read_bytes()).hexdigest(),
+                hashlib.sha256(proxmox_policy.read_bytes()).hexdigest(),
+                hashlib.sha256(frigate_policy.read_bytes()).hexdigest(),
+            )
+            house_path.write_text(json.dumps(house), encoding="utf-8")
+            house_hash = hashlib.sha256(house_path.read_bytes()).hexdigest()
+            record["gates"]["house_intelligence_freshness"]["evidence"] = (
+                "house-intelligence.json"
+                if unbound_house_intelligence
+                else f"sha256:{house_hash} {house_path.name}"
+            )
+            if tamper_house_intelligence:
+                house_path.write_text("{}\n", encoding="utf-8")
             night_led_path = self.directory / "night-led.json"
             night_led = valid_night_led_evidence(
                 version,
@@ -665,6 +702,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_announcement=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_house_intelligence_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_house_intelligence=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_house_intelligence_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_house_intelligence=True,
         )
         self.assertNotEqual(result.returncode, 0)
 
