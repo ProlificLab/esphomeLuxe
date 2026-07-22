@@ -82,8 +82,19 @@ Production binaries contain device secrets and must not be attached to a public
 GitHub release. Publish them to Home Assistant's local web directory instead:
 
 ```bash
-PVE_HOST=user@proxmox-host scripts/deploy_local_update.sh
+version="2025.3.1-hal.9.0-alpha.5"
+artifact="release/muse-luxe-$version.ota.bin"
+PVE_HOST=user@proxmox-host scripts/deploy_local_update.sh \
+  "$artifact" \
+  release/manifest-development.json \
+  release/hal9-endurance-24h-final.jsonl.summary.json \
+  "$(sha256sum "$artifact" | cut -d' ' -f1)"
 ```
+
+Publication is refused unless the worktree is clean and the reviewed SHA-256,
+manifest and successful 24-hour endurance summary all identify the same exact
+version. Firmware is uploaded before the private `development` manifest. The
+root `hal.6` manifest is not changed and this command does not trigger an OTA.
 
 The firmware updater reads this LAN-only manifest. GitHub Actions compiles with
 non-production example secrets to validate every branch and pull request; tags

@@ -71,6 +71,19 @@ The root `manifest_update.json` remains the `hal.6` rollback reference until a
 stable promotion is separately reviewed. Firmware binaries contain secrets and
 must stay in private HA storage, never a public GitHub release.
 
+## Canary publication
+
+`scripts/deploy_local_update.sh` is an endurance-gated publication step, not an
+OTA trigger. It requires a clean worktree, a versioned artifact, its development
+manifest, a passing 24-hour summary and the independently reviewed artifact
+SHA-256. The preflight recomputes SHA-256 and MD5, validates at least 1,400
+samples and every endurance threshold, and requires one identical version.
+
+Only after that preflight does it upload the artifact to
+`/local/muse-luxe/channels/development/firmware.ota.bin`, followed by
+`manifest.json` in the same private channel. The order is deliberate and the
+root `manifest_update.json` rollback pointer is never overwritten.
+
 ## Changelog and dependency evidence
 
 CI writes two files into every firmware artifact:
