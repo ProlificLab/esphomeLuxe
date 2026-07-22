@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.7`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.6`; alertes video `9.2-ha-alpha.9`; routines `9.2-ha-alpha.8`; narrateur `9.2-ha-alpha.7`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.28`: transition OTA double credential et activation reprenable |
+| Distribution `hal.10` | `hal.10-alpha.29`: scellement atomique et derive du dossier source |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -387,7 +387,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.28`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.29`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -423,6 +423,10 @@ Stable lie aussi sa cible 93% au meme dossier. Journaux modifies, dossiers
 divises, build flottant, mauvais commit, depassement ou secret exemple sont
 refuses. Les secrets actuellement reconnaissables comme fixtures devront etre
 rotes apres l'endurance et avant toute qualification beta.
+Le dossier source est maintenant derive sans metriques libres depuis le commit
+propre, l'OTA et les cinq journaux exacts, valide integralement puis publie par
+lien atomique sans ecrasement. Une version hors format, un mauvais run/build,
+une taille divergente ou un audit non ferme empechent toute sortie finale.
 La preparation de cette rotation est desormais hors ligne et sans ecrasement:
 trois valeurs CSPRNG independantes, API 32 octets, conservation des autres
 secrets, ancien OTA seul dans une enveloppe de transition, dossier `0700` et

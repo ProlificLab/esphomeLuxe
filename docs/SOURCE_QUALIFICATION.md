@@ -35,7 +35,16 @@ replace physical canary evidence.
    canonical GitHub Actions URL. The checker parses this JSON, requires the
    successful `compile` job and rejects a run for another commit.
 5. Hash all five distinct non-empty logs and fill
-   `docs/source-qualification-record.example.json`. Validate it with:
+   `docs/source-qualification-record.example.json`. The supported path derives
+   identity, CI, build, size and audit fields and seals the record atomically:
+
+   ```bash
+   python3 scripts/seal_source_qualification_evidence.py \
+     release/source-VERSION/source-VERSION.json ARTIFACT VERSION \
+     --logs-dir release/source-VERSION --reviewer "REVIEWER"
+   ```
+
+   Then independently validate it with:
 
    ```bash
    python3 scripts/check_source_qualification_evidence.py \

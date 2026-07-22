@@ -151,10 +151,12 @@ class SourceQualificationEvidenceTests(unittest.TestCase):
 
     def test_candidate_and_ci_identity_drift_fail(self) -> None:
         mutations = (
+            ("candidate", "project_version", "free-form-version"),
             ("candidate", "source_commit", "0" * 40),
             ("candidate", "firmware_sha256", "0" * 64),
             ("ci", "head_sha", "0" * 40),
             ("ci", "conclusion", "failure"),
+            ("ci", "run_id", True),
             ("ci", "url", "https://example.invalid/run"),
         )
         for section, field, value in mutations:
@@ -265,6 +267,11 @@ class SourceQualificationEvidenceTests(unittest.TestCase):
         self.path.write_text(json.dumps(evidence), encoding="utf-8")
         with self.assertRaises(RuntimeError):
             validate_evidence(self.path, VERSION, FIRMWARE_SHA, SOURCE_COMMIT, SIZE_BYTES + 1)
+        evidence = valid_evidence(); evidence["candidate"]["project_version"] = "free-form-version"
+        write_log_fixtures(self.directory, evidence)
+        self.path.write_text(json.dumps(evidence), encoding="utf-8")
+        with self.assertRaises(RuntimeError):
+            validate_evidence(self.path)
 
 
 if __name__ == "__main__":

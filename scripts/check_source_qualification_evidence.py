@@ -97,7 +97,7 @@ def validate_secret_report(path: Path, summary: dict) -> None:
         {"exact_secret_matches", "suspicious_pattern_matches", "prohibited_tracked_files"},
         "raw secrets findings",
     )
-    if report["schema_version"] != 1 or report["passed"] is not True:
+    if type(report["schema_version"]) is not int or report["schema_version"] != 1 or report["passed"] is not True:
         fail("Source qualification raw secrets audit did not pass")
     if (
         type(report["tracked_file_count"]) is not int
@@ -171,7 +171,7 @@ def validate_evidence(
         {"schema_version", "passed", "candidate", "reviewer", "reviewed_at", "logs", "ci", "build", "secrets_audit"},
         "record",
     )
-    if evidence["schema_version"] != 1 or evidence["passed"] is not True:
+    if type(evidence["schema_version"]) is not int or evidence["schema_version"] != 1 or evidence["passed"] is not True:
         fail("Source qualification evidence did not pass with schema version 1")
     candidate = exact_keys(
         evidence["candidate"],
@@ -181,6 +181,8 @@ def validate_evidence(
     version = require_text(candidate["project_version"], "candidate version")
     firmware_sha256 = require_text(candidate["firmware_sha256"], "candidate SHA-256", 64)
     source_commit = require_text(candidate["source_commit"], "candidate commit", 40)
+    if re.fullmatch(r"[0-9]{4}\.[0-9]+\.[0-9]+-[A-Za-z0-9.-]+", version) is None:
+        fail("Source qualification candidate version is invalid")
     if re.fullmatch(r"[0-9a-f]{64}", firmware_sha256) is None:
         fail("Source qualification firmware SHA-256 is invalid")
     if re.fullmatch(r"[0-9a-f]{40}", source_commit) is None:
@@ -203,9 +205,9 @@ def validate_evidence(
     if (
         ci["repository"] != "ProlificLab/esphomeLuxe"
         or ci["workflow"] != "Firmware source validation"
-        or not isinstance(ci["run_id"], int)
+        or type(ci["run_id"]) is not int
         or ci["run_id"] <= 0
-        or not isinstance(ci["job_id"], int)
+        or type(ci["job_id"]) is not int
         or ci["job_id"] <= 0
         or ci["head_sha"] != source_commit
         or ci["conclusion"] != "success"

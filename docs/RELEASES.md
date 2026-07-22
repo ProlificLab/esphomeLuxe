@@ -53,6 +53,10 @@ recomputed OTA size limits and five raw logs. The secret audit compares at
 least three real private values against every tracked file without writing
 those values to its report. Follow `docs/SOURCE_QUALIFICATION.md`; example
 credentials cannot pass.
+The source record must be published with
+`seal_source_qualification_evidence.py`: it derives every identity and metric
+from the clean commit, exact OTA and five raw logs, validates the complete
+record, refuses overwrite and exposes it through an atomic no-clobber link.
 
 Prepare the post-endurance credential transition with
 `scripts/prepare_secret_rotation.py` and `docs/SECRET_ROTATION.md`. Preparation
