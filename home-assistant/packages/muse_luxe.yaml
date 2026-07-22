@@ -165,6 +165,7 @@ script:
                   value_template: "{{ requested_chime }}"
               then:
                 - action: media_player.play_media
+                  continue_on_error: true
                   target:
                     entity_id: "{{ player }}"
                   data:
@@ -174,6 +175,7 @@ script:
                   timeout: "00:00:20"
                   continue_on_timeout: true
             - action: tts.speak
+              continue_on_error: true
               target:
                 entity_id: tts.piper
               data:

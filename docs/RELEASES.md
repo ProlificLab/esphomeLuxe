@@ -135,6 +135,11 @@ checkpoint exactly once at day and night levels, no reconnect replay and one
 local completion sound during HA loss. Promotion binds it to the OTA and
 recomputes both the base and timer-coach package hashes.
 
+`announcement_routing_queue.evidence` binds the OTA and exact base package. It
+requires fifteen closed routing, priority, queue, timeout, volume and failure
+scenarios, including restoration after both chime and TTS errors. Targets remain
+closed and external deliveries must stay at zero.
+
 The two stable offline gates must reference one identical hash-bound
 `offline-rescue` record. It binds the OTA, rescue package, read-only FAT
 component and unchanged card manifest, then requires all six clips, fifteen

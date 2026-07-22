@@ -13,6 +13,7 @@ import unittest
 
 import check_qualification_record as checker
 from test_acoustic_guardian_evidence import valid_evidence as valid_acoustic_evidence
+from test_announcement_evidence import valid_evidence as valid_announcement_evidence
 from test_family_message_evidence import valid_evidence as valid_family_message_evidence
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
 from test_interpreter_evidence import valid_evidence as valid_interpreter_evidence
@@ -92,6 +93,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_video: bool = False,
         tamper_family_message: bool = False,
         unbound_family_message: bool = False,
+        tamper_announcement: bool = False,
+        unbound_announcement: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -119,6 +122,25 @@ class QualificationRecordTests(unittest.TestCase):
         if channel == "stable":
             package_path = ROOT / "home-assistant/packages/muse_luxe.yaml"
             package_hash = hashlib.sha256(package_path.read_bytes()).hexdigest()
+            announcement_path = self.directory / "announcement.json"
+            announcement = valid_announcement_evidence(
+                version,
+                self.digest,
+                package_hash,
+            )
+            announcement_path.write_text(
+                json.dumps(announcement), encoding="utf-8"
+            )
+            announcement_hash = hashlib.sha256(
+                announcement_path.read_bytes()
+            ).hexdigest()
+            record["gates"]["announcement_routing_queue"]["evidence"] = (
+                "announcement.json"
+                if unbound_announcement
+                else f"sha256:{announcement_hash} {announcement_path.name}"
+            )
+            if tamper_announcement:
+                announcement_path.write_text("{}\n", encoding="utf-8")
             night_led_path = self.directory / "night-led.json"
             night_led = valid_night_led_evidence(
                 version,
@@ -623,6 +645,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_family_message=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_announcement_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_announcement=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_announcement_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_announcement=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

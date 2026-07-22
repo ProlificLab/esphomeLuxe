@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.14`: messages familiaux liés à la file et au candidat exact |
+| Distribution `hal.10` | `hal.10-alpha.15`: annonces routees liees au package et au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -116,6 +116,19 @@ Sortie: profils jour/nuit mesures, faux reveils quantifies et stabilite egale a
 - Plusieurs minuteurs nommes avec pause, reprise et annulation.
 - LED representant le temps restant et annonces intermediaires.
 - Son local de secours si HA tombe apres la creation du minuteur.
+
+Etat source `hal.9.0-ha-alpha.4`: la file d'annonces est bornee a 25 et les
+annonces normales expirent apres dix minutes d'attente de la musique, d'Assist
+ou d'une conversation continue. Jour, nuit et urgence ont des volumes distincts;
+une urgence peut interrompre l'audio. Le volume precedent est maintenant
+restaure meme si le carillon ou Piper echoue. Les destinations restent fermees
+a l'unique Muse actuelle jusqu'a la qualification d'un second satellite.
+
+Etat outil `hal.9.0-qualification.6`: le dossier annonces lie version, OTA et
+package de base. Il ferme quinze scenarios de routage, FIFO, priorite, attente,
+expiration, carillon et erreurs, exige la restauration du volume apres chaque
+tentative et interdit toute livraison externe. Les observations physiques
+restent a effectuer apres l'endurance.
 
 Etat source `hal.9.0-ha-alpha.2`: les minuteurs Assist natifs restent portes
 par l'ESP32 avec nom, compte, LED et son final local. Un package HA optionnel,
@@ -322,7 +335,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.14`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.15`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -352,6 +365,10 @@ La porte revue vidéo charge un dossier hashé lie au binaire OTA, au package,
 au dashboard, au provisionneur et aux observations authentifiees fermees.
 La porte messages charge un dossier hashé lie au binaire OTA, aux packages,
 au provisionneur, aux compteurs de remise et a l'etat final vide.
+La porte annonces charge un dossier hashe lie au binaire OTA et au package de
+base exact. Elle exige les quinze observations, une file vide, le retour au
+volume precedent apres succes et erreurs, des cibles fermees et zero livraison
+externe.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

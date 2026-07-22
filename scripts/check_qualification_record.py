@@ -14,6 +14,9 @@ import subprocess
 from check_acoustic_guardian_evidence import (
     validate_evidence as validate_acoustic_evidence,
 )
+from check_announcement_evidence import (
+    validate_evidence as validate_announcement_evidence,
+)
 from check_endurance_summary import validate_summary
 from check_family_message_evidence import (
     validate_evidence as validate_family_message_evidence,
@@ -276,6 +279,17 @@ def main() -> None:
         package_path = (
             Path(__file__).resolve().parents[1]
             / "home-assistant/packages/muse_luxe.yaml"
+        )
+        announcement_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["announcement_routing_queue"],
+            "Announcement",
+        )
+        validate_announcement_evidence(
+            announcement_path,
+            version,
+            artifact_hash,
+            sha256(package_path),
         )
         night_led_path = resolve_bound_evidence(
             args.record,
