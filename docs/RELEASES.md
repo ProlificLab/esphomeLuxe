@@ -149,6 +149,11 @@ match the immutable `hal.6` manifest. Before confirmation it also requires API,
 OTA and fallback-AP values to match the immutable `hal.6` credential domain.
 A second exact confirmation and post-boot API check are mandatory. Rotation
 therefore closes this OTA path; immutable `hal.6` then uses USB recovery only.
+The credential reference must be an explicit private `0600`
+`HAL6_REFERENCE_SECRETS` file; example values are rejected before contact.
+The USB image has a separate closed gate that requires the reviewed factory
+SHA-256 and proves it embeds the exact retained OTA at `0x10000` with no extra
+payload. A generic or merely rebuilt factory image is not accepted as `hal.6`.
 
 ## Changelog and dependency evidence
 

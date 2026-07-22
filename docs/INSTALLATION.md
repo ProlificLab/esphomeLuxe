@@ -5,12 +5,13 @@
 - Muse Luxe, data-capable USB cable and an 8 GB or larger recovery drive.
 - Home Assistant with ESPHome, Wyoming/Piper and package loading enabled.
 - Private `secrets.yaml` created from `secrets.example.yaml`.
-- A retained copy of the `hal.6` recovery images and checksums.
+- The retained exact `hal.6` OTA and, before rotation, a separately reviewed
+  USB factory image that passes the closed recovery gate below.
 
 ## Canary workflow
 
-1. Flash the upstream/recovery factory image over USB if the device is not
-   reachable.
+1. Flash an upstream factory image over USB only for initial provisioning. Do
+   not call it an exact `hal.6` rollback unless it passes the recovery gate.
 2. Provision Wi-Fi through Improv Serial; do not embed household credentials in
    Git.
 3. Compile with the pinned command in `README.md`.
@@ -60,6 +61,32 @@ the immutable `hal.6` domain. Only then does it upload and verify the encrypted
 API after reboot. After credential rotation this check intentionally fails
 before confirmation or upload: restore immutable `hal.6` over USB instead.
 Never weaken authentication or retain/reuse the retired OTA password.
+
+## Exact hal.6 USB recovery gate
+
+An ESPHome factory image is not interchangeable with its OTA application. The
+accepted Muse layout must contain the reviewed immutable `hal.6` OTA byte for
+byte at offset `0x10000`, with no trailing payload. Validate both independently
+reviewed hashes before placing a factory image on recovery media:
+
+```bash
+python3 scripts/check_hal6_usb_recovery.py \
+  /private/path/muse-luxe-2025.3.1-hal.6.ota.bin \
+  /private/path/muse-luxe-2025.3.1-hal.6.factory.bin \
+  --manifest manifest_update.json \
+  --expected-factory-sha256 REVIEWED_FACTORY_SHA256
+```
+
+The exact retained OTA SHA-256 is closed in the checker. A historical rebuild
+made with example credentials, a generic upstream image, a symlink, an altered
+boot prefix, a wrong offset or extra bytes fails. Do not flash a failed image
+and do not derive or reuse retired credentials from a firmware binary.
+
+The authenticated OTA rollback is available only when
+`HAL6_REFERENCE_SECRETS` names a separately retained, current-user-private
+`0600` file containing the real immutable `hal.6` domain. Public example
+credentials are always rejected. If that reference is absent, use only a USB
+factory image that has passed the gate above.
 
 Before any beta or stable promotion, follow `docs/RELEASES.md` and complete a
 copy of `docs/qualification-record.example.json` in the ignored `release/`

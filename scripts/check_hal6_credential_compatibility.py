@@ -13,6 +13,11 @@ import yaml
 
 
 REQUIRED_KEYS = ("api_encryption_key", "ota_password", "fallback_ap_password")
+EXAMPLE_VALUES = {
+    "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=",
+    "replace-with-a-long-random-password",
+    "replace-with-random",
+}
 
 
 def fail(message: str) -> None:
@@ -40,7 +45,9 @@ def load(path: Path, *, private: bool) -> dict[str, str]:
 
 def validate(active_path: Path, reference_path: Path) -> dict[str, object]:
     active = load(active_path, private=True)
-    reference = load(reference_path, private=False)
+    reference = load(reference_path, private=True)
+    if any(value in EXAMPLE_VALUES for value in reference.values()):
+        fail("Immutable hal.6 reference contains example credentials; use USB recovery")
     comparisons = (
         hmac.compare_digest(active[key].encode(), reference[key].encode())
         for key in REQUIRED_KEYS

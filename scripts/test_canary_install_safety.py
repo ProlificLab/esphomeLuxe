@@ -78,6 +78,8 @@ class CanaryInstallSafetyTests(unittest.TestCase):
         self.assertIn("ROLLBACK $version $EXPECTED_SHA256", rollback)
         self.assertIn("check_rollback_artifact.py", rollback)
         self.assertIn("check_hal6_credential_compatibility.py", rollback)
+        self.assertIn("HAL6_REFERENCE_SECRETS", rollback)
+        self.assertNotIn('"$ROOT/secrets.example.yaml"', rollback)
         self.assertLess(
             rollback.index("check_hal6_credential_compatibility.py"),
             rollback.index("ROLLBACK $version $EXPECTED_SHA256"),

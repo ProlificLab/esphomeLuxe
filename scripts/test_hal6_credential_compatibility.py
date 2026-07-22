@@ -18,6 +18,12 @@ VALUES = {
     "fallback_ap_password": "replace-with-random",
     "unrelated": "preserved",
 }
+PRIVATE_VALUES = {
+    "api_encryption_key": "cHJpdmF0ZS1oYWw2LWtleS0zMi1ieXRlcy1sb25nISEhISE=",
+    "ota_password": "private-hal6-ota-password",
+    "fallback_ap_password": "private-hal6-ap-password",
+    "unrelated": "preserved",
+}
 
 
 class Hal6CredentialCompatibilityTests(unittest.TestCase):
@@ -26,8 +32,8 @@ class Hal6CredentialCompatibilityTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.active = self.root / "active.yaml"
         self.reference = self.root / "reference.yaml"
-        self.write(self.active, VALUES, 0o600)
-        self.write(self.reference, VALUES, 0o644)
+        self.write(self.active, PRIVATE_VALUES, 0o600)
+        self.write(self.reference, PRIVATE_VALUES, 0o600)
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -43,7 +49,7 @@ class Hal6CredentialCompatibilityTests(unittest.TestCase):
 
     def test_each_rotated_value_refuses_ota_rollback(self) -> None:
         for key in ("api_encryption_key", "ota_password", "fallback_ap_password"):
-            changed = dict(VALUES); changed[key] = f"rotated-{key}-private-value"
+            changed = dict(PRIVATE_VALUES); changed[key] = f"rotated-{key}-private-value"
             self.write(self.active, changed, 0o600)
             with self.subTest(key=key), self.assertRaises(RuntimeError):
                 validate(self.active, self.reference)
@@ -51,7 +57,15 @@ class Hal6CredentialCompatibilityTests(unittest.TestCase):
     def test_insecure_or_symlink_active_file_fails(self) -> None:
         self.active.chmod(0o644)
         with self.assertRaises(RuntimeError): validate(self.active, self.reference)
+        self.write(self.active, PRIVATE_VALUES, 0o600)
         self.active.unlink(); self.active.symlink_to(self.reference)
+        with self.assertRaises(RuntimeError): validate(self.active, self.reference)
+
+    def test_insecure_reference_and_public_examples_fail(self) -> None:
+        self.reference.chmod(0o644)
+        with self.assertRaises(RuntimeError): validate(self.active, self.reference)
+        self.write(self.reference, VALUES, 0o600)
+        self.write(self.active, VALUES, 0o600)
         with self.assertRaises(RuntimeError): validate(self.active, self.reference)
 
     def test_missing_or_malformed_inputs_fail(self) -> None:

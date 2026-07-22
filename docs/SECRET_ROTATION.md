@@ -75,3 +75,8 @@ rotation cannot safely use authenticated OTA because immutable `hal.6` boots
 its retired credential domain. `rollback_hal6_ota.sh` detects this mismatch and
 fails before upload. Use the archived USB image and physical recovery procedure;
 never preserve or reuse retired values merely to make the old binary uploadable.
+The USB image must first pass `scripts/check_hal6_usb_recovery.py`; an upstream
+factory image or a rebuild containing example credentials is not proof of the
+immutable image. The optional pre-rotation OTA path likewise requires an
+explicit private `HAL6_REFERENCE_SECRETS` file and never trusts
+`secrets.example.yaml`.

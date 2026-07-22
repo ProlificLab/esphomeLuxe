@@ -6,6 +6,7 @@ FIRMWARE="${1:?$usage}"
 EXPECTED_SHA256="${2:?$usage}"
 DEVICE_HOST="${3:?$usage}"
 SECRETS="${SECRETS:-secrets.yaml}"
+HAL6_REFERENCE_SECRETS="${HAL6_REFERENCE_SECRETS:-}"
 IMAGE="esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
@@ -14,10 +15,15 @@ if [[ ! -f "$SECRETS" ]]; then
   echo "Secrets file not found: $SECRETS" >&2
   exit 1
 fi
+if [[ -z "$HAL6_REFERENCE_SECRETS" || ! -f "$HAL6_REFERENCE_SECRETS" ]]; then
+  echo "Set HAL6_REFERENCE_SECRETS to the private immutable hal.6 credential reference." >&2
+  echo "The public example file is never accepted; use USB recovery when unavailable." >&2
+  exit 1
+fi
 version="$(${PYTHON:-python3} "$SCRIPT_DIR/check_rollback_artifact.py" "$FIRMWARE" \
   --manifest "$ROOT/manifest_update.json" --expected-sha256 "$EXPECTED_SHA256")"
 ${PYTHON:-python3} "$SCRIPT_DIR/check_hal6_credential_compatibility.py" \
-  "$SECRETS" "$ROOT/secrets.example.yaml" >/dev/null
+  "$SECRETS" "$HAL6_REFERENCE_SECRETS" >/dev/null
 confirmation="ROLLBACK $version $EXPECTED_SHA256"
 if [[ -z "${ROLLBACK_CONFIRM:-}" && -t 0 ]]; then
   printf 'Type exactly: %s\n> ' "$confirmation" >&2
