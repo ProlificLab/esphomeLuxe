@@ -15,6 +15,9 @@ from check_acoustic_guardian_evidence import (
     validate_evidence as validate_acoustic_evidence,
 )
 from check_endurance_summary import validate_summary
+from check_family_message_evidence import (
+    validate_evidence as validate_family_message_evidence,
+)
 from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
 from check_interpreter_evidence import validate_evidence as validate_interpreter_evidence
 from check_night_led_evidence import validate_evidence as validate_night_led_evidence
@@ -360,6 +363,19 @@ def main() -> None:
                 root / "home-assistant/dashboards/muse-video-review.yaml"
             ),
             sha256(root / "scripts/provision_video_review_dashboard.sh"),
+        )
+        family_message_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["family_message_delivery"],
+            "Family message",
+        )
+        validate_family_message_evidence(
+            family_message_path,
+            version,
+            artifact_hash,
+            sha256(root / "home-assistant/packages/muse_family_messages.yaml"),
+            sha256(root / "home-assistant/packages/muse_luxe.yaml"),
+            sha256(root / "scripts/provision_family_messages.sh"),
         )
         endurance_path = resolve_bound_evidence(
             args.record,

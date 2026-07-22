@@ -85,6 +85,24 @@ Home Assistant Core container through the Proxmox guest agent.
 7. Confirm all states and transcripts survive a normal restart and cleared
    fields remain empty after delivery.
 
+For stable qualification, copy `docs/family-message-record.example.json` into
+the ignored release directory. Record all sixteen scenarios, two recipients,
+automatic/immediate/manual outcomes, quarantine, expiration and carillons, then
+leave every current and legacy slot empty. Validate the exact candidate:
+
+```bash
+python3 scripts/check_family_message_evidence.py \
+  release/family-message-VERSION.json \
+  --expected-version "VERSION" \
+  --expected-firmware-sha256 "$(sha256sum release/muse-luxe-VERSION.ota.bin | cut -d' ' -f1)" \
+  --expected-package-sha256 "$(sha256sum home-assistant/packages/muse_family_messages.yaml | cut -d' ' -f1)" \
+  --expected-base-package-sha256 "$(sha256sum home-assistant/packages/muse_luxe.yaml | cut -d' ' -f1)" \
+  --expected-provisioner-sha256 "$(sha256sum scripts/provision_family_messages.sh | cut -d' ' -f1)"
+```
+
+Stable promotion recalculates all source hashes and binds the record to the
+OTA. The example remains failed and contains no family transcript.
+
 ## Rollback
 
 Turn message automations off by stopping HA, restore both timestamped

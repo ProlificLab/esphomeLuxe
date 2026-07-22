@@ -13,6 +13,7 @@ import unittest
 
 import check_qualification_record as checker
 from test_acoustic_guardian_evidence import valid_evidence as valid_acoustic_evidence
+from test_family_message_evidence import valid_evidence as valid_family_message_evidence
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
 from test_interpreter_evidence import valid_evidence as valid_interpreter_evidence
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
@@ -89,6 +90,8 @@ class QualificationRecordTests(unittest.TestCase):
         unbound_acoustic: bool = False,
         tamper_video: bool = False,
         unbound_video: bool = False,
+        tamper_family_message: bool = False,
+        unbound_family_message: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -265,6 +268,28 @@ class QualificationRecordTests(unittest.TestCase):
             )
             if tamper_video:
                 video_path.write_text("{}\n", encoding="utf-8")
+            family_package = (
+                ROOT / "home-assistant/packages/muse_family_messages.yaml"
+            )
+            family_base = ROOT / "home-assistant/packages/muse_luxe.yaml"
+            family_provisioner = ROOT / "scripts/provision_family_messages.sh"
+            family_path = self.directory / "family-message.json"
+            family = valid_family_message_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(family_package.read_bytes()).hexdigest(),
+                hashlib.sha256(family_base.read_bytes()).hexdigest(),
+                hashlib.sha256(family_provisioner.read_bytes()).hexdigest(),
+            )
+            family_path.write_text(json.dumps(family), encoding="utf-8")
+            family_hash = hashlib.sha256(family_path.read_bytes()).hexdigest()
+            record["gates"]["family_message_delivery"]["evidence"] = (
+                "family-message.json"
+                if unbound_family_message
+                else f"sha256:{family_hash} {family_path.name}"
+            )
+            if tamper_family_message:
+                family_path.write_text("{}\n", encoding="utf-8")
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
             summary["device"]["project_version"] = version
@@ -578,6 +603,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             unbound_video=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_family_message_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_family_message=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_family_message_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_family_message=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

@@ -100,6 +100,7 @@ jobs:
           python3 scripts/check_family_message_safety.py
           python3 scripts/test_family_message_safety.py
           python3 scripts/test_family_message_queue_model.py
+          python3 scripts/test_family_message_evidence.py
           python3 scripts/check_timer_coach_safety.py
           python3 scripts/test_timer_coach_safety.py
           python3 scripts/test_timer_coach_model.py

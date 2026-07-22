@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.13`: revue vidéo liée aux caméras et au candidat exact |
+| Distribution `hal.10` | `hal.10-alpha.14`: messages familiaux liés à la file et au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -185,6 +185,11 @@ explicitement humains. La migration mono-slot conserve un message valide sans
 prolonger un message expire. Deploiement et qualification physique attendent la
 fin de l'endurance.
 
+Etat outil `hal.9.1-qualification.1`: le dossier messages lie version, OTA,
+deux packages et provisionneur. Il ferme seize scenarios, deux destinataires,
+FIFO, expiration, quarantaines, retry/discard, carillons, zero doublon
+automatique et une file finale vide sans conserver de transcription.
+
 #### Audio qui suit l'utilisateur
 
 - Transferer musique, podcast ou radio vers une piece sur demande ou regle
@@ -317,7 +322,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.13`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.14`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -345,6 +350,8 @@ La porte acoustique charge un dossier hashé lie au binaire OTA, aux sources
 Frigate/HA, au consentement, aux mesures de qualite et au rollback prive.
 La porte revue vidéo charge un dossier hashé lie au binaire OTA, au package,
 au dashboard, au provisionneur et aux observations authentifiees fermees.
+La porte messages charge un dossier hashé lie au binaire OTA, aux packages,
+au provisionneur, aux compteurs de remise et a l'etat final vide.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

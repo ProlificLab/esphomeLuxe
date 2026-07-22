@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "message_package_sha256": "REPLACE_WITH_FAMILY_MESSAGE_PACKAGE_SHA256",
+    "base_package_sha256": "REPLACE_WITH_BASE_PACKAGE_SHA256",
+    "provisioner_sha256": "REPLACE_WITH_PROVISIONER_SHA256"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "runtime": {
+    "capacity": 3,
+    "maximum_transcript_characters": 240,
+    "minimum_expiry_minutes": 5,
+    "maximum_expiry_minutes": 1440,
+    "review_after_seconds": 360,
+    "automatic_delivery": "at_most_once_with_uncertain_quarantine",
+    "fixed_target": "media_player.raspiaudio_muse_luxe"
+  },
+  "metrics": {
+    "distinct_recipients": 0,
+    "maximum_observed_transcript_characters": 0,
+    "automatic_deliveries": 0,
+    "immediate_deliveries": 0,
+    "manual_retries": 0,
+    "manual_discards": 0,
+    "review_quarantines": 0,
+    "expired_without_audio": 0,
+    "automatic_duplicate_deliveries": -1,
+    "audible_deliveries": 0,
+    "carillons_heard": 0
+  },
+  "final_state": {
+    "slot_1": "empty",
+    "slot_2": "empty",
+    "slot_3": "empty",
+    "transcript_fields_empty": false,
+    "legacy_pending": false
+  },
+  "scenarios": {
+    "carillon_before_every_delivery": {"passed": false, "evidence": "REPLACE"},
+    "cleared_fields_empty_after_delivery": {"passed": false, "evidence": "REPLACE"},
+    "delivering_restart_moves_to_review": {"passed": false, "evidence": "REPLACE"},
+    "explicit_discard_clears_without_audio": {"passed": false, "evidence": "REPLACE"},
+    "explicit_retry_is_only_replay": {"passed": false, "evidence": "REPLACE"},
+    "five_minute_expiry_is_silent": {"passed": false, "evidence": "REPLACE"},
+    "fourth_message_refused_without_mutation": {"passed": false, "evidence": "REPLACE"},
+    "immediate_message_uses_no_slot": {"passed": false, "evidence": "REPLACE"},
+    "legacy_expired_message_not_extended": {"passed": false, "evidence": "REPLACE"},
+    "legacy_valid_message_migrated_once": {"passed": false, "evidence": "REPLACE"},
+    "normal_restart_preserves_pending_slots": {"passed": false, "evidence": "REPLACE"},
+    "review_never_replays_automatically": {"passed": false, "evidence": "REPLACE"},
+    "reused_low_slot_preserves_fifo": {"passed": false, "evidence": "REPLACE"},
+    "six_minute_stale_claim_moves_to_review": {"passed": false, "evidence": "REPLACE"},
+    "three_slots_store_bounded_transcripts": {"passed": false, "evidence": "REPLACE"},
+    "two_recipients_and_targets_match": {"passed": false, "evidence": "REPLACE"}
+  }
+}

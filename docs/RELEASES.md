@@ -154,3 +154,8 @@ retention, disabled transcription and a verified rollback to audio disabled.
 provisioner. It requires accepted events for both closed cameras, every stale
 or unauthorized rejection, two five-minute expirations, HA restart cleanup,
 authenticated access and zero public tokens, URLs or external deliveries.
+
+`family_message_delivery.evidence` binds the OTA, queue/base packages and
+provisioner. It requires bounded three-slot behavior, FIFO reuse, expiry,
+restart quarantine, explicit retry/discard, two recipients, matching carillons,
+zero automatic duplicates and a fully empty final/legacy queue.

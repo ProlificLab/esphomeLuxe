@@ -27,7 +27,7 @@
     "canary_ota": {"passed": false, "evidence": "REPLACE"},
     "ci_passed": {"passed": false, "evidence": "REPLACE"},
     "emergency_offline": {"passed": false, "evidence": "sha256:REPLACE offline-rescue-VERSION.json"},
-    "family_message_delivery": {"passed": false, "evidence": "REPLACE"},
+    "family_message_delivery": {"passed": false, "evidence": "sha256:REPLACE family-message-VERSION.json"},
     "firmware_size_hard_limit": {"passed": false, "evidence": "REPLACE"},
     "firmware_size_target": {"passed": false, "evidence": "REPLACE"},
     "ha_restart_recovery_10": {"passed": false, "evidence": "REPLACE"},
