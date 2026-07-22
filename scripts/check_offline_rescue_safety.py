@@ -34,6 +34,7 @@ def main() -> None:
     package = args.package.read_text(encoding="utf-8")
     preparer = args.preparer.read_text(encoding="utf-8")
     firmware = (root / "luxe_microWW.yaml").read_text(encoding="utf-8")
+    calibration_firmware = (root / "luxe_microWW_nabu.yaml").read_text(encoding="utf-8")
     ui = (root / "packages/ui.yaml").read_text(encoding="utf-8")
 
     for marker in (
@@ -61,6 +62,12 @@ def main() -> None:
         "privacy stop",
     )
     require(firmware, 'version: "2025.3.1-hal.9.0-alpha.3"', "firmware version")
+    for marker in (
+        'P_rescue: "8"',
+        "offline_rescue: !include packages/offline_rescue.yaml",
+        'version: "2025.3.1-hal.9.0-alpha.3-nabu"',
+    ):
+        require(calibration_firmware, marker, "calibration parity")
 
     component_names = set(re.findall(r'return "([A-Z ]{8}WAV)";', component))
     component_files = {

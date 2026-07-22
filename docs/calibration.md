@@ -5,8 +5,9 @@ The production canary uses `luxe_microWW.yaml` with Okay Hal. The separate
 thresholds and version. It must not be published through the production
 manifest.
 
-The Nabu build has no HTTP update entity, so the production Hal manifest cannot
-replace it accidentally. Return to Hal with an explicit encrypted OTA upload.
+The Nabu build has the same runtime and offline-rescue capabilities as the Hal
+build, but no HTTP update entity, so the production Hal manifest cannot replace
+it accidentally. Return to Hal with an explicit encrypted OTA upload.
 
 ## Profiles
 
@@ -15,9 +16,9 @@ replace it accidentally. Return to Hal with an explicit encrypted OTA upload.
 | Okay Hal | 252 | 247 | 230 |
 | Okay Nabu | 217 | 176 | 143 |
 
-Current clean-build footprint: Okay Hal is 1,848,416 OTA bytes (90.9%); Okay
-Nabu is 1,843,424 OTA bytes (90.7%). Both remain below the 93% target. Nabu is
-slightly smaller because its calibration image omits HTTP update support.
+Record both clean-build footprints in the release baseline before a physical
+A/B trial. Nabu should remain slightly smaller because its calibration image
+omits HTTP update support; both images must satisfy the same hard flash budget.
 
 The values are model-specific integer probability cutoffs. Never compare their
 raw numbers as if they represented equivalent sensitivity.
