@@ -28,7 +28,7 @@
     "firmware_size_hard_limit": {"passed": false, "evidence": "REPLACE"},
     "firmware_size_target": {"passed": false, "evidence": "REPLACE"},
     "ha_restart_recovery_10": {"passed": false, "evidence": "REPLACE"},
-    "idle_endurance_24h": {"passed": false, "evidence": "REPLACE"},
+    "idle_endurance_24h": {"passed": false, "evidence": "sha256:REPLACE endurance-VERSION.jsonl.summary.json"},
     "intercom_two_satellite": {"passed": false, "evidence": "REPLACE"},
     "interpreter_bilingual": {"passed": false, "evidence": "REPLACE"},
     "music_transfer_two_satellite": {"passed": false, "evidence": "REPLACE"},

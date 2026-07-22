@@ -86,3 +86,20 @@ qualification record before promoting `beta` or `stable`.
 `promote_firmware_channel.sh` regenerates them automatically; set
 `RELEASE_BASE_REF` explicitly when the last qualified release is not the most
 recent reachable tag.
+
+## Endurance evidence
+
+`scripts/monitor_endurance.py` refuses to append to an existing evidence file
+unless `--overwrite` is explicit. In addition to JSONL samples, it writes an
+atomic `<output>.summary.json` containing the pass/fail result, thresholds,
+memory deltas, error deltas, maximum diagnostic age and uptime regressions.
+The summary also records the API host, node, hardware model and exact ESPHome
+project version reported by the tested device.
+For a stable record, `idle_endurance_24h.evidence` uses the form
+`sha256:DIGEST relative-summary.json`. The qualification checker binds the
+reviewed digest, loads the safe path relative to the record and verifies 24
+hours in monotonic and wall time, at least 1,400 samples, matching firmware
+version, fresh diagnostics, memory thresholds, zero reboot, zero voice error
+and zero timeout.
+The `uptime` heartbeat must remain fresher than 180 seconds by default, so a
+silent API disconnect cannot turn frozen values into apparently valid proof.

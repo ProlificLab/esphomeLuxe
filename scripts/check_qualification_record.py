@@ -11,6 +11,8 @@ from pathlib import Path
 import re
 import subprocess
 
+from check_endurance_summary import validate_summary
+
 
 BETA_GATES = {
     "build_reproducible",
@@ -105,7 +107,7 @@ def parse_review_time(value: object) -> datetime:
     return reviewed_utc
 
 
-def validate_gate(name: str, value: object) -> None:
+def validate_gate(name: str, value: object) -> str:
     if not isinstance(value, dict) or set(value) != {"passed", "evidence"}:
         fail(f"Gate {name} must contain exactly passed and evidence")
     if value["passed"] is not True:
@@ -114,6 +116,7 @@ def validate_gate(name: str, value: object) -> None:
     lowered = evidence.lower()
     if any(marker in lowered for marker in ("pending", "todo", "tbd")):
         fail(f"Gate {name} evidence is not final")
+    return evidence
 
 
 def current_commit() -> str:
@@ -200,8 +203,27 @@ def main() -> None:
     missing_gates = required_gates - set(gates)
     if missing_gates:
         fail(f"Missing qualification gates: {sorted(missing_gates)}")
-    for name in sorted(required_gates):
-        validate_gate(name, gates[name])
+    gate_evidence = {
+        name: validate_gate(name, gates[name]) for name in sorted(required_gates)
+    }
+    if args.channel == "stable":
+        match = re.fullmatch(
+            r"sha256:([0-9a-f]{64})\s+(.+)",
+            gate_evidence["idle_endurance_24h"],
+        )
+        if match is None:
+            fail("Endurance evidence must contain its SHA-256 and relative path")
+        expected_evidence_hash, evidence_name = match.groups()
+        evidence_path = Path(evidence_name)
+        if evidence_path.is_absolute() or ".." in evidence_path.parts:
+            fail("Endurance evidence must be a safe path relative to the record")
+        evidence_root = args.record.parent.resolve()
+        resolved_evidence = (evidence_root / evidence_path).resolve()
+        if not resolved_evidence.is_relative_to(evidence_root):
+            fail("Endurance evidence resolves outside the qualification directory")
+        if sha256(resolved_evidence) != expected_evidence_hash:
+            fail("Endurance evidence SHA-256 does not match the reviewed record")
+        validate_summary(resolved_evidence, version)
 
     print(
         f"Qualification passed for {args.channel} {version}: "

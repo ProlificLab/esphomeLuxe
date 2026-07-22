@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0` canari; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3` source; énergie, Proxmox, OPNsense, routines et Frigate authentifié en alpha HA |
-| Distribution `hal.10` | `hal.10-alpha.3`: promotion atomique liee aux preuves, au commit et au binaire |
+| Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -241,11 +241,13 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.3`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.4`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 12 portes beta
 ou 24 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
-une prerelease stable ou une porte ouverte stable sont refuses.
+une prerelease stable ou une porte ouverte stable sont refuses. La preuve
+d'endurance detecte aussi les telemetries figees et les redemarrages, refuse par
+defaut d'ecraser un journal et produit un resume JSON atomique.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

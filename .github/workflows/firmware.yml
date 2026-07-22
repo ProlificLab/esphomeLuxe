@@ -67,6 +67,8 @@ jobs:
           python3 scripts/test_promotion_safety.py
           python3 scripts/test_qualification_record.py
           python3 scripts/test_verify_release.py
+          python3 scripts/test_monitor_endurance.py
+          python3 scripts/test_endurance_summary.py
           python3 scripts/check_offline_rescue_safety.py
           python3 scripts/test_offline_rescue_safety.py
           python3 scripts/test_prepare_rescue_media.py

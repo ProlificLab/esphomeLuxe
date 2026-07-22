@@ -12,6 +12,8 @@ import tempfile
 import unittest
 
 import check_qualification_record as checker
+from test_endurance_summary import valid_summary
+from monitor_endurance import write_summary
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,9 +63,21 @@ class QualificationRecordTests(unittest.TestCase):
         record: dict[str, object],
         channel: str,
         version: str,
+        tamper_endurance: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
+        if channel == "stable":
+            summary_path = self.directory / "endurance.summary.json"
+            summary = valid_summary()
+            summary["device"]["project_version"] = version
+            write_summary(summary_path, summary)
+            summary_hash = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+            record["gates"]["idle_endurance_24h"]["evidence"] = (
+                f"sha256:{summary_hash} {summary_path.name}"
+            )
+            if tamper_endurance:
+                summary_path.write_text("{}\n", encoding="utf-8")
         record_path.write_text(json.dumps(record), encoding="utf-8")
         manifest_path.write_text(
             json.dumps({"version": version, "channel": channel}),
@@ -133,6 +147,46 @@ class QualificationRecordTests(unittest.TestCase):
         record = self.record("stable", version)
         record["open_gates"] = ["physical gate remains"]
         self.assertNotEqual(self.run_check(record, "stable", version).returncode, 0)
+
+    def test_stable_unbound_endurance_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        record["gates"]["idle_endurance_24h"]["evidence"] = "missing.json"
+        # Write the record directly so run_check cannot replace this fixture.
+        record_path = self.directory / "qualification.json"
+        manifest_path = self.directory / "manifest.json"
+        record_path.write_text(json.dumps(record), encoding="utf-8")
+        manifest_path.write_text(
+            json.dumps({"version": version, "channel": "stable"}), encoding="utf-8"
+        )
+        result = subprocess.run(
+            [
+                "python3",
+                str(SCRIPT),
+                "--record",
+                str(record_path),
+                "--manifest",
+                str(manifest_path),
+                "--artifact",
+                str(self.artifact),
+                "--channel",
+                "stable",
+                "--source-commit",
+                COMMIT,
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_stable_tampered_endurance_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record, "stable", version, tamper_endurance=True
+        )
+        self.assertNotEqual(result.returncode, 0)
 
 
 if __name__ == "__main__":
