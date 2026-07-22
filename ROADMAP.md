@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.10`: contrôles, LED, minuteurs et secours liés au candidat exact |
+| Distribution `hal.10` | `hal.10-alpha.11`: interprète bilingue lié aux pipelines et au candidat exact |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -270,6 +270,11 @@ Canary/Whisper, Granite et Piper sans outil domotique. La session est bornee a
 dix minutes, restaure le pipeline precedent et efface explicitement le contexte
 ESPHome a la sortie. La qualification acoustique bilingue physique reste ouverte.
 
+Etat outil `hal.9.3-qualification.1`: le dossier bilingue lie version, OTA,
+package, configurateur et phrases locales. Il ferme quinze scenarios, cinq
+phrases par direction sous quinze secondes, cinq resets de contexte et zero
+action domotique, avec Granite et les deux pipelines exacts.
+
 #### Radio et secours hors ligne
 
 - Lire depuis microSD sons, consignes, routines et medias essentiels sans HA.
@@ -302,7 +307,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.10`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.11`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -324,6 +329,8 @@ La porte minuteurs charge un dossier hashé de douze scenarios avec des mesures
 fermees, lie au binaire OTA et aux hashes des packages de base et timer coach.
 Les deux portes secours doivent partager un dossier hashé unique, lie au
 binaire OTA, au package ESPHome, au composant FAT et au manifeste microSD.
+La porte interprète charge un dossier hashé lie au binaire OTA, aux trois
+sources HA, au digest Granite, aux deux pipelines et aux mesures bilingues.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

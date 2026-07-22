@@ -13,6 +13,7 @@ import unittest
 
 import check_qualification_record as checker
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
+from test_interpreter_evidence import valid_evidence as valid_interpreter_evidence
 from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
@@ -80,6 +81,8 @@ class QualificationRecordTests(unittest.TestCase):
         tamper_offline_rescue: bool = False,
         unbound_offline_rescue: bool = False,
         split_offline_rescue_gates: bool = False,
+        tamper_interpreter: bool = False,
+        unbound_interpreter: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -179,6 +182,33 @@ class QualificationRecordTests(unittest.TestCase):
                     )
                 if tamper_offline_rescue:
                     rescue_path.write_text("{}\n", encoding="utf-8")
+            interpreter_package = (
+                ROOT / "home-assistant/packages/muse_interpreter.yaml"
+            )
+            interpreter_config = ROOT / "scripts/configure_interpreter.py"
+            interpreter_sentences = (
+                ROOT
+                / "home-assistant/custom_sentences/fr/muse_interpreter.yaml"
+            )
+            interpreter_path = self.directory / "interpreter.json"
+            interpreter = valid_interpreter_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(interpreter_package.read_bytes()).hexdigest(),
+                hashlib.sha256(interpreter_config.read_bytes()).hexdigest(),
+                hashlib.sha256(interpreter_sentences.read_bytes()).hexdigest(),
+            )
+            interpreter_path.write_text(json.dumps(interpreter), encoding="utf-8")
+            interpreter_hash = hashlib.sha256(
+                interpreter_path.read_bytes()
+            ).hexdigest()
+            record["gates"]["interpreter_bilingual"]["evidence"] = (
+                "interpreter.json"
+                if unbound_interpreter
+                else f"sha256:{interpreter_hash} {interpreter_path.name}"
+            )
+            if tamper_interpreter:
+                interpreter_path.write_text("{}\n", encoding="utf-8")
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
             summary["device"]["project_version"] = version
@@ -432,6 +462,26 @@ class QualificationRecordTests(unittest.TestCase):
             "stable",
             version,
             split_offline_rescue_gates=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_interpreter_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_interpreter=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_interpreter_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_interpreter=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

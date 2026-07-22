@@ -71,6 +71,24 @@ start, direction swap, physical-exit behavior, synthetic timeout, context-reset
 counter and exact pipeline restoration. A short English Piper hardware test is
 also part of qualification.
 
+For stable qualification, copy `docs/interpreter-record.example.json` into the
+ignored release directory. Record all fifteen scenarios, five spoken phrases
+per direction, the worst end-to-end latency, five context resets and zero house
+actions. Validate the exact candidate and sources:
+
+```bash
+python3 scripts/check_interpreter_evidence.py \
+  release/interpreter-VERSION.json \
+  --expected-version "VERSION" \
+  --expected-firmware-sha256 "$(sha256sum release/muse-luxe-VERSION.ota.bin | cut -d' ' -f1)" \
+  --expected-package-sha256 "$(sha256sum home-assistant/packages/muse_interpreter.yaml | cut -d' ' -f1)" \
+  --expected-config-sha256 "$(sha256sum scripts/configure_interpreter.py | cut -d' ' -f1)" \
+  --expected-sentences-sha256 "$(sha256sum home-assistant/custom_sentences/fr/muse_interpreter.yaml | cut -d' ' -f1)"
+```
+
+Stable promotion recalculates every source hash, verifies the OTA and enforces
+the pinned Granite digest. The example is not physical evidence.
+
 For rollback, first remove `/config/packages/muse_interpreter.yaml` and
 `/config/custom_sentences/fr/muse_interpreter.yaml`, restart HA, and remove the
 two interpreter pipelines/subentries in the UI. Only then restore the previous

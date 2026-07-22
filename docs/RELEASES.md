@@ -139,3 +139,8 @@ The two stable offline gates must reference one identical hash-bound
 `offline-rescue` record. It binds the OTA, rescue package, read-only FAT
 component and unchanged card manifest, then requires all six clips, fifteen
 physical/failure scenarios, one reboot and one HA disconnect/reconnect cycle.
+
+`interpreter_bilingual.evidence` is hash-bound to the OTA, interpreter package,
+pipeline configurator and local intent sentences. It pins Granite and both
+pipelines, requires five heard phrases in each direction below the latency
+limit, all exit/restoration paths and zero Home Assistant actions.

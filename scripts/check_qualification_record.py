@@ -13,6 +13,7 @@ import subprocess
 
 from check_endurance_summary import validate_summary
 from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
+from check_interpreter_evidence import validate_evidence as validate_interpreter_evidence
 from check_night_led_evidence import validate_evidence as validate_night_led_evidence
 from check_offline_rescue_evidence import (
     validate_evidence as validate_offline_rescue_evidence,
@@ -308,6 +309,22 @@ def main() -> None:
             artifact_hash,
             sha256(root / "packages/offline_rescue.yaml"),
             sha256(root / "components/offline_media/offline_media.cpp"),
+        )
+        interpreter_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["interpreter_bilingual"],
+            "Interpreter",
+        )
+        validate_interpreter_evidence(
+            interpreter_path,
+            version,
+            artifact_hash,
+            sha256(root / "home-assistant/packages/muse_interpreter.yaml"),
+            sha256(root / "scripts/configure_interpreter.py"),
+            sha256(
+                root
+                / "home-assistant/custom_sentences/fr/muse_interpreter.yaml"
+            ),
         )
         endurance_path = resolve_bound_evidence(
             args.record,
