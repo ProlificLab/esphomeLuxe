@@ -16,11 +16,16 @@ music codecs, encrypted API/OTA, HTTP updates or offline rescue audio.
 ## Build
 
 - Pinned ESPHome: `2025.10.5`; ESP-IDF: `5.4.2`.
-- Production OTA: `1,888,816` bytes, `92.9%`.
+- Private local candidate OTA: `1,888,816` bytes, `92.9%`.
 - RAM: `40,444` bytes, `12.3%`.
-- Local pinned-build SHA-256:
+- Private local pinned-build SHA-256:
   `f3d3dad6258494dcc6286becb6c6a6f129789780b7a1dd69ee37f3da7cf7cb1b`.
-- The CI artifact remains authoritative for release packaging and qualification.
+- Clean CI run `29885309117` passed with non-production example secrets. Its
+  synthetic OTA is `1,888,800` bytes with SHA-256
+  `194ae4c5a75daaffcdddc2f5aa01778f336cf0232f2f98535f97b27df01e86fc`.
+- The 16-byte difference is secret-fixture dependent. CI proves source and size
+  gates; beta/stable qualification must bind a fresh private rebuild instead of
+  the synthetic CI firmware.
 
 ## Gates
 
