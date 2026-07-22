@@ -4,7 +4,7 @@ external_components:
     - source:
         type: local
         path: components
-      components: [es8388, offline_media]
+      components: [es8388, lean_diagnostics, offline_media]
 
 
 esp32:

@@ -18,7 +18,7 @@ changes for a locally managed Muse Luxe:
 - aborts and recovers voice exchanges that remain stuck for 45 seconds;
 - runs the ESP32 at 240 MHz and keeps only Okay Hal plus Okay Nabu to preserve
   inference and flash headroom;
-- exposes reset, heap, PSRAM, loop-time, CPU, uptime, Wi-Fi, and last voice-error
+- exposes reset, heap, PSRAM, loop-time, uptime, Wi-Fi, and last voice-error
   diagnostics to Home Assistant;
 - protects the native API and OTA endpoint with local secrets;
 - corrects invalid low-voltage battery readings instead of reporting 100%.
@@ -52,6 +52,20 @@ firmware manifest.
 The main configuration is intentionally small and composes the eight files in
 `packages/`: hardware, audio, voice, UI, recovery, diagnostics, updates and
 offline rescue.
+
+The primary image compiles logs at `ERROR` to stay below the 93% OTA target.
+For USB diagnosis, `luxe_microWW_diagnostic.yaml` keeps `WARN` logs, uses a
+distinct node identity and deliberately omits the HTTP update component so it
+cannot enter a normal release channel.
+
+Build that troubleshooting image only when a USB serial investigation is
+needed:
+
+```bash
+docker run --rm -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  compile luxe_microWW_diagnostic.yaml
+```
 
 ### Private build and local updates
 

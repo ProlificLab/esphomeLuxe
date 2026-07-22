@@ -60,3 +60,15 @@ rollback, physically exit, remove the card and restore `hal.9.0-alpha.2`; see
 
 Do not erase NVS, reset HA storage or overwrite unrelated Proxmox disks as a
 first-line diagnostic action.
+
+## Verbose USB diagnosis
+
+The primary `hal.9.0-alpha.4` image compiles only `ERROR` logs. Health, memory,
+timeouts and recovery reasons remain available as API entities. When serial
+WARN logs are required, compile and flash `luxe_microWW_diagnostic.yaml` over
+USB. It identifies as `muse-luxe-diagnostic` and has no HTTP updater.
+
+Treat that image as temporary: collect the serial trace, then restore the exact
+qualified primary OTA or the published `hal.6` recovery image. Verify the node
+name and project version after restoration; never promote the diagnostic image
+to development, beta or stable.

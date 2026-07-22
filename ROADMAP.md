@@ -12,7 +12,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0` canari; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3` source; énergie, Proxmox, OPNsense, routines et Frigate authentifié en alpha HA |
+| Fonctions `hal.9` | `9.0-alpha.4` source sous 93%; audio `9.1-alpha.2`; interphone `9.1-ha-alpha.3` source; énergie, Proxmox, OPNsense, routines et Frigate authentifié en alpha HA |
 | Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
@@ -222,12 +222,14 @@ ESPHome a la sortie. La qualification acoustique bilingue physique reste ouverte
 - Maintenir des messages minimaux pour panne secteur et evacuation.
 - Entree/sortie physique du mode secours et synchronisation depuis le LAN admin.
 
-Etat source `hal.9.0-alpha.3`: le bus SPI officiel de la Luxe alimente un
+Etat source `hal.9.0-alpha.4`: le bus SPI officiel de la Luxe alimente un
 lecteur FAT16/32 minimal, strictement sans ecriture, limite a six WAV 8.3 de
 trois minutes. Le quadruple-clic active ou quitte le mode persistant; les autres
 gestes parcourent, arretent ou ouvrent directement la consigne d'evacuation.
-Le preparateur admin valide format et SHA-256. L'OTA attend la fin de l'endurance
-alpha 2 et une carte physique revue; la taille a 93,6% garde un avertissement.
+Le preparateur admin valide format et SHA-256. Des diagnostics ESP32 minimaux
+et des logs de production limites aux erreurs ramènent l'OTA a 92,9%; une image
+USB WARN sans auto-update garde le diagnostic verbeux. L'OTA attend la fin de
+l'endurance alpha 2 et une carte physique revue.
 
 Sortie: fonctions desactivables independamment, politique audio respectee et
 mode secours valide pendant une panne simulee de HA.

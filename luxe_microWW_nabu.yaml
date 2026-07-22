@@ -15,6 +15,7 @@ substitutions:
   wake_word_cutoff_slight: "217"
   wake_word_cutoff_moderate: "176"
   wake_word_cutoff_very: "143"
+  logger_level: WARN
 
 packages:
   hardware: !include packages/hardware.yaml
@@ -39,10 +40,12 @@ esphome:
     board_build.arduino.memory_type: qio_opi
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1-hal.9.0-alpha.3-nabu"
+    version: "2025.3.1-hal.9.0-alpha.4-nabu"
   on_boot:
     priority: -100.0
     then:
+      - output.turn_on: dac_mute
+      - lambda: id(muteH) = true;
       - script.execute:
           id: set_phase
           new_phase: ${P_starting}

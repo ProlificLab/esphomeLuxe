@@ -96,5 +96,5 @@ and opt-in until bilingual microphone and pronunciation tests pass.
 
 Follow `docs/OFFLINE_RESCUE.md` to review the six messages, format a dedicated
 FAT32/MBR card named `MUSE_RESCUE`, validate the WAV files and synchronize them
-with `scripts/prepare_rescue_media.py`. Do not deploy `hal.9.0-alpha.3` before
+with `scripts/prepare_rescue_media.py`. Do not deploy `hal.9.0-alpha.4` before
 the alpha 2 endurance gate and physical canary qualification are complete.

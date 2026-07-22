@@ -32,8 +32,17 @@ jobs:
           -w /config
           esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0
           config luxe_microWW_nabu.yaml
+      - name: Validate verbose diagnostic configuration
+        run: >-
+          docker run --rm
+          -v "$PWD":/config
+          -w /config
+          esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0
+          config luxe_microWW_diagnostic.yaml
       - name: Enforce firmware size budget
-        run: scripts/check_firmware_size.sh
+        run: |
+          scripts/check_firmware_size.sh
+          scripts/test_firmware_size.sh
       - name: Report firmware memory use
         run: scripts/report_firmware_symbols.sh
       - name: Package firmware and manifest
@@ -69,6 +78,8 @@ jobs:
           python3 scripts/test_verify_release.py
           python3 scripts/test_monitor_endurance.py
           python3 scripts/test_endurance_summary.py
+          python3 scripts/check_diagnostics_safety.py
+          python3 scripts/test_diagnostics_safety.py
           python3 scripts/check_offline_rescue_safety.py
           python3 scripts/test_offline_rescue_safety.py
           python3 scripts/test_prepare_rescue_media.py

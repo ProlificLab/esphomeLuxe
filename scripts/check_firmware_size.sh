@@ -56,5 +56,6 @@ if (( size_bytes > BASELINE_BYTES )); then
 fi
 
 if (( size_bytes > target_bytes )); then
-  echo "WARNING: firmware remains above the ${TARGET_PERCENT}% roadmap target." >&2
+  echo "ERROR: firmware exceeds the achieved ${TARGET_PERCENT}% release target." >&2
+  exit 1
 fi

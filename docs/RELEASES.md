@@ -28,6 +28,10 @@ physical controls and 100 TTS cycles. Stable additionally requires the 93%
 size target, 24-hour idle, acoustic calibration, exercised rollback,
 second-person install and the physical `hal.9` feature gates.
 
+Starting with `hal.9.0-alpha.4`, the 93% target is also a blocking source-CI
+gate. Any main OTA larger than 1,889,402 bytes must be optimized or explicitly
+reworked; it can no longer pass with a warning.
+
 To obtain the candidate hash before review, run the pinned clean build, then
 package locally without publishing:
 
