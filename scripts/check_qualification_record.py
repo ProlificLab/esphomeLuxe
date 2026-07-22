@@ -13,6 +13,9 @@ import subprocess
 
 from check_endurance_summary import validate_summary
 from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
+from check_physical_controls_evidence import (
+    validate_evidence as validate_physical_controls_evidence,
+)
 
 
 BETA_GATES = {
@@ -244,6 +247,16 @@ def main() -> None:
         "Modes",
     )
     validate_modes_evidence(modes_path, version)
+    physical_controls_path = resolve_bound_evidence(
+        args.record,
+        gate_evidence["physical_controls"],
+        "Physical controls",
+    )
+    validate_physical_controls_evidence(
+        physical_controls_path,
+        version,
+        artifact_hash,
+    )
     if args.channel == "stable":
         endurance_path = resolve_bound_evidence(
             args.record,

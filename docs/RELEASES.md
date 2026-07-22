@@ -117,3 +117,9 @@ form. Promotion loads that exact JSON with
 `scripts/check_hal9_modes_evidence.py`, requires the candidate version, four
 ordered transitions, unchanged voice counters and a verified safe final state.
 This machine gate is additional to, not a replacement for, `physical_controls`.
+
+`physical_controls.evidence` must also be hash-bound. The release checker loads
+the exact human observation record with
+`scripts/check_physical_controls_evidence.py`, binds it to both candidate
+version and OTA SHA-256, and requires all ten button, timeout and microphone LED
+observations. Follow `docs/PHYSICAL_CONTROLS.md`; generic gate text is rejected.

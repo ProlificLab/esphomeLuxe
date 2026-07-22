@@ -40,7 +40,7 @@
     "mode_api_transitions": {"passed": false, "evidence": "sha256:REPLACE modes-VERSION.json"},
     "night_led_profiles": {"passed": false, "evidence": "REPLACE"},
     "offline_rescue_physical": {"passed": false, "evidence": "REPLACE"},
-    "physical_controls": {"passed": false, "evidence": "REPLACE"},
+    "physical_controls": {"passed": false, "evidence": "sha256:REPLACE physical-controls-VERSION.json"},
     "privacy_reboot": {"passed": false, "evidence": "REPLACE"},
     "reboot_recovery_10": {"passed": false, "evidence": "REPLACE"},
     "rollback_artifact_verified": {"passed": false, "evidence": "REPLACE"},

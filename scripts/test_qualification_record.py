@@ -13,6 +13,7 @@ import unittest
 
 import check_qualification_record as checker
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
+from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
 from test_endurance_summary import valid_summary
 from monitor_endurance import write_summary
 
@@ -67,6 +68,8 @@ class QualificationRecordTests(unittest.TestCase):
         version: str,
         tamper_endurance: bool = False,
         tamper_modes: bool = False,
+        tamper_physical_controls: bool = False,
+        unbound_physical_controls: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -80,6 +83,17 @@ class QualificationRecordTests(unittest.TestCase):
         )
         if tamper_modes:
             modes_path.write_text("{}\n", encoding="utf-8")
+        physical_path = self.directory / "physical-controls.json"
+        physical = valid_physical_evidence(version, self.digest)
+        physical_path.write_text(json.dumps(physical), encoding="utf-8")
+        physical_hash = hashlib.sha256(physical_path.read_bytes()).hexdigest()
+        record["gates"]["physical_controls"]["evidence"] = (
+            "physical-controls.json"
+            if unbound_physical_controls
+            else f"sha256:{physical_hash} {physical_path.name}"
+        )
+        if tamper_physical_controls:
+            physical_path.write_text("{}\n", encoding="utf-8")
         if channel == "stable":
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
@@ -238,6 +252,28 @@ class QualificationRecordTests(unittest.TestCase):
             capture_output=True,
             check=False,
             text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_physical_controls_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        result = self.run_check(
+            record,
+            "beta",
+            version,
+            tamper_physical_controls=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_physical_controls_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        result = self.run_check(
+            record,
+            "beta",
+            version,
+            unbound_physical_controls=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

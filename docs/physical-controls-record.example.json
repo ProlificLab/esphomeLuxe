@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "hardware": "Raspiaudio Muse Luxe ESP32-S3",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "location": "REPLACE_WITH_ROOM",
+  "observations": {
+    "continuous_timeout": {"passed": false, "evidence": "REPLACE"},
+    "double_press_stop": {"passed": false, "evidence": "REPLACE"},
+    "listening_led_visible": {"passed": false, "evidence": "REPLACE"},
+    "long_press_privacy": {"passed": false, "evidence": "REPLACE"},
+    "privacy_led_visible": {"passed": false, "evidence": "REPLACE"},
+    "single_press_mute": {"passed": false, "evidence": "REPLACE"},
+    "triple_press_continuous_start": {"passed": false, "evidence": "REPLACE"},
+    "triple_press_continuous_stop": {"passed": false, "evidence": "REPLACE"},
+    "volume_down": {"passed": false, "evidence": "REPLACE"},
+    "volume_up": {"passed": false, "evidence": "REPLACE"}
+  }
+}

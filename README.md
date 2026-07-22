@@ -178,7 +178,9 @@ firmware state machine. Timer ticks retain the selected brightness. See
 
 The post-endurance mode gate uses a version-bound, transactional evidence
 writer. Follow `docs/MODES.md`; a passing API JSON never substitutes for the
-separate physical button, audio and LED observations.
+separate physical button, audio and LED observations. Those observations use
+the OTA-bound closed record in `docs/PHYSICAL_CONTROLS.md` rather than free-form
+release notes.
 
 Canary mode and privacy-persistence tests use the encrypted ESPHome API:
 

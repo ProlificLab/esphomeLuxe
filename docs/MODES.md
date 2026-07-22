@@ -56,8 +56,9 @@ speaker output or visible LED, so record these observations separately:
 6. A named timer continues its progress color through a day/night transition.
 
 Do not mark the `physical_controls` or stable `hal.9` gates from the API JSON
-alone. Attach the reviewed manual record, firmware hash and the validated JSON
-to the qualification dossier.
+alone. Complete and validate the separate record in
+`docs/PHYSICAL_CONTROLS.md`, then attach both hash-bound JSON files to the
+qualification dossier.
 
 ## Failure recovery
 

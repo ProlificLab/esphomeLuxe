@@ -13,7 +13,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
 | Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
-| Distribution `hal.10` | `hal.10-alpha.6`: promotion atomique et 33 portes stables couvrant chaque famille `hal.9` |
+| Distribution `hal.10` | `hal.10-alpha.7`: 33 portes stables et contrôles physiques liés à l'OTA |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
 Hal. Okay Nabu sera compile comme variante de calibration afin de ne pas payer
@@ -292,7 +292,7 @@ mode secours valide pendant une panne simulee de HA.
 - Modeles d'issues pour crash, audio, wake word et materiel.
 - Proposer a l'amont les corrections generiques apres validation.
 
-Etat source `hal.10-alpha.6`: toute promotion reconstruit proprement le
+Etat source `hal.10-alpha.7`: toute promotion reconstruit proprement le
 firmware epingle, exige un dossier JSON recent avec preuves pour 13 portes beta
 ou 33 portes stable, verifie commit/version/SHA-256, publie un binaire versionne
 et n'active le canal qu'en publiant son manifeste en dernier. Un worktree sale,
@@ -305,6 +305,9 @@ l'observation physique des boutons et LED.
 Les huit fonctions auparavant implicites ont maintenant leur propre porte
 stable: annonces routees, minuteurs, LED nuit, messages differes, fraicheur des
 faits maison, transfert de routine, revue video et gardien acoustique.
+La porte controles physiques exige desormais un dossier recent lie par hash a
+la version et au binaire OTA, avec dix observations humaines fermees; une simple
+phrase dans le dossier de promotion n'est plus acceptee.
 
 Sortie: une autre personne peut installer, tester, diagnostiquer et restaurer
 le firmware avec la seule documentation.

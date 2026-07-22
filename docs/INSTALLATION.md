@@ -120,6 +120,8 @@ After the active endurance run and the reviewed canary OTA, follow
 and a new evidence path, restores privacy and continuous-conversation state on
 failure, and emits JSON only after verified cleanup. Complete the separate
 button, audio and LED observation record before marking `physical_controls`.
+Use the closed record and validator in `docs/PHYSICAL_CONTROLS.md`; promotion
+will reject an unbound note or a record for another OTA.
 
 ## Offline rescue card
 
