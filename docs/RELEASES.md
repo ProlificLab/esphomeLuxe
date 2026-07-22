@@ -123,3 +123,8 @@ the exact human observation record with
 `scripts/check_physical_controls_evidence.py`, binds it to both candidate
 version and OTA SHA-256, and requires all ten button, timeout and microphone LED
 observations. Follow `docs/PHYSICAL_CONTROLS.md`; generic gate text is rejected.
+
+For stable, `night_led_profiles.evidence` is another hash-bound record. It must
+contain all nine exact day/night brightness pairs and six timer, HA-disconnect
+and safety-visibility scenarios. Promotion binds it to the OTA and recomputes
+the exact `muse_luxe.yaml` package hash from the candidate source.

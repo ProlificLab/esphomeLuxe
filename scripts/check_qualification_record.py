@@ -13,6 +13,7 @@ import subprocess
 
 from check_endurance_summary import validate_summary
 from check_hal9_modes_evidence import validate_evidence as validate_modes_evidence
+from check_night_led_evidence import validate_evidence as validate_night_led_evidence
 from check_physical_controls_evidence import (
     validate_evidence as validate_physical_controls_evidence,
 )
@@ -258,6 +259,21 @@ def main() -> None:
         artifact_hash,
     )
     if args.channel == "stable":
+        package_path = (
+            Path(__file__).resolve().parents[1]
+            / "home-assistant/packages/muse_luxe.yaml"
+        )
+        night_led_path = resolve_bound_evidence(
+            args.record,
+            gate_evidence["night_led_profiles"],
+            "Night LED",
+        )
+        validate_night_led_evidence(
+            night_led_path,
+            version,
+            artifact_hash,
+            sha256(package_path),
+        )
         endurance_path = resolve_bound_evidence(
             args.record,
             gate_evidence["idle_endurance_24h"],

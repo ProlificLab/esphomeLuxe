@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "ha_package_sha256": "REPLACE_WITH_MUSE_LUXE_PACKAGE_SHA256"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "profiles": {
+    "answering": {"passed": false, "day_brightness_pct": 100, "night_brightness_pct": 20, "evidence": "REPLACE"},
+    "error": {"passed": false, "day_brightness_pct": 100, "night_brightness_pct": 35, "evidence": "REPLACE"},
+    "listening": {"passed": false, "day_brightness_pct": 100, "night_brightness_pct": 25, "evidence": "REPLACE"},
+    "offline": {"passed": false, "day_brightness_pct": 45, "night_brightness_pct": 15, "evidence": "REPLACE"},
+    "playing": {"passed": false, "day_brightness_pct": 60, "night_brightness_pct": 10, "evidence": "REPLACE"},
+    "privacy": {"passed": false, "day_brightness_pct": 35, "night_brightness_pct": 20, "evidence": "REPLACE"},
+    "rescue": {"passed": false, "day_brightness_pct": 80, "night_brightness_pct": 35, "evidence": "REPLACE"},
+    "starting": {"passed": false, "day_brightness_pct": 40, "night_brightness_pct": 15, "evidence": "REPLACE"},
+    "waiting": {"passed": false, "day_brightness_pct": 100, "night_brightness_pct": 10, "evidence": "REPLACE"}
+  },
+  "scenarios": {
+    "ha_disconnect_during_timer": {"passed": false, "evidence": "REPLACE"},
+    "listening_visible_at_night": {"passed": false, "evidence": "REPLACE"},
+    "privacy_visible_at_night": {"passed": false, "evidence": "REPLACE"},
+    "rescue_visible_at_night": {"passed": false, "evidence": "REPLACE"},
+    "timer_day_night_transition": {"passed": false, "evidence": "REPLACE"},
+    "waiting_api_day_night_restore": {"passed": false, "evidence": "REPLACE"}
+  }
+}

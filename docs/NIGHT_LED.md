@@ -56,6 +56,12 @@ start a named timer across a day/night transition, and disconnect HA while the
 timer runs. Privacy red, rescue orange and listening green must remain
 unambiguous at their night levels.
 
+Copy `docs/night-led-record.example.json` to the ignored release directory and
+record all nine profiles plus the six closed scenarios. Validate it with
+`scripts/check_night_led_evidence.py`, passing the candidate version, OTA hash
+and SHA-256 of `home-assistant/packages/muse_luxe.yaml`. Stable promotion loads
+the hash-bound record and recomputes the package hash from the candidate source.
+
 ## Rollback
 
 Restore the timestamped `.pre-timer-coach-*` HA package copies and reinstall the

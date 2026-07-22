@@ -13,6 +13,7 @@ import unittest
 
 import check_qualification_record as checker
 from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
+from test_night_led_evidence import valid_evidence as valid_night_led_evidence
 from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
 from test_endurance_summary import valid_summary
 from monitor_endurance import write_summary
@@ -70,6 +71,8 @@ class QualificationRecordTests(unittest.TestCase):
         tamper_modes: bool = False,
         tamper_physical_controls: bool = False,
         unbound_physical_controls: bool = False,
+        tamper_night_led: bool = False,
+        unbound_night_led: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         record_path = self.directory / "qualification.json"
         manifest_path = self.directory / "manifest.json"
@@ -95,6 +98,23 @@ class QualificationRecordTests(unittest.TestCase):
         if tamper_physical_controls:
             physical_path.write_text("{}\n", encoding="utf-8")
         if channel == "stable":
+            package_path = ROOT / "home-assistant/packages/muse_luxe.yaml"
+            package_hash = hashlib.sha256(package_path.read_bytes()).hexdigest()
+            night_led_path = self.directory / "night-led.json"
+            night_led = valid_night_led_evidence(
+                version,
+                self.digest,
+                package_hash,
+            )
+            night_led_path.write_text(json.dumps(night_led), encoding="utf-8")
+            night_led_hash = hashlib.sha256(night_led_path.read_bytes()).hexdigest()
+            record["gates"]["night_led_profiles"]["evidence"] = (
+                "night-led.json"
+                if unbound_night_led
+                else f"sha256:{night_led_hash} {night_led_path.name}"
+            )
+            if tamper_night_led:
+                night_led_path.write_text("{}\n", encoding="utf-8")
             summary_path = self.directory / "endurance.summary.json"
             summary = valid_summary()
             summary["device"]["project_version"] = version
@@ -274,6 +294,28 @@ class QualificationRecordTests(unittest.TestCase):
             "beta",
             version,
             unbound_physical_controls=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_night_led_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record,
+            "stable",
+            version,
+            tamper_night_led=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_night_led_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record,
+            "stable",
+            version,
+            unbound_night_led=True,
         )
         self.assertNotEqual(result.returncode, 0)
 

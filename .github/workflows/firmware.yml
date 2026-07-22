@@ -105,6 +105,7 @@ jobs:
           python3 scripts/check_night_led_safety.py
           python3 scripts/test_night_led_safety.py
           python3 scripts/test_night_led_model.py
+          python3 scripts/test_night_led_evidence.py
           python3 scripts/check_hal9_modes_safety.py
           python3 scripts/test_hal9_modes_safety.py
           python3 scripts/test_hal9_modes_evidence.py

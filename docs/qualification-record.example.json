@@ -38,7 +38,7 @@
     "interpreter_bilingual": {"passed": false, "evidence": "REPLACE"},
     "music_transfer_two_satellite": {"passed": false, "evidence": "REPLACE"},
     "mode_api_transitions": {"passed": false, "evidence": "sha256:REPLACE modes-VERSION.json"},
-    "night_led_profiles": {"passed": false, "evidence": "REPLACE"},
+    "night_led_profiles": {"passed": false, "evidence": "sha256:REPLACE night-led-VERSION.json"},
     "offline_rescue_physical": {"passed": false, "evidence": "REPLACE"},
     "physical_controls": {"passed": false, "evidence": "sha256:REPLACE physical-controls-VERSION.json"},
     "privacy_reboot": {"passed": false, "evidence": "REPLACE"},
