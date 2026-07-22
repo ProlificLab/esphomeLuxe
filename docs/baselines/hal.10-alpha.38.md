@@ -65,5 +65,6 @@ so its raw trace must be preserved rather than represented as newer evidence.
   `fca53b6669ba27390464b28257a5e779f2d3f2198a45a1fa81b7588d124c7f71`.
 - Shared candidate validator SHA-256:
   `6effca01f5b744fa98e4a8d8ed2d07f6811a94ff041bba47d2b135f3a4d136a7`.
-- Local OTA artifact: 1,886,720 bytes, 92.8% of the OTA partition,
-  SHA-256 `74529d6a2136d93035458ba37ba5efdedbde930a6b10cf9d71a963d158249bbe`.
+- Local OTA artifact: 1,886,720 bytes, 92.8% of the OTA partition. Its exact
+  build-instance SHA-256 is reviewed separately at installation and is not
+  represented as a stable source hash by this baseline.
