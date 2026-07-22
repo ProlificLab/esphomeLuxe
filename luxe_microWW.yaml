@@ -10,6 +10,7 @@ substitutions:
   P_offline: "5"
   P_error: "6"
   P_privacy: "7"
+  P_rescue: "8"
   wake_word_model: https://raw.githubusercontent.com/TaterTotterson/Tater-Wake-Words/740bd31af8f28b1700daf49c36444d278715d298/microWakeWordsV2/okay_hal.json
   wake_word_id: okay_hal
   wake_word_cutoff_slight: "252"
@@ -24,6 +25,7 @@ packages:
   recovery: !include packages/recovery.yaml
   diagnostics: !include packages/diagnostics.yaml
   updates: !include packages/updates.yaml
+  offline_rescue: !include packages/offline_rescue.yaml
 
 esphome:
   name: ${name}
@@ -35,7 +37,7 @@ esphome:
     board_build.arduino.memory_type: qio_opi
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1-hal.9.0-alpha.2"
+    version: "2025.3.1-hal.9.0-alpha.3"
   on_boot:
     priority: -100.0
     then:

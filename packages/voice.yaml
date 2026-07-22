@@ -69,7 +69,11 @@ voice_assistant:
 
   on_client_disconnected:
     - lambda: id(voice_connected) = false;
-    - script.execute: enter_offline
+    - if:
+        condition:
+          lambda: 'return !id(rescue_mode);'
+        then:
+          - script.execute: enter_offline
 
   on_listening:
      - logger.log: "listening 3 => phase"

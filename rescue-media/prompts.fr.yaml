@@ -1,0 +1,23 @@
+mode_ready: >-
+  Mode secours local activé. Un clic lit la consigne suivante, deux clics
+  arrêtent la lecture, trois clics lisent la consigne d'évacuation et quatre
+  clics quittent le mode secours.
+power_outage: >-
+  Coupure électrique. Vérifiez les voyants du système d'énergie et utilisez
+  uniquement les appareils essentiels. N'intervenez pas sur le tableau sans
+  compétence et équipement adaptés.
+checklist_outage: >-
+  Liste coupure. Vérifiez que chacun va bien, gardez une lampe disponible,
+  préservez les téléphones, contrôlez la ventilation et suivez les consignes
+  physiques du système d'énergie.
+evacuation: >-
+  Consigne d'évacuation. Quittez les lieux par un trajet sûr, aidez les enfants
+  et les personnes qui en ont besoin, rejoignez le point de rassemblement et
+  appelez les secours une fois en sécurité. Ne revenez pas sans autorisation.
+checklist_evacuation: >-
+  Liste évacuation. Prévenez les personnes proches sans vous mettre en danger,
+  prenez uniquement ce qui est immédiatement accessible, fermez les portes si
+  cela ne vous retarde pas et vérifiez la présence de chacun au rassemblement.
+all_clear: >-
+  Fin du mode d'urgence uniquement après confirmation d'une personne ou d'une
+  autorité responsable. Vérifiez la situation avant de reprendre les activités.

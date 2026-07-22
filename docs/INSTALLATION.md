@@ -76,3 +76,10 @@ Follow `docs/INTERPRETER.md`, then run
 `hal.9.0-alpha.2` canary firmware before enabling the package in daily use, as
 the package requires its context-reset API action. Keep the interpreter alpha
 and opt-in until bilingual microphone and pronunciation tests pass.
+
+## Offline rescue card
+
+Follow `docs/OFFLINE_RESCUE.md` to review the six messages, format a dedicated
+FAT32/MBR card named `MUSE_RESCUE`, validate the WAV files and synchronize them
+with `scripts/prepare_rescue_media.py`. Do not deploy `hal.9.0-alpha.3` before
+the alpha 2 endurance gate and physical canary qualification are complete.

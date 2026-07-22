@@ -50,5 +50,13 @@ interpretation and restore the prior pipeline. If that fails, turn off
 increments. Remove the HA package before rolling firmware back below
 `hal.9.0-alpha.2`; see `docs/INTERPRETER.md` for the full order.
 
+## Offline rescue recovery
+
+Four short presses exit rescue mode; two stop only the current local clip and a
+long press still enforces privacy. If the card is absent or invalid, reinsert a
+prepared card and enter again to remount it. Never reformat from firmware. For
+rollback, physically exit, remove the card and restore `hal.9.0-alpha.2`; see
+`docs/OFFLINE_RESCUE.md` for card validation and failure tests.
+
 Do not erase NVS, reset HA storage or overwrite unrelated Proxmox disks as a
 first-line diagnostic action.

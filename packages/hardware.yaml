@@ -4,7 +4,7 @@ external_components:
     - source:
         type: local
         path: components
-      components: [es8388]
+      components: [es8388, offline_media]
 
 
 esp32:

@@ -69,6 +69,10 @@ globals:
   - id: privacy_mode
     type: bool
     initial_value: 'false'
+  - id: rescue_mode
+    type: bool
+    restore_value: true
+    initial_value: 'false'
   - id: continuous_conversation
     type: bool
     initial_value: 'false'
@@ -130,6 +134,7 @@ script:
               case ${P_offline}: return {"offline"};
               case ${P_error}: return {"error"};
               case ${P_privacy}: return {"privacy"};
+              case ${P_rescue}: return {"rescue"};
               default: return {"unknown"};
             }
       - text_sensor.template.publish:
@@ -143,6 +148,7 @@ script:
               case ${P_offline}: return {"offline"};
               case ${P_error}: return {"degraded"};
               case ${P_privacy}: return {"privacy"};
+              case ${P_rescue}: return {"rescue"};
               default: return {"starting"};
             }
       - script.execute: update_led
@@ -161,6 +167,7 @@ script:
           id(voice_timeout_counter).publish_state(id(voice_timeout_count));
           id(voice_reconnect_counter).publish_state(id(voice_reconnect_count));
           id(voice_recovery_counter).publish_state(id(voice_recovery_count));
+          id(voice_context_reset_counter).publish_state(id(voice_context_reset_count));
           id(active_timer_counter).publish_state(0);
           id(nearest_timer_remaining).publish_state(0);
           id(active_timer_name).publish_state("none");
@@ -199,30 +206,36 @@ script:
           else:
             - if:
                 condition:
-                  lambda: 'return id(voice_connected);'
+                  lambda: 'return id(rescue_mode);'
                 then:
-                  - lambda: |-
-                      id(audio_active) = false;
-                      id(audio_started) = false;
+                  - script.execute: enter_rescue_mode
+                else:
                   - if:
                       condition:
-                        lambda: 'return id(continuous_conversation);'
+                        lambda: 'return id(voice_connected);'
                       then:
-                        - micro_wake_word.stop:
-                        - microphone.unmute: luxe_mic
-                        - script.execute:
-                            id: set_phase
-                            new_phase: ${P_listening}
-                        - voice_assistant.start_continuous:
+                        - lambda: |-
+                            id(audio_active) = false;
+                            id(audio_started) = false;
+                        - if:
+                            condition:
+                              lambda: 'return id(continuous_conversation);'
+                            then:
+                              - micro_wake_word.stop:
+                              - microphone.unmute: luxe_mic
+                              - script.execute:
+                                  id: set_phase
+                                  new_phase: ${P_listening}
+                              - voice_assistant.start_continuous:
+                            else:
+                              - voice_assistant.stop:
+                              - microphone.unmute: luxe_mic
+                              - micro_wake_word.start:
+                              - script.execute:
+                                  id: set_phase
+                                  new_phase: ${P_waiting}
                       else:
-                        - voice_assistant.stop:
-                        - microphone.unmute: luxe_mic
-                        - micro_wake_word.start:
-                        - script.execute:
-                            id: set_phase
-                            new_phase: ${P_waiting}
-                else:
-                  - script.execute: enter_offline
+                        - script.execute: enter_offline
 
   - id: enter_privacy
     mode: restart
@@ -232,6 +245,7 @@ script:
       - voice_assistant.stop:
       - micro_wake_word.stop:
       - microphone.mute: luxe_mic
+      - lambda: id(rescue_media).stop();
       - lambda: |-
           id(privacy_mode) = true;
           id(continuous_conversation) = false;
@@ -535,6 +549,7 @@ script:
                    if(id(phase) == ${P_offline}) id(offline).execute();
                    if(id(phase) == ${P_error}) id(error).execute();
                    if(id(phase) == ${P_privacy}) id(privacy).execute();
+                   if(id(phase) == ${P_rescue}) id(rescue).execute();
 
   - id: start
     then:
@@ -614,6 +629,16 @@ script:
           green: 0%
           blue: 0%
           brightness: 35%
+
+  - id: rescue
+    then:
+     - light.turn_on:
+          id: top_led
+          effect: pulse
+          red: 100%
+          green: 15%
+          blue: 0%
+          brightness: 80%
 
 
   - id: mute_on

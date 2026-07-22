@@ -41,6 +41,7 @@ Operational documentation:
 - [Read-only OPNsense telemetry](docs/OPNSENSE_READONLY.md)
 - [Authenticated Frigate camera telemetry](docs/FRIGATE_READONLY.md)
 - [Local bounded French-English interpreter](docs/INTERPRETER.md)
+- [Offline microSD rescue audio](docs/OFFLINE_RESCUE.md)
 
 Wake-word A/B testing uses the isolated Okay Nabu configuration and protocol in
 [`docs/calibration.md`](docs/calibration.md); it is never part of the primary
@@ -211,6 +212,12 @@ direction, physical/privacy/timeout exits and deterministic restoration. The
 firmware clears its conversation identifier on every exit so interpreter text
 cannot flow into a later house request. Provisioning and rollback are described
 in `docs/INTERPRETER.md`.
+
+`hal.9.0-alpha.3` adds a source-qualified, physical-only rescue mode backed by
+the verified Muse Luxe microSD bus. A minimal read-only FAT reader accepts six
+fixed, bounded WAV files and no arbitrary media or card writes. It remains
+undeployed while the alpha 2 endurance trace and physical card gates run; see
+`docs/OFFLINE_RESCUE.md`.
 
 ## Introducing the New Version: luxe_microWW
 

@@ -215,6 +215,13 @@ ESPHome a la sortie. La qualification acoustique bilingue physique reste ouverte
 - Maintenir des messages minimaux pour panne secteur et evacuation.
 - Entree/sortie physique du mode secours et synchronisation depuis le LAN admin.
 
+Etat source `hal.9.0-alpha.3`: le bus SPI officiel de la Luxe alimente un
+lecteur FAT16/32 minimal, strictement sans ecriture, limite a six WAV 8.3 de
+trois minutes. Le quadruple-clic active ou quitte le mode persistant; les autres
+gestes parcourent, arretent ou ouvrent directement la consigne d'evacuation.
+Le preparateur admin valide format et SHA-256. L'OTA attend la fin de l'endurance
+alpha 2 et une carte physique revue; la taille a 93,6% garde un avertissement.
+
 Sortie: fonctions desactivables independamment, politique audio respectee et
 mode secours valide pendant une panne simulee de HA.
 

@@ -73,15 +73,38 @@ binary_sensor:
           - ON for at most 350ms
           - OFF for at most 350ms
           - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at least 400ms
+        then:
+          - script.execute: toggle_rescue_mode
+          - homeassistant.event:
+              event: esphome.muse_luxe_gesture
+              data:
+                gesture: quadruple_click
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
           - OFF for at least 400ms
         then:
           - if:
               condition:
-                lambda: 'return id(continuous_conversation);'
+                lambda: 'return id(rescue_mode);'
               then:
-                - script.execute: stop_continuous_conversation
+                - script.execute:
+                    id: play_rescue_clip
+                    clip: evacuation
               else:
-                - script.execute: start_continuous_conversation
+                - if:
+                    condition:
+                      lambda: 'return id(continuous_conversation);'
+                    then:
+                      - script.execute: stop_continuous_conversation
+                    else:
+                      - script.execute: start_continuous_conversation
           - homeassistant.event:
               event: esphome.muse_luxe_gesture
               data:
@@ -92,7 +115,13 @@ binary_sensor:
           - ON for at most 350ms
           - OFF for at least 400ms
         then:
-          - script.execute: stop_everything
+          - if:
+              condition:
+                lambda: 'return id(rescue_mode);'
+              then:
+                - script.execute: stop_rescue_audio
+              else:
+                - script.execute: stop_everything
       - timing:
           - ON for at least 1s
         then:
@@ -101,7 +130,13 @@ binary_sensor:
           - ON for at most 350ms
           - OFF for at least 400ms
         then:
-          - script.execute: toggle_audio_mute
+          - if:
+              condition:
+                lambda: 'return id(rescue_mode);'
+              then:
+                - script.execute: play_next_rescue_clip
+              else:
+                - script.execute: toggle_audio_mute
 
 light:
   - platform: esp32_rmt_led_strip
