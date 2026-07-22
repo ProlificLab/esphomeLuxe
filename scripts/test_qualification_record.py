@@ -19,6 +19,7 @@ from monitor_endurance import write_summary
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/check_qualification_record.py"
+TEMPLATE = ROOT / "docs/qualification-record.example.json"
 COMMIT = "a" * 40
 
 
@@ -125,11 +126,23 @@ class QualificationRecordTests(unittest.TestCase):
         result = self.run_check(self.record("stable", version), "stable", version)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_template_and_checker_cover_every_roadmap_gate(self) -> None:
+        template_gates = set(json.loads(TEMPLATE.read_text(encoding="utf-8"))["gates"])
+        self.assertEqual(template_gates, checker.STABLE_GATES)
+        self.assertTrue(checker.ROADMAP_FEATURE_GATES <= checker.STABLE_GATES)
+        self.assertTrue(checker.ROADMAP_FEATURE_GATES.isdisjoint(checker.BETA_GATES))
+
     def test_missing_gate_is_rejected(self) -> None:
         version = "2026.1.0-hal.10-beta.1"
         record = self.record("beta", version)
         record["gates"].pop("tts_cycles_100")
         self.assertNotEqual(self.run_check(record, "beta", version).returncode, 0)
+
+    def test_stable_missing_timer_gate_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        record["gates"].pop("timer_multi_pause_reconnect")
+        self.assertNotEqual(self.run_check(record, "stable", version).returncode, 0)
 
     def test_false_gate_is_rejected(self) -> None:
         version = "2026.1.0-hal.10-beta.1"

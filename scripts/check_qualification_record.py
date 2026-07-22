@@ -31,17 +31,28 @@ BETA_GATES = {
     "wifi_recovery_10",
 }
 
-STABLE_GATES = BETA_GATES | {
+ROADMAP_FEATURE_GATES = {
     "access_sensor_routines",
+    "acoustic_guardian_physical",
     "acoustic_calibration",
+    "announcement_routing_queue",
     "camera_alerts_deduplicated",
     "emergency_offline",
-    "firmware_size_target",
-    "idle_endurance_24h",
+    "family_message_delivery",
+    "house_intelligence_freshness",
+    "interactive_routine_handoff",
     "intercom_two_satellite",
     "interpreter_bilingual",
     "music_transfer_two_satellite",
+    "night_led_profiles",
     "offline_rescue_physical",
+    "timer_multi_pause_reconnect",
+    "video_review_authenticated",
+}
+
+STABLE_GATES = BETA_GATES | ROADMAP_FEATURE_GATES | {
+    "firmware_size_target",
+    "idle_endurance_24h",
     "rollback_exercised",
     "second_person_install",
 }

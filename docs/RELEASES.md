@@ -20,14 +20,17 @@ record to all of the following:
 - reviewer, timezone-aware review time no older than 30 days and canary ID;
 - exact hardware, Home Assistant, ESPHome and ESP-IDF compatibility matrix;
 - qualified feature scope, explicit beta open gates and no stable open gate;
-- 13 mandatory beta gates or all 25 stable gates.
+- 13 mandatory beta gates or all 33 stable gates.
 
 Beta includes reproducible build, CI, hard size limit, secrets audit, rollback
 artifact, canary OTA, ten reboot/Wi-Fi/HA recovery cycles, privacy reboot,
 version-bound API mode transitions, physical controls and 100 TTS cycles.
 Stable additionally requires the 93%
 size target, 24-hour idle, acoustic calibration, exercised rollback,
-second-person install and the physical `hal.9` feature gates.
+second-person install and explicit gates for every `hal.9` family: routed
+announcements, timers, night LED, deferred messages, house facts, routine
+handoff, authenticated video review and the acoustic guardian, in addition to
+intercom, audio transfer, interpreter, camera alerts and offline rescue.
 
 Starting with `hal.9.0-alpha.4`, the 93% target is also a blocking source-CI
 gate. Any main OTA larger than 1,889,402 bytes must be optimized or explicitly
