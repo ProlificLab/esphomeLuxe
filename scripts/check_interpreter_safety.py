@@ -114,7 +114,7 @@ def main() -> None:
     require(recovery, "action: clear_conversation_context", "firmware API action")
     require(recovery, "id(va).reset_conversation_id();", "firmware context reset")
     require(diagnostics, "name: Voice Context Resets", "firmware reset telemetry")
-    require(firmware, 'version: "2025.3.1-hal.9.0-alpha.4"', "firmware version")
+    require(firmware, 'version: "2025.3.1-hal.9.0-alpha.5"', "firmware version")
 
     print("Interpreter safety contract passed: local, tool-free and time-bounded.")
 

@@ -299,3 +299,56 @@ automation:
         target:
           entity_id: input_boolean.muse_night_mode
     mode: single
+
+  - id: muse_apply_led_day_night_profile
+    alias: Muse - apply LED day or night profile
+    description: >-
+      Brightness-only policy for the existing ESPHome status LED. Firmware
+      retains exclusive control of color and effect for every safety phase.
+    triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: state
+        entity_id: input_boolean.muse_night_mode
+      - trigger: state
+        entity_id: sensor.raspiaudio_muse_luxe_voice_state
+      - trigger: state
+        entity_id: sensor.raspiaudio_muse_luxe_active_timers
+    actions:
+      - wait_template: >-
+          {{ states('sensor.raspiaudio_muse_luxe_voice_state') in
+             ['starting', 'waiting', 'playing', 'listening', 'answering',
+              'offline', 'error', 'privacy', 'rescue'] and
+             states('light.raspiaudio_muse_luxe') not in
+               ['unknown', 'unavailable'] }}
+        timeout: "00:02:00"
+        continue_on_timeout: false
+      - variables:
+          voice_phase: >-
+            {{ states('sensor.raspiaudio_muse_luxe_voice_state') }}
+          active_timers: >-
+            {{ states('sensor.raspiaudio_muse_luxe_active_timers') | int(0) }}
+          desired_brightness: >-
+            {% set day = {
+              'starting': 40, 'waiting': 100, 'playing': 60,
+              'listening': 100, 'answering': 100, 'offline': 45,
+              'error': 100, 'privacy': 35, 'rescue': 80
+            } %}
+            {% set night = {
+              'starting': 15, 'waiting': 10, 'playing': 10,
+              'listening': 25, 'answering': 20, 'offline': 15,
+              'error': 35, 'privacy': 20, 'rescue': 35
+            } %}
+            {% if active_timers > 0 and voice_phase == 'waiting' %}
+              {{ 15 if is_state('input_boolean.muse_night_mode', 'on') else 40 }}
+            {% elif is_state('input_boolean.muse_night_mode', 'on') %}
+              {{ night.get(voice_phase, 15) }}
+            {% else %}
+              {{ day.get(voice_phase, 40) }}
+            {% endif %}
+      - action: light.turn_on
+        target:
+          entity_id: light.raspiaudio_muse_luxe
+        data:
+          brightness_pct: "{{ desired_brightness | int }}"
+    mode: restart

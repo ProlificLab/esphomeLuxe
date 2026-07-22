@@ -12,7 +12,7 @@ et recuperable, sans demander a l'ESP32 de porter les traitements lourds.
 | Resilience `hal.7` | `hal.7-alpha.3` sur l'enceinte canari |
 | Reproductibilite | Build, budget flash, hashes et manifeste automatises |
 | Observabilite `hal.8` | `hal.8-alpha.2`: endurance et calibration Hal/Nabu isolee |
-| Fonctions `hal.9` | `9.0-alpha.4` sous 93% et minuteurs `9.0-ha-alpha.2`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
+| Fonctions `hal.9` | `9.0-alpha.5` sous 93%, minuteurs `9.0-ha-alpha.2` et LED `9.0-ha-alpha.3`; audio `9.1-ha-alpha.5`; messages `9.1-ha-alpha.4`; interphone `9.1-ha-alpha.3`; revue vidéo `9.2-ha-alpha.6`; acoustique `9.3-ha-alpha.3` source |
 | Distribution `hal.10` | `hal.10-alpha.4`: promotion atomique et preuve d'endurance a telemetrie fraiche |
 
 L'image principale a partir de `hal.7-alpha.3` n'embarque que le modele Okay
@@ -132,6 +132,14 @@ physiquement apres l'endurance.
 - Mode nuit avec volume et LED reduits.
 - Un appui ouvre une conversation multi-tour; appui, voix ou timeout la ferme.
 - Une LED sans ambiguite indique toute session micro continue.
+
+Etat source `hal.9.0-ha-alpha.3`: HA applique uniquement une luminosite bornee
+jour/nuit a l'entite LED ESPHome existante; couleurs et effets restent possedes
+par la machine d'etat locale. Ecoute, confidentialite, erreur et secours gardent
+des planchers visibles. Le gradient minuteur `hal.9.0-alpha.5` conserve la
+luminosite courante au lieu de la reecrire chaque seconde, pour un OTA toujours
+sous 93%. Qualification physique de chaque phase et d'une transition pendant
+un minuteur reste requise apres l'endurance.
 
 Sortie: aucune session ouverte apres timeout, annonces prioritaires propres et
 minuteurs resilients a une reconnexion.
@@ -257,7 +265,7 @@ ESPHome a la sortie. La qualification acoustique bilingue physique reste ouverte
 - Maintenir des messages minimaux pour panne secteur et evacuation.
 - Entree/sortie physique du mode secours et synchronisation depuis le LAN admin.
 
-Etat source `hal.9.0-alpha.4`: le bus SPI officiel de la Luxe alimente un
+Etat source `hal.9.0-alpha.5`: le bus SPI officiel de la Luxe alimente un
 lecteur FAT16/32 minimal, strictement sans ecriture, limite a six WAV 8.3 de
 trois minutes. Le quadruple-clic active ou quitte le mode persistant; les autres
 gestes parcourent, arretent ou ouvrent directement la consigne d'evacuation.

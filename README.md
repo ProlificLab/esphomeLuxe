@@ -171,6 +171,11 @@ PVE_HOST=user@proxmox-host scripts/provision_timer_coach.sh
 See `docs/TIMER_COACH.md` for the physical pause/resume, reconnect, night-mode
 and audio-contention qualification gates.
 
+`hal.9.0-alpha.5` and `hal.9.0-ha-alpha.3` add bounded day/night brightness to
+the existing Muse LED without moving color or effect ownership out of the
+firmware state machine. Timer ticks retain the selected brightness. See
+`docs/NIGHT_LED.md` for the profile table, paired deployment and rollback gate.
+
 Canary mode and privacy-persistence tests use the encrypted ESPHome API:
 
 ```bash

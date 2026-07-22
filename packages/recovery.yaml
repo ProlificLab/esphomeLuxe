@@ -407,7 +407,8 @@ script:
                                       (float) id(nearest_timer_total);
                   return std::min(1.0f, ratio);
                 blue: 0%
-                brightness: 40%
+                brightness: !lambda |-
+                  return id(top_led).current_values.get_brightness();
           else:
             - if:
                 condition:
