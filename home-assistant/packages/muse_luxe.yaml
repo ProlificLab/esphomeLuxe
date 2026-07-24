@@ -1,0 +1,398 @@
+input_boolean:
+  muse_night_mode:
+    name: Muse night mode
+    icon: mdi:weather-night
+  muse_pending_message:
+    name: Muse pending family message
+    icon: mdi:message-clock-outline
+
+input_number:
+  muse_day_volume:
+    name: Muse day announcement volume
+    min: 0.05
+    max: 1
+    step: 0.05
+    initial: 0.6
+    mode: slider
+    icon: mdi:volume-high
+  muse_night_volume:
+    name: Muse night announcement volume
+    min: 0.05
+    max: 1
+    step: 0.05
+    initial: 0.25
+    mode: slider
+    icon: mdi:volume-low
+  muse_urgent_volume:
+    name: Muse urgent announcement volume
+    min: 0.1
+    max: 1
+    step: 0.05
+    initial: 0.75
+    mode: slider
+    icon: mdi:volume-alert
+
+input_datetime:
+  muse_night_start:
+    name: Muse night mode start
+    has_date: false
+    has_time: true
+    initial: "22:00:00"
+  muse_night_end:
+    name: Muse night mode end
+    has_date: false
+    has_time: true
+    initial: "07:00:00"
+  muse_pending_expiry:
+    name: Muse pending message expiry
+    has_date: true
+    has_time: true
+    icon: mdi:timer-sand
+
+input_text:
+  muse_chime_url:
+    name: Muse announcement chime URL
+    initial: http://10.10.30.159:8123/local/muse-luxe/test-audio.wav
+    max: 255
+    icon: mdi:bell-ring-outline
+  muse_pending_message_text:
+    name: Muse pending message text
+    max: 255
+    icon: mdi:message-text-clock-outline
+  muse_pending_recipient:
+    name: Muse pending message recipient
+    max: 100
+    icon: mdi:account-clock-outline
+  muse_pending_target:
+    name: Muse pending message speaker
+    max: 100
+    icon: mdi:speaker-message
+
+script:
+  muse_announce:
+    alias: Muse - queued announcement
+    description: >-
+      Deterministic queued TTS with bounded wait, day/night volume and an
+      explicit urgent override. The LLM may call this script but cannot alter
+      its queueing or timeout guards.
+    icon: mdi:bullhorn
+    mode: queued
+    max: 25
+    fields:
+      message:
+        name: Message
+        required: true
+        selector:
+          text:
+            multiline: true
+      targets:
+        name: Target speakers
+        required: false
+        selector:
+          entity:
+            multiple: true
+            filter:
+              domain: media_player
+      priority:
+        name: Priority
+        required: false
+        default: normal
+        selector:
+          select:
+            options:
+              - normal
+              - urgent
+      chime:
+        name: Play chime
+        required: false
+        default: false
+        selector:
+          boolean:
+      required_intercom_session:
+        name: Required intercom session
+        required: false
+        selector:
+          text:
+      required_intercom_status:
+        name: Required intercom status
+        required: false
+        selector:
+          text:
+    variables:
+      target_list: >-
+        {% if targets is defined and targets %}
+          {{ targets }}
+        {% else %}
+          {{ ['media_player.raspiaudio_muse_luxe'] }}
+        {% endif %}
+      requested_priority: "{{ priority | default('normal') }}"
+      requested_chime: "{{ chime | default(false) | bool }}"
+      requested_intercom_session: >-
+        {{ required_intercom_session | default('', true) | string | trim }}
+      requested_intercom_status: >-
+        {{ required_intercom_status | default('', true) | string | trim }}
+      announcement_volume: >-
+        {% if requested_priority == 'urgent' %}
+          {{ states('input_number.muse_urgent_volume') | float(0.75) }}
+        {% elif is_state('input_boolean.muse_night_mode', 'on') %}
+          {{ states('input_number.muse_night_volume') | float(0.25) }}
+        {% else %}
+          {{ states('input_number.muse_day_volume') | float(0.6) }}
+        {% endif %}
+    sequence:
+      - repeat:
+          for_each: "{{ target_list }}"
+          sequence:
+            - variables:
+                player: "{{ repeat.item }}"
+                previous_volume: "{{ state_attr(repeat.item, 'volume_level') }}"
+            - if:
+                - condition: template
+                  value_template: "{{ requested_priority == 'urgent' }}"
+              then:
+                - action: media_player.media_stop
+                  continue_on_error: true
+                  target:
+                    entity_id: "{{ player }}"
+              else:
+                - wait_template: >-
+                    {% set muse_voice_state =
+                         states('sensor.raspiaudio_muse_luxe_voice_state') %}
+                    {% set muse_conversation =
+                         is_state(
+                           'switch.raspiaudio_muse_luxe_continuous_conversation',
+                           'on') or
+                         muse_voice_state in
+                           ['starting', 'listening', 'answering'] %}
+                    {{ states(player) not in ['playing', 'buffering'] and
+                       (player != 'media_player.raspiaudio_muse_luxe' or
+                        not muse_conversation) }}
+                  timeout: "00:10:00"
+                  continue_on_timeout: false
+            - condition: template
+              value_template: >-
+                {{ (requested_intercom_session == '' or
+                    requested_intercom_session ==
+                      states('input_text.muse_intercom_session_id')) and
+                   (requested_intercom_status == '' or
+                    requested_intercom_status ==
+                      states('input_select.muse_intercom_status')) }}
+            - action: media_player.volume_set
+              target:
+                entity_id: "{{ player }}"
+              data:
+                volume_level: "{{ announcement_volume | float }}"
+            - if:
+                - condition: template
+                  value_template: "{{ requested_chime }}"
+              then:
+                - action: media_player.play_media
+                  continue_on_error: true
+                  target:
+                    entity_id: "{{ player }}"
+                  data:
+                    media_content_id: "{{ states('input_text.muse_chime_url') }}"
+                    media_content_type: music
+                - wait_template: "{{ is_state(player, 'idle') }}"
+                  timeout: "00:00:20"
+                  continue_on_timeout: true
+            - if:
+                - condition: template
+                  value_template: >-
+                    {{ (requested_intercom_session != '' and
+                        requested_intercom_session !=
+                          states('input_text.muse_intercom_session_id')) or
+                       (requested_intercom_status != '' and
+                        requested_intercom_status !=
+                          states('input_select.muse_intercom_status')) }}
+              then:
+                - if:
+                    - condition: template
+                      value_template: "{{ previous_volume is not none }}"
+                  then:
+                    - action: media_player.volume_set
+                      target:
+                        entity_id: "{{ player }}"
+                      data:
+                        volume_level: "{{ previous_volume | float }}"
+                - stop: "Intercom announcement guard expired before TTS."
+            - action: tts.speak
+              continue_on_error: true
+              target:
+                entity_id: tts.piper
+              data:
+                media_player_entity_id: "{{ player }}"
+                message: "{{ message }}"
+                cache: true
+            - wait_template: >-
+                {{ states(player) in ['playing', 'buffering'] }}
+              timeout: "00:00:15"
+              continue_on_timeout: true
+            - wait_template: "{{ is_state(player, 'idle') }}"
+              timeout: "00:05:00"
+              continue_on_timeout: true
+            - if:
+                - condition: template
+                  value_template: "{{ previous_volume is not none }}"
+              then:
+                - action: media_player.volume_set
+                  target:
+                    entity_id: "{{ player }}"
+                  data:
+                    volume_level: "{{ previous_volume | float }}"
+
+  muse_announce_everywhere:
+    alias: Muse - announce everywhere
+    description: Current whole-home target list; add satellites here as deployed.
+    mode: queued
+    max: 10
+    fields:
+      message:
+        required: true
+        selector:
+          text:
+            multiline: true
+      priority:
+        default: normal
+        selector:
+          select:
+            options:
+              - normal
+              - urgent
+    sequence:
+      - action: script.muse_announce
+        data:
+          message: "{{ message }}"
+          priority: "{{ priority | default('normal') }}"
+          targets:
+            - media_player.raspiaudio_muse_luxe
+
+  muse_privacy_on:
+    alias: Muse - privacy on
+    mode: single
+    sequence:
+      - action: switch.turn_on
+        target:
+          entity_id: switch.raspiaudio_muse_luxe_privacy_mode
+
+  muse_privacy_off:
+    alias: Muse - privacy off
+    mode: single
+    sequence:
+      - action: switch.turn_off
+        target:
+          entity_id: switch.raspiaudio_muse_luxe_privacy_mode
+
+  muse_intercom_message:
+    alias: Muse - transcribed push-to-talk message
+    description: >-
+      Audible, chime-prefixed voice note. This deliberately does not open a
+      silent microphone or pretend to provide a duplex audio channel.
+    mode: queued
+    max: 10
+    fields:
+      message:
+        required: true
+        selector:
+          text:
+            multiline: true
+      target:
+        required: false
+        selector:
+          entity:
+            filter:
+              domain: media_player
+    variables:
+      target_player: >-
+        {{ target | default('media_player.raspiaudio_muse_luxe', true) }}
+    sequence:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ target_player not in states.media_player
+                 | map(attribute='entity_id') | list }}
+        then:
+          - stop: "The requested intercom target does not exist."
+            error: true
+      - action: script.muse_announce
+        data:
+          message: "Message familial. {{ message }}"
+          targets: "{{ [target_player] }}"
+          priority: normal
+          chime: true
+
+automation:
+  - id: muse_night_mode_start
+    alias: Muse - enable night mode
+    triggers:
+      - trigger: time
+        at: input_datetime.muse_night_start
+    actions:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.muse_night_mode
+    mode: single
+
+  - id: muse_night_mode_end
+    alias: Muse - disable night mode
+    triggers:
+      - trigger: time
+        at: input_datetime.muse_night_end
+    actions:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.muse_night_mode
+    mode: single
+
+  - id: muse_apply_led_day_night_profile
+    alias: Muse - apply LED day or night profile
+    description: >-
+      Brightness-only policy for the existing ESPHome status LED. Firmware
+      retains exclusive control of color and effect for every safety phase.
+    triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: state
+        entity_id: input_boolean.muse_night_mode
+      - trigger: state
+        entity_id: sensor.raspiaudio_muse_luxe_voice_state
+      - trigger: state
+        entity_id: sensor.raspiaudio_muse_luxe_active_timers
+    actions:
+      - wait_template: >-
+          {{ states('sensor.raspiaudio_muse_luxe_voice_state') in
+             ['starting', 'waiting', 'playing', 'listening', 'answering',
+              'offline', 'error', 'privacy', 'rescue'] and
+             states('light.raspiaudio_muse_luxe') not in
+               ['unknown', 'unavailable'] }}
+        timeout: "00:02:00"
+        continue_on_timeout: false
+      - variables:
+          voice_phase: >-
+            {{ states('sensor.raspiaudio_muse_luxe_voice_state') }}
+          active_timers: >-
+            {{ states('sensor.raspiaudio_muse_luxe_active_timers') | int(0) }}
+          desired_brightness: >-
+            {% set day = {
+              'starting': 40, 'waiting': 100, 'playing': 60,
+              'listening': 100, 'answering': 100, 'offline': 45,
+              'error': 100, 'privacy': 35, 'rescue': 80
+            } %}
+            {% set night = {
+              'starting': 15, 'waiting': 10, 'playing': 10,
+              'listening': 25, 'answering': 20, 'offline': 15,
+              'error': 35, 'privacy': 20, 'rescue': 35
+            } %}
+            {% if active_timers > 0 and voice_phase == 'waiting' %}
+              {{ 15 if is_state('input_boolean.muse_night_mode', 'on') else 40 }}
+            {% elif is_state('input_boolean.muse_night_mode', 'on') %}
+              {{ night.get(voice_phase, 15) }}
+            {% else %}
+              {{ day.get(voice_phase, 40) }}
+            {% endif %}
+      - action: light.turn_on
+        target:
+          entity_id: light.raspiaudio_muse_luxe
+        data:
+          brightness_pct: "{{ desired_brightness | int }}"
+    mode: restart

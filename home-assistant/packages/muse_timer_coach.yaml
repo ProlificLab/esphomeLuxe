@@ -1,0 +1,54 @@
+input_boolean:
+  muse_timer_checkpoint_announcements:
+    name: Muse timer checkpoint announcements
+    icon: mdi:timer-music-outline
+    initial: false
+
+automation:
+  - id: muse_timer_checkpoint_announcement
+    alias: Muse - announce timer checkpoints
+    description: >-
+      Opt-in announcements for the nearest native Assist timer. A checkpoint
+      must be crossed by a normal one-second tick; reconnects and timer jumps
+      are deliberately not replayed.
+    triggers:
+      - trigger: state
+        entity_id: sensor.raspiaudio_muse_luxe_nearest_timer_remaining
+    variables:
+      old_remaining: >-
+        {{ trigger.from_state.state | int(-1)
+           if trigger.from_state is not none else -1 }}
+      remaining: "{{ trigger.to_state.state | int(-1) }}"
+      timer_name: >-
+        {{ states('sensor.raspiaudio_muse_luxe_active_timer_name')
+           | trim | truncate(60, true, '') }}
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_timer_checkpoint_announcements
+        state: "on"
+      - condition: numeric_state
+        entity_id: sensor.raspiaudio_muse_luxe_active_timers
+        above: 0
+      - condition: template
+        value_template: >-
+          {{ timer_name not in ['', 'none', 'unknown', 'unavailable'] and
+             remaining in [300, 60, 30, 10] and
+             old_remaining > remaining and
+             old_remaining - remaining <= 5 }}
+    actions:
+      - action: script.muse_announce
+        data:
+          message: >-
+            {% if remaining == 300 %}
+              Il reste cinq minutes au minuteur {{ timer_name }}.
+            {% elif remaining == 60 %}
+              Il reste une minute au minuteur {{ timer_name }}.
+            {% else %}
+              Il reste {{ remaining }} secondes au minuteur {{ timer_name }}.
+            {% endif %}
+          targets:
+            - media_player.raspiaudio_muse_luxe
+          priority: normal
+          chime: false
+    mode: queued
+    max: 4

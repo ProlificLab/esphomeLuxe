@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "ha_package_sha256": "REPLACE_WITH_ACOUSTIC_PACKAGE_SHA256",
+    "preparer_sha256": "REPLACE_WITH_PREPARER_SHA256",
+    "policy_template_sha256": "REPLACE_WITH_POLICY_TEMPLATE_SHA256",
+    "private_frigate_candidate_sha256": "REPLACE_WITH_PRIVATE_CANDIDATE_SHA256"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "consent": {
+    "camera": "REPLACE_WITH_CAMERA",
+    "room": "REPLACE_WITH_ROOM",
+    "approved_by": "REPLACE_WITH_APPROVER",
+    "approved_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE"
+  },
+  "runtime": {
+    "thresholds": {"bark": 0.9, "crying": 0.9, "fire_alarm": 0.9, "glass": 0.9},
+    "min_volume": 500,
+    "retention_days": 1,
+    "transcription_enabled": false,
+    "ha_enabled_after_restart": false
+  },
+  "metrics": {
+    "observation_hours": {"bark": 0, "crying": 0, "fire_alarm": 0, "glass": 0},
+    "test_events": {"bark": 0, "crying": 0, "fire_alarm": 0, "glass": 0},
+    "false_positives": {"bark": -1, "crying": -1, "fire_alarm": -1, "glass": -1},
+    "idle_cpu_pct": -1,
+    "event_cpu_pct": -1,
+    "background_rms": -1,
+    "event_peak_rms": -1,
+    "physical_actions_triggered": -1
+  },
+  "scenarios": {
+    "advisory_only_no_physical_action": {"passed": false, "evidence": "REPLACE"},
+    "consent_reviewed": {"passed": false, "evidence": "REPLACE"},
+    "cooldown_deduplicates": {"passed": false, "evidence": "REPLACE"},
+    "cross_check_context_reported": {"passed": false, "evidence": "REPLACE"},
+    "ffprobe_audio_present": {"passed": false, "evidence": "REPLACE"},
+    "four_labels_detected": {"passed": false, "evidence": "REPLACE"},
+    "ha_restart_disables_guardian": {"passed": false, "evidence": "REPLACE"},
+    "mqtt_on_off_observed": {"passed": false, "evidence": "REPLACE"},
+    "no_raw_audio_reaches_muse": {"passed": false, "evidence": "REPLACE"},
+    "private_candidate_validated": {"passed": false, "evidence": "REPLACE"},
+    "retention_one_day_deletes": {"passed": false, "evidence": "REPLACE"},
+    "rollback_audio_status_disabled": {"passed": false, "evidence": "REPLACE"},
+    "transcription_disabled": {"passed": false, "evidence": "REPLACE"}
+  }
+}

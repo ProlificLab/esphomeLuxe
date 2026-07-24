@@ -1,14 +1,14 @@
 {
   "name": "raspiaudio.voice-assistant",
-  "version": "2025.3.1",
+  "version": "2025.3.1-hal.6",
   "builds": [
     {
       "chipFamily": "ESP32",
       "ota": {
-         "md5": "147c31aae0951c2710751c5410970b68",  
-         "path": "https://raw.githubusercontent.com/RASPIAUDIO/esphomeLuxe/main/update_firmware.bin",
+         "md5": "cedf966640caccbabba098bcf22f7645",
+         "path": "http://10.10.30.159:8123/local/muse-luxe/firmware.ota.bin",
          "offset": 0,
-         "summary": "Latest firmware"
+         "summary": "ProlificLab Muse Luxe hal.6"
          }
     }
     ]     

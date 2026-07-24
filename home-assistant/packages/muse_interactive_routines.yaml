@@ -1,0 +1,656 @@
+input_boolean:
+  muse_routines_enabled:
+    name: Muse interactive routines enabled
+    icon: mdi:format-list-checks
+
+input_select:
+  muse_routine_status:
+    name: Muse routine status
+    options:
+      - idle
+      - running
+      - paused
+      - completed
+      - cancelled
+      - blocked
+    icon: mdi:list-status
+  muse_routine_kind:
+    name: Muse routine kind
+    options:
+      - none
+      - departure
+      - bedtime
+      - server_shutdown
+      - power_outage
+      - alarm
+      - evacuation
+    icon: mdi:clipboard-list-outline
+  muse_routine_verification:
+    name: Muse routine verification
+    options:
+      - none
+      - manual_required
+      - manual_confirmed
+      - sensor_verified
+      - sensor_failed
+    icon: mdi:shield-check-outline
+
+input_number:
+  muse_routine_step:
+    name: Muse routine step
+    min: 0
+    max: 8
+    step: 1
+    mode: box
+    icon: mdi:numeric
+
+input_datetime:
+  muse_routine_started_at:
+    name: Muse routine started at
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  muse_routine_updated_at:
+    name: Muse routine updated at
+    has_date: true
+    has_time: true
+    icon: mdi:clock-check-outline
+
+input_text:
+  muse_routine_target:
+    name: Muse routine speaker
+    max: 100
+    icon: mdi:speaker-message
+  muse_routine_session_id:
+    name: Muse routine session ID
+    max: 80
+    icon: mdi:identifier
+  muse_routine_last_event:
+    name: Muse routine last event
+    max: 255
+    icon: mdi:text-box-check-outline
+
+template:
+  - sensor:
+      - name: Muse interactive routine
+        unique_id: muse_interactive_routine
+        icon: mdi:clipboard-flow-outline
+        state: "{{ states('input_select.muse_routine_status') }}"
+        attributes:
+          routine: "{{ states('input_select.muse_routine_kind') }}"
+          step: "{{ states('input_number.muse_routine_step') | int(0) }}"
+          verification: >-
+            {{ states('input_select.muse_routine_verification') }}
+          target: "{{ states('input_text.muse_routine_target') }}"
+          session_id: "{{ states('input_text.muse_routine_session_id') }}"
+          last_event: "{{ states('input_text.muse_routine_last_event') }}"
+          started_at: "{{ states('input_datetime.muse_routine_started_at') }}"
+          updated_at: "{{ states('input_datetime.muse_routine_updated_at') }}"
+          safety_policy: guidance_only_no_critical_actions
+
+script:
+  muse_start_routine:
+    alias: Muse - start interactive routine
+    description: >-
+      Starts a persisted, deterministic checklist. It never shuts down a host,
+      controls an alarm, unlocks a door or sheds a load.
+    icon: mdi:play-circle-outline
+    mode: single
+    fields:
+      routine:
+        name: Routine
+        required: true
+        selector:
+          select:
+            options:
+              - departure
+              - bedtime
+              - server_shutdown
+              - power_outage
+              - alarm
+              - evacuation
+      target:
+        name: Speaker
+        required: false
+        selector:
+          entity:
+            filter:
+              domain: media_player
+    variables:
+      requested_routine: "{{ routine | string }}"
+      target_player: >-
+        {{ target | default('media_player.raspiaudio_muse_luxe', true) }}
+      active_states:
+        - running
+        - paused
+        - blocked
+      allowed_routines:
+        - departure
+        - bedtime
+        - server_shutdown
+        - power_outage
+        - alarm
+        - evacuation
+    sequence:
+      - if:
+          - condition: state
+            entity_id: input_boolean.muse_routines_enabled
+            state: "off"
+        then:
+          - stop: "Interactive routines are disabled."
+            error: true
+      - if:
+          - condition: template
+            value_template: "{{ requested_routine not in allowed_routines }}"
+        then:
+          - stop: "Unknown or forbidden routine."
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('input_select.muse_routine_status') in active_states }}
+        then:
+          - stop: "Another interactive routine is already active."
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ target_player not in states.media_player
+                 | map(attribute='entity_id') | list or
+                 states(target_player) in ['unknown', 'unavailable'] }}
+        then:
+          - stop: "The requested routine speaker is missing or unavailable."
+            error: true
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_kind
+        data:
+          option: "{{ requested_routine }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_status
+        data:
+          option: running
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_verification
+        data:
+          option: none
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.muse_routine_step
+        data:
+          value: 1
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_routine_target
+        data:
+          value: "{{ target_player }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_routine_session_id
+        data:
+          value: >-
+            {{ requested_routine ~ '-' ~ now().strftime('%Y%m%dT%H%M%S') }}
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_routine_last_event
+        data:
+          value: "started:{{ requested_routine }}:step_1"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id:
+            - input_datetime.muse_routine_started_at
+            - input_datetime.muse_routine_updated_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: logbook.log
+        data:
+          name: Muse routine
+          message: >-
+            Started {{ requested_routine }} on {{ target_player }}; session
+            {{ states('input_text.muse_routine_session_id') }}.
+          entity_id: sensor.muse_interactive_routine
+      - action: script.muse_announce_routine_step
+
+  muse_announce_routine_step:
+    alias: Muse - announce current routine step
+    description: Announces only the currently persisted routine step.
+    icon: mdi:account-voice
+    mode: queued
+    max: 5
+    variables:
+      routine_name: "{{ states('input_select.muse_routine_kind') }}"
+      step_number: "{{ states('input_number.muse_routine_step') | int(0) }}"
+      target_player: "{{ states('input_text.muse_routine_target') }}"
+      steps:
+        departure:
+          - Vérifiez que chaque personne prévue est prête à partir.
+          - Vérifiez physiquement les portes, fenêtres et accès. Aucun capteur d'ouverture n'est encore configuré.
+          - Vérifiez les appareils et charges non essentiels avant de partir.
+          - Confirmez que le dernier occupant peut quitter la maison en sécurité.
+        bedtime:
+          - Vérifiez physiquement les portes et fenêtres. Aucun capteur d'ouverture n'est encore configuré.
+          - Vérifiez les appareils de cuisson et les charges non essentielles.
+          - Préparez le mode nuit et les accès nécessaires pendant la nuit.
+          - Confirmez que la maison est prête pour la nuit.
+        server_shutdown:
+          - Enregistrez le travail et vérifiez les sauvegardes utiles.
+          - Vérifiez que les services familiaux peuvent être interrompus.
+          - Effectuez l'arrêt depuis l'interface administrateur. La routine ne commande jamais Proxmox.
+          - Vérifiez physiquement ou dans Proxmox que la machine est arrêtée.
+        power_outage:
+          - Je vérifie que les données Victron sont présentes et récentes.
+          - Consultez l'autonomie et préservez les équipements essentiels.
+          - Réduisez manuellement les charges non essentielles après vérification.
+          - Confirmez que les personnes et les équipements essentiels sont en sécurité.
+        alarm:
+          - Identifiez l'alarme sans la désactiver et éloignez-vous du danger.
+          - Vérifiez la présence des personnes sans retourner dans une zone dangereuse.
+          - Suivez les consignes physiques du système et appelez les secours si nécessaire.
+          - Confirmez uniquement lorsque la situation est prise en charge.
+        evacuation:
+          - Évacuez immédiatement par l'itinéraire sûr le plus proche.
+          - Ne récupérez pas d'objets et aidez les personnes qui peuvent l'être sans danger.
+          - Rejoignez le point de rassemblement et comptez les personnes.
+          - Appelez les secours et ne rentrez pas avant autorisation.
+      instruction: >-
+        {% set routine_steps = steps.get(routine_name, []) %}
+        {% if step_number > 0 and step_number <= routine_steps | count %}
+          {{ routine_steps[step_number - 1] }}
+        {% else %}
+          Étape de routine indisponible. Annulez la routine.
+        {% endif %}
+      urgent_routine: "{{ routine_name in ['alarm', 'evacuation'] }}"
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ states('input_select.muse_routine_status') in
+             ['running', 'paused', 'blocked'] }}
+      - action: script.muse_announce
+        data:
+          message: >-
+            Routine {{ routine_name | replace('_', ' ') }}, étape
+            {{ step_number }}. {{ instruction }} Dites confirme l'étape de la
+            routine quand elle est terminée, ou mettez la routine en pause.
+          targets: "{{ [target_player] }}"
+          priority: "{{ 'urgent' if urgent_routine else 'normal' }}"
+          chime: "{{ urgent_routine }}"
+
+  muse_advance_routine:
+    alias: Muse - confirm current routine step
+    description: >-
+      Advances one bounded step. Human-only checks require explicit
+      confirmation; the Victron check cannot be overridden by a voice model.
+    icon: mdi:skip-next-circle-outline
+    mode: single
+    fields:
+      confirmed:
+        name: Human confirmation
+        required: false
+        default: false
+        selector:
+          boolean:
+    variables:
+      routine_name: "{{ states('input_select.muse_routine_kind') }}"
+      step_number: "{{ states('input_number.muse_routine_step') | int(0) }}"
+      human_confirmed: "{{ confirmed | default(false) | bool }}"
+      sensor_step: "{{ routine_name == 'power_outage' and step_number == 1 }}"
+      sensor_passed: >-
+        {{ sensor_step and
+           has_value('sensor.muse_house_energy_status') and
+           not is_state('sensor.muse_house_energy_status', 'unavailable') and
+           is_state('binary_sensor.muse_victron_data_stale', 'off') }}
+      step_counts:
+        departure: 4
+        bedtime: 4
+        server_shutdown: 4
+        power_outage: 4
+        alarm: 4
+        evacuation: 4
+      final_step: "{{ step_counts.get(routine_name, 0) | int(0) }}"
+      target_player: "{{ states('input_text.muse_routine_target') }}"
+    sequence:
+      - condition: state
+        entity_id: input_boolean.muse_routines_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_select.muse_routine_status
+        state: running
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ sensor_step and not sensor_passed }}"
+            sequence:
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.muse_routine_verification
+                data:
+                  option: sensor_failed
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.muse_routine_status
+                data:
+                  option: blocked
+              - action: input_text.set_value
+                target:
+                  entity_id: input_text.muse_routine_last_event
+                data:
+                  value: "blocked:victron_unavailable_or_stale"
+              - action: logbook.log
+                data:
+                  name: Muse routine
+                  message: >-
+                    Blocked {{ routine_name }} step {{ step_number }} because
+                    Victron data is unavailable or stale.
+                  entity_id: sensor.muse_interactive_routine
+              - action: script.muse_announce
+                data:
+                  message: >-
+                    La routine est bloquée. Les données Victron sont absentes
+                    ou trop anciennes; je ne prétends pas avoir vérifié cette
+                    étape. Vous pouvez reprendre pour réessayer ou annuler.
+                  targets: "{{ [target_player] }}"
+                  priority: normal
+              - stop: "Required Victron evidence is unavailable."
+          - conditions:
+              - condition: template
+                value_template: "{{ sensor_step and sensor_passed }}"
+            sequence:
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.muse_routine_verification
+                data:
+                  option: sensor_verified
+          - conditions:
+              - condition: template
+                value_template: "{{ not sensor_step and not human_confirmed }}"
+            sequence:
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.muse_routine_verification
+                data:
+                  option: manual_required
+              - action: input_text.set_value
+                target:
+                  entity_id: input_text.muse_routine_last_event
+                data:
+                  value: "waiting_for_manual_confirmation:step_{{ step_number }}"
+              - action: script.muse_announce
+                data:
+                  message: >-
+                    Cette étape ne dispose pas encore d'un capteur fiable.
+                    Vérifiez-la vous-même puis dites confirme l'étape de la
+                    routine. Je ne l'ai pas validée automatiquement.
+                  targets: "{{ [target_player] }}"
+                  priority: >-
+                    {{ 'urgent' if routine_name in ['alarm', 'evacuation']
+                       else 'normal' }}
+              - stop: "Explicit human confirmation is required."
+        default:
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.muse_routine_verification
+            data:
+              option: manual_confirmed
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_routine_updated_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: logbook.log
+        data:
+          name: Muse routine
+          message: >-
+            Verified {{ routine_name }} step {{ step_number }} as
+            {{ states('input_select.muse_routine_verification') }}; session
+            {{ states('input_text.muse_routine_session_id') }}.
+          entity_id: sensor.muse_interactive_routine
+      - if:
+          - condition: template
+            value_template: "{{ step_number >= final_step }}"
+        then:
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.muse_routine_status
+            data:
+              option: completed
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_routine_last_event
+            data:
+              value: "completed:{{ routine_name }}"
+          - action: script.muse_announce
+            data:
+              message: >-
+                Routine {{ routine_name | replace('_', ' ') }} terminée. Les
+                étapes sans capteur ont été confirmées manuellement.
+              targets: "{{ [target_player] }}"
+              priority: >-
+                {{ 'urgent' if routine_name in ['alarm', 'evacuation']
+                   else 'normal' }}
+        else:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.muse_routine_step
+            data:
+              value: "{{ step_number + 1 }}"
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_routine_last_event
+            data:
+              value: "advanced:{{ routine_name }}:step_{{ step_number + 1 }}"
+          - action: script.muse_announce_routine_step
+
+  muse_pause_routine:
+    alias: Muse - pause interactive routine
+    icon: mdi:pause-circle-outline
+    mode: single
+    sequence:
+      - condition: state
+        entity_id: input_select.muse_routine_status
+        state: running
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_status
+        data:
+          option: paused
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_routine_updated_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_routine_last_event
+        data:
+          value: "paused:step_{{ states('input_number.muse_routine_step') | int }}"
+      - action: logbook.log
+        data:
+          name: Muse routine
+          message: >-
+            Paused {{ states('input_select.muse_routine_kind') }} at step
+            {{ states('input_number.muse_routine_step') | int }}.
+          entity_id: sensor.muse_interactive_routine
+
+  muse_resume_routine:
+    alias: Muse - resume interactive routine
+    description: May move the persisted routine to another explicit speaker.
+    icon: mdi:play-circle
+    mode: single
+    fields:
+      target:
+        name: New speaker
+        required: false
+        selector:
+          entity:
+            filter:
+              domain: media_player
+    variables:
+      target_player: >-
+        {{ target | default(states('input_text.muse_routine_target'), true) }}
+    sequence:
+      - condition: state
+        entity_id: input_boolean.muse_routines_enabled
+        state: "on"
+      - condition: template
+        value_template: >-
+          {{ states('input_select.muse_routine_status') in ['paused', 'blocked'] }}
+      - if:
+          - condition: template
+            value_template: >-
+              {{ target_player not in states.media_player
+                 | map(attribute='entity_id') | list or
+                 states(target_player) in ['unknown', 'unavailable'] }}
+        then:
+          - stop: "The requested resume speaker is missing or unavailable."
+            error: true
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_routine_target
+        data:
+          value: "{{ target_player }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_status
+        data:
+          option: running
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_verification
+        data:
+          option: none
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_routine_updated_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_routine_last_event
+        data:
+          value: >-
+            resumed:step_{{ states('input_number.muse_routine_step') | int }}:
+            {{ target_player }}
+      - action: logbook.log
+        data:
+          name: Muse routine
+          message: >-
+            Resumed {{ states('input_select.muse_routine_kind') }} at step
+            {{ states('input_number.muse_routine_step') | int }} on
+            {{ target_player }}.
+          entity_id: sensor.muse_interactive_routine
+      - action: script.muse_announce_routine_step
+
+  muse_cancel_routine:
+    alias: Muse - cancel interactive routine
+    icon: mdi:cancel
+    mode: single
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ states('input_select.muse_routine_status') in
+             ['running', 'paused', 'blocked'] }}
+      - variables:
+          routine_name: "{{ states('input_select.muse_routine_kind') }}"
+          target_player: "{{ states('input_text.muse_routine_target') }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_status
+        data:
+          option: cancelled
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.muse_routine_updated_at
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_routine_last_event
+        data:
+          value: "cancelled:{{ routine_name }}"
+      - action: logbook.log
+        data:
+          name: Muse routine
+          message: "Cancelled {{ routine_name }}."
+          entity_id: sensor.muse_interactive_routine
+      - action: script.muse_announce
+        data:
+          message: "Routine {{ routine_name | replace('_', ' ') }} annulée."
+          targets: "{{ [target_player] }}"
+          priority: normal
+
+  muse_reset_routine:
+    alias: Muse - reset finished routine
+    icon: mdi:restore
+    mode: single
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ states('input_select.muse_routine_status') in
+             ['idle', 'completed', 'cancelled'] }}
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_status
+        data:
+          option: idle
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_kind
+        data:
+          option: none
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_routine_verification
+        data:
+          option: none
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.muse_routine_step
+        data:
+          value: 0
+      - action: input_text.set_value
+        target:
+          entity_id:
+            - input_text.muse_routine_target
+            - input_text.muse_routine_session_id
+            - input_text.muse_routine_last_event
+        data:
+          value: ""
+
+intent_script:
+  MuseRoutineStart:
+    action:
+      - action: script.muse_start_routine
+        data:
+          routine: "{{ routine }}"
+    speech:
+      text: "Je lance la routine {{ routine | replace('_', ' ') }}."
+  MuseRoutineAdvance:
+    action:
+      - action: script.muse_advance_routine
+        data:
+          confirmed: true
+    speech:
+      text: "Étape confirmée."
+  MuseRoutinePause:
+    action:
+      - action: script.muse_pause_routine
+    speech:
+      text: "Routine mise en pause."
+  MuseRoutineResume:
+    action:
+      - action: script.muse_resume_routine
+    speech:
+      text: "Je reprends la routine sur l'enceinte sélectionnée."
+  MuseRoutineCancel:
+    action:
+      - action: script.muse_cancel_routine
+    speech:
+      text: "Routine annulée."
+  MuseRoutineStatus:
+    speech:
+      text: >-
+        La routine {{ states('input_select.muse_routine_kind')
+        | replace('_', ' ') }} est {{ states('input_select.muse_routine_status') }},
+        à l'étape {{ states('input_number.muse_routine_step') | int }}.

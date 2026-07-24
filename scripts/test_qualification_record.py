@@ -1,0 +1,1083 @@
+#!/usr/bin/env python3
+"""Unit and negative tests for release qualification records."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+
+import check_qualification_record as checker
+from test_acoustic_guardian_evidence import valid_evidence as valid_acoustic_evidence
+from test_announcement_evidence import valid_evidence as valid_announcement_evidence
+from test_canary_core_evidence import (
+    valid_evidence as valid_canary_core_evidence,
+    write_log_fixtures as write_canary_core_logs,
+)
+from test_family_message_evidence import valid_evidence as valid_family_message_evidence
+from test_hal9_modes_evidence import valid_evidence as valid_modes_evidence
+from test_house_intelligence_evidence import (
+    valid_evidence as valid_house_intelligence_evidence,
+)
+from test_intercom_evidence import valid_evidence as valid_intercom_evidence
+from test_interpreter_evidence import valid_evidence as valid_interpreter_evidence
+from test_music_transfer_evidence import valid_evidence as valid_music_evidence
+from test_night_led_evidence import valid_evidence as valid_night_led_evidence
+from test_offline_rescue_evidence import valid_evidence as valid_rescue_evidence
+from test_physical_controls_evidence import valid_evidence as valid_physical_evidence
+from test_routine_evidence import valid_evidence as valid_routine_evidence
+from test_source_qualification_evidence import (
+    valid_evidence as valid_source_evidence,
+    write_log_fixtures as write_source_logs,
+)
+from test_timer_evidence import valid_evidence as valid_timer_evidence
+from test_video_alert_evidence import valid_evidence as valid_video_alert_evidence
+from test_video_review_evidence import valid_evidence as valid_video_evidence
+from test_endurance_summary import valid_summary
+from monitor_endurance import write_summary
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "scripts/check_qualification_record.py"
+TEMPLATE = ROOT / "docs/qualification-record.example.json"
+COMMIT = "a" * 40
+
+
+def gate() -> dict[str, object]:
+    return {"passed": True, "evidence": "CI run 123456 and reviewed log"}
+
+
+class QualificationRecordTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.directory = Path(self.temporary.name)
+        self.artifact = self.directory / "muse-luxe-2026.1.0-hal.10.ota.bin"
+        self.artifact.write_bytes(b"qualified firmware fixture")
+        self.digest = hashlib.sha256(self.artifact.read_bytes()).hexdigest()
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def record(self, channel: str, version: str) -> dict[str, object]:
+        required = checker.STABLE_GATES if channel == "stable" else checker.BETA_GATES
+        return {
+            "schema_version": 1,
+            "channel": channel,
+            "version": version,
+            "source_commit": COMMIT,
+            "firmware_sha256": self.digest,
+            "reviewer": "Household release reviewer",
+            "reviewed_at": datetime.now(timezone.utc).isoformat(),
+            "canary_device": "muse-luxe-canary-bureau",
+            "compatibility": {
+                "hardware": "Raspiaudio Muse Luxe ESP32",
+                "home_assistant": "2026.7.2",
+                "esphome": "2025.10.5",
+                "esp_idf": "5.4.2",
+            },
+            "feature_scope": ["voice satellite", "local recovery"],
+            "open_gates": [] if channel == "stable" else ["stable gates remain"],
+            "gates": {name: gate() for name in required},
+        }
+
+    def run_check(
+        self,
+        record: dict[str, object],
+        channel: str,
+        version: str,
+        tamper_endurance: bool = False,
+        tamper_modes: bool = False,
+        tamper_physical_controls: bool = False,
+        unbound_physical_controls: bool = False,
+        tamper_night_led: bool = False,
+        unbound_night_led: bool = False,
+        tamper_timer: bool = False,
+        unbound_timer: bool = False,
+        tamper_offline_rescue: bool = False,
+        unbound_offline_rescue: bool = False,
+        split_offline_rescue_gates: bool = False,
+        tamper_interpreter: bool = False,
+        unbound_interpreter: bool = False,
+        tamper_acoustic: bool = False,
+        unbound_acoustic: bool = False,
+        tamper_video: bool = False,
+        unbound_video: bool = False,
+        tamper_family_message: bool = False,
+        unbound_family_message: bool = False,
+        tamper_announcement: bool = False,
+        unbound_announcement: bool = False,
+        tamper_house_intelligence: bool = False,
+        unbound_house_intelligence: bool = False,
+        tamper_routine: bool = False,
+        unbound_routine: bool = False,
+        tamper_video_alert: bool = False,
+        unbound_video_alert: bool = False,
+        tamper_intercom: bool = False,
+        unbound_intercom: bool = False,
+        tamper_music: bool = False,
+        unbound_music: bool = False,
+        tamper_canary_core: bool = False,
+        tamper_canary_log: bool = False,
+        unbound_canary_core: bool = False,
+        split_canary_core: bool = False,
+        tamper_source: bool = False,
+        tamper_source_log: bool = False,
+        unbound_source: bool = False,
+        split_source: bool = False,
+    ) -> subprocess.CompletedProcess[str]:
+        record_path = self.directory / "qualification.json"
+        manifest_path = self.directory / "manifest.json"
+        canary_core_path = self.directory / "canary-core.json"
+        canary_core = valid_canary_core_evidence()
+        canary_core["candidate"]["project_version"] = version
+        canary_core["candidate"]["firmware_sha256"] = self.digest
+        canary_core["candidate"]["source_commit"] = COMMIT
+        write_canary_core_logs(self.directory, canary_core)
+        canary_core_path.write_text(json.dumps(canary_core), encoding="utf-8")
+        canary_core_hash = hashlib.sha256(canary_core_path.read_bytes()).hexdigest()
+        bound_canary_core = (
+            "canary-core.json"
+            if unbound_canary_core
+            else f"sha256:{canary_core_hash} {canary_core_path.name}"
+        )
+        for gate_name in checker.CANARY_CORE_GATES:
+            if gate_name in record["gates"]:
+                record["gates"][gate_name]["evidence"] = bound_canary_core
+        if split_canary_core:
+            duplicate_path = self.directory / "canary-core-duplicate.json"
+            duplicate_path.write_bytes(canary_core_path.read_bytes())
+            record["gates"]["tts_cycles_100"]["evidence"] = (
+                f"sha256:{canary_core_hash} {duplicate_path.name}"
+            )
+        if tamper_canary_core:
+            canary_core_path.write_text("{}\n", encoding="utf-8")
+        if tamper_canary_log:
+            (self.directory / "tts_cycles.log").write_text(
+                "tampered after review\n", encoding="utf-8"
+            )
+        source_path = self.directory / "source.json"
+        source = valid_source_evidence()
+        source["candidate"]["project_version"] = version
+        source["candidate"]["firmware_sha256"] = self.digest
+        source["candidate"]["source_commit"] = COMMIT
+        source["ci"]["head_sha"] = COMMIT
+        source["build"]["first_sha256"] = self.digest
+        source["build"]["second_sha256"] = self.digest
+        source["build"]["size_bytes"] = self.artifact.stat().st_size
+        source["build"]["usage_percent"] = (
+            self.artifact.stat().st_size * 1000 // 2031616 / 10
+        )
+        write_source_logs(self.directory, source)
+        source_path.write_text(json.dumps(source), encoding="utf-8")
+        source_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        bound_source = (
+            "source.json"
+            if unbound_source
+            else f"sha256:{source_hash} {source_path.name}"
+        )
+        source_gates = set(checker.SOURCE_QUALIFICATION_GATES)
+        if channel == "stable":
+            source_gates.add("firmware_size_target")
+        for gate_name in source_gates:
+            if gate_name in record["gates"]:
+                record["gates"][gate_name]["evidence"] = bound_source
+        if split_source:
+            duplicate_path = self.directory / "source-duplicate.json"
+            duplicate_path.write_bytes(source_path.read_bytes())
+            record["gates"]["ci_passed"]["evidence"] = (
+                f"sha256:{source_hash} {duplicate_path.name}"
+            )
+        if tamper_source:
+            source_path.write_text("{}\n", encoding="utf-8")
+        if tamper_source_log:
+            (self.directory / "ci.log").write_text(
+                "tampered after review\n", encoding="utf-8"
+            )
+        modes_path = self.directory / "modes.json"
+        modes = valid_modes_evidence()
+        modes["device"]["project_version"] = version
+        modes_path.write_text(json.dumps(modes), encoding="utf-8")
+        modes_hash = hashlib.sha256(modes_path.read_bytes()).hexdigest()
+        record["gates"]["mode_api_transitions"]["evidence"] = (
+            f"sha256:{modes_hash} {modes_path.name}"
+        )
+        if tamper_modes:
+            modes_path.write_text("{}\n", encoding="utf-8")
+        physical_path = self.directory / "physical-controls.json"
+        physical = valid_physical_evidence(version, self.digest)
+        physical_path.write_text(json.dumps(physical), encoding="utf-8")
+        physical_hash = hashlib.sha256(physical_path.read_bytes()).hexdigest()
+        record["gates"]["physical_controls"]["evidence"] = (
+            "physical-controls.json"
+            if unbound_physical_controls
+            else f"sha256:{physical_hash} {physical_path.name}"
+        )
+        if tamper_physical_controls:
+            physical_path.write_text("{}\n", encoding="utf-8")
+        if channel == "stable":
+            package_path = ROOT / "home-assistant/packages/muse_luxe.yaml"
+            package_hash = hashlib.sha256(package_path.read_bytes()).hexdigest()
+            announcement_path = self.directory / "announcement.json"
+            announcement = valid_announcement_evidence(
+                version,
+                self.digest,
+                package_hash,
+            )
+            announcement_path.write_text(
+                json.dumps(announcement), encoding="utf-8"
+            )
+            announcement_hash = hashlib.sha256(
+                announcement_path.read_bytes()
+            ).hexdigest()
+            record["gates"]["announcement_routing_queue"]["evidence"] = (
+                "announcement.json"
+                if unbound_announcement
+                else f"sha256:{announcement_hash} {announcement_path.name}"
+            )
+            if tamper_announcement:
+                announcement_path.write_text("{}\n", encoding="utf-8")
+            house_package = (
+                ROOT / "home-assistant/packages/muse_house_intelligence.yaml"
+            )
+            opnsense_controller = (
+                ROOT
+                / "opnsense/muse-readonly/controllers/OPNsense/Muse/Api/StatusController.php"
+            )
+            opnsense_acl = (
+                ROOT
+                / "opnsense/muse-readonly/models/OPNsense/Muse/ACL/ACL.xml"
+            )
+            proxmox_policy = ROOT / "scripts/check_proxmox_permissions.py"
+            frigate_policy = ROOT / "scripts/check_frigate_readonly.py"
+            house_path = self.directory / "house-intelligence.json"
+            house = valid_house_intelligence_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(house_package.read_bytes()).hexdigest(),
+                hashlib.sha256(opnsense_controller.read_bytes()).hexdigest(),
+                hashlib.sha256(opnsense_acl.read_bytes()).hexdigest(),
+                hashlib.sha256(proxmox_policy.read_bytes()).hexdigest(),
+                hashlib.sha256(frigate_policy.read_bytes()).hexdigest(),
+            )
+            house_path.write_text(json.dumps(house), encoding="utf-8")
+            house_hash = hashlib.sha256(house_path.read_bytes()).hexdigest()
+            record["gates"]["house_intelligence_freshness"]["evidence"] = (
+                "house-intelligence.json"
+                if unbound_house_intelligence
+                else f"sha256:{house_hash} {house_path.name}"
+            )
+            if tamper_house_intelligence:
+                house_path.write_text("{}\n", encoding="utf-8")
+            routine_package = (
+                ROOT / "home-assistant/packages/muse_interactive_routines.yaml"
+            )
+            routine_sentences = (
+                ROOT / "home-assistant/custom_sentences/fr/muse_routines.yaml"
+            )
+            routine_live_test = ROOT / "scripts/test_home_assistant_routines.py"
+            routine_path = self.directory / "routine.json"
+            routine = valid_routine_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(routine_package.read_bytes()).hexdigest(),
+                hashlib.sha256(routine_sentences.read_bytes()).hexdigest(),
+                hashlib.sha256(routine_live_test.read_bytes()).hexdigest(),
+                hashlib.sha256(house_package.read_bytes()).hexdigest(),
+                package_hash,
+            )
+            routine_path.write_text(json.dumps(routine), encoding="utf-8")
+            routine_hash = hashlib.sha256(routine_path.read_bytes()).hexdigest()
+            record["gates"]["interactive_routine_handoff"]["evidence"] = (
+                "routine.json"
+                if unbound_routine
+                else f"sha256:{routine_hash} {routine_path.name}"
+            )
+            if tamper_routine:
+                routine_path.write_text("{}\n", encoding="utf-8")
+            night_led_path = self.directory / "night-led.json"
+            night_led = valid_night_led_evidence(
+                version,
+                self.digest,
+                package_hash,
+            )
+            night_led_path.write_text(json.dumps(night_led), encoding="utf-8")
+            night_led_hash = hashlib.sha256(night_led_path.read_bytes()).hexdigest()
+            record["gates"]["night_led_profiles"]["evidence"] = (
+                "night-led.json"
+                if unbound_night_led
+                else f"sha256:{night_led_hash} {night_led_path.name}"
+            )
+            if tamper_night_led:
+                night_led_path.write_text("{}\n", encoding="utf-8")
+            if "timer_multi_pause_reconnect" in record["gates"]:
+                timer_package_path = (
+                    ROOT / "home-assistant/packages/muse_timer_coach.yaml"
+                )
+                timer_package_hash = hashlib.sha256(
+                    timer_package_path.read_bytes()
+                ).hexdigest()
+                timer_path = self.directory / "timer.json"
+                timer = valid_timer_evidence(
+                    version,
+                    self.digest,
+                    package_hash,
+                    timer_package_hash,
+                )
+                timer_path.write_text(json.dumps(timer), encoding="utf-8")
+                timer_hash = hashlib.sha256(timer_path.read_bytes()).hexdigest()
+                record["gates"]["timer_multi_pause_reconnect"]["evidence"] = (
+                    "timer.json"
+                    if unbound_timer
+                    else f"sha256:{timer_hash} {timer_path.name}"
+                )
+                if tamper_timer:
+                    timer_path.write_text("{}\n", encoding="utf-8")
+            if {
+                "emergency_offline",
+                "offline_rescue_physical",
+            } <= set(record["gates"]):
+                rescue_package = ROOT / "packages/offline_rescue.yaml"
+                rescue_component = (
+                    ROOT / "components/offline_media/offline_media.cpp"
+                )
+                rescue_path = self.directory / "offline-rescue.json"
+                rescue = valid_rescue_evidence(
+                    version,
+                    self.digest,
+                    hashlib.sha256(rescue_package.read_bytes()).hexdigest(),
+                    hashlib.sha256(rescue_component.read_bytes()).hexdigest(),
+                )
+                rescue_path.write_text(json.dumps(rescue), encoding="utf-8")
+                rescue_hash = hashlib.sha256(rescue_path.read_bytes()).hexdigest()
+                bound_rescue = (
+                    "offline-rescue.json"
+                    if unbound_offline_rescue
+                    else f"sha256:{rescue_hash} {rescue_path.name}"
+                )
+                record["gates"]["offline_rescue_physical"]["evidence"] = (
+                    bound_rescue
+                )
+                record["gates"]["emergency_offline"]["evidence"] = bound_rescue
+                if split_offline_rescue_gates:
+                    duplicate_path = self.directory / "emergency-offline.json"
+                    duplicate_path.write_bytes(rescue_path.read_bytes())
+                    record["gates"]["emergency_offline"]["evidence"] = (
+                        f"sha256:{rescue_hash} {duplicate_path.name}"
+                    )
+                if tamper_offline_rescue:
+                    rescue_path.write_text("{}\n", encoding="utf-8")
+            interpreter_package = (
+                ROOT / "home-assistant/packages/muse_interpreter.yaml"
+            )
+            interpreter_config = ROOT / "scripts/configure_interpreter.py"
+            interpreter_sentences = (
+                ROOT
+                / "home-assistant/custom_sentences/fr/muse_interpreter.yaml"
+            )
+            interpreter_path = self.directory / "interpreter.json"
+            interpreter = valid_interpreter_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(interpreter_package.read_bytes()).hexdigest(),
+                hashlib.sha256(interpreter_config.read_bytes()).hexdigest(),
+                hashlib.sha256(interpreter_sentences.read_bytes()).hexdigest(),
+            )
+            interpreter_path.write_text(json.dumps(interpreter), encoding="utf-8")
+            interpreter_hash = hashlib.sha256(
+                interpreter_path.read_bytes()
+            ).hexdigest()
+            record["gates"]["interpreter_bilingual"]["evidence"] = (
+                "interpreter.json"
+                if unbound_interpreter
+                else f"sha256:{interpreter_hash} {interpreter_path.name}"
+            )
+            if tamper_interpreter:
+                interpreter_path.write_text("{}\n", encoding="utf-8")
+            acoustic_package = (
+                ROOT / "home-assistant/packages/muse_acoustic_guardian.yaml"
+            )
+            acoustic_preparer = (
+                ROOT / "scripts/prepare_frigate_acoustic_guardian.py"
+            )
+            acoustic_policy = (
+                ROOT / "frigate/acoustic-guardian-policy.example.yaml"
+            )
+            acoustic_path = self.directory / "acoustic.json"
+            acoustic = valid_acoustic_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(acoustic_package.read_bytes()).hexdigest(),
+                hashlib.sha256(acoustic_preparer.read_bytes()).hexdigest(),
+                hashlib.sha256(acoustic_policy.read_bytes()).hexdigest(),
+            )
+            acoustic_path.write_text(json.dumps(acoustic), encoding="utf-8")
+            acoustic_hash = hashlib.sha256(acoustic_path.read_bytes()).hexdigest()
+            record["gates"]["acoustic_guardian_physical"]["evidence"] = (
+                "acoustic.json"
+                if unbound_acoustic
+                else f"sha256:{acoustic_hash} {acoustic_path.name}"
+            )
+            if tamper_acoustic:
+                acoustic_path.write_text("{}\n", encoding="utf-8")
+            video_alert_package = (
+                ROOT / "home-assistant/packages/muse_video_alerts.yaml"
+            )
+            video_alert_checker = ROOT / "scripts/check_video_alert_safety.py"
+            video_alert_model = ROOT / "scripts/test_video_alert_model.py"
+            mqtt_provision = ROOT / "scripts/configure_frigate_mqtt.sh"
+            frigate_policy = ROOT / "scripts/check_frigate_readonly.py"
+            video_alert_path = self.directory / "video-alert.json"
+            video_alert = valid_video_alert_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(video_alert_package.read_bytes()).hexdigest(),
+                package_hash,
+                hashlib.sha256(video_alert_checker.read_bytes()).hexdigest(),
+                hashlib.sha256(video_alert_model.read_bytes()).hexdigest(),
+                hashlib.sha256(mqtt_provision.read_bytes()).hexdigest(),
+                hashlib.sha256(frigate_policy.read_bytes()).hexdigest(),
+            )
+            video_alert_path.write_text(
+                json.dumps(video_alert), encoding="utf-8"
+            )
+            video_alert_hash = hashlib.sha256(
+                video_alert_path.read_bytes()
+            ).hexdigest()
+            record["gates"]["camera_alerts_deduplicated"]["evidence"] = (
+                "video-alert.json"
+                if unbound_video_alert
+                else f"sha256:{video_alert_hash} {video_alert_path.name}"
+            )
+            if tamper_video_alert:
+                video_alert_path.write_text("{}\n", encoding="utf-8")
+            intercom_package = ROOT / "home-assistant/packages/muse_intercom.yaml"
+            intercom_sentences = (
+                ROOT / "home-assistant/custom_sentences/fr/muse_intercom.yaml"
+            )
+            intercom_ui = ROOT / "packages/ui.yaml"
+            intercom_recovery = ROOT / "packages/recovery.yaml"
+            intercom_checker = ROOT / "scripts/check_intercom_safety.py"
+            intercom_model = ROOT / "scripts/test_intercom_model.py"
+            intercom_ha_test = ROOT / "scripts/test_home_assistant_intercom.py"
+            intercom_path = self.directory / "intercom.json"
+            intercom = valid_intercom_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(intercom_package.read_bytes()).hexdigest(),
+                package_hash,
+                hashlib.sha256(intercom_sentences.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_ui.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_recovery.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_checker.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_model.read_bytes()).hexdigest(),
+                hashlib.sha256(intercom_ha_test.read_bytes()).hexdigest(),
+            )
+            intercom_path.write_text(json.dumps(intercom), encoding="utf-8")
+            intercom_hash = hashlib.sha256(intercom_path.read_bytes()).hexdigest()
+            record["gates"]["intercom_two_satellite"]["evidence"] = (
+                "intercom.json"
+                if unbound_intercom
+                else f"sha256:{intercom_hash} {intercom_path.name}"
+            )
+            if tamper_intercom:
+                intercom_path.write_text("{}\n", encoding="utf-8")
+            music_package = (
+                ROOT / "home-assistant/packages/muse_music_assistant.yaml"
+            )
+            music_checker = ROOT / "scripts/check_music_assistant_safety.py"
+            music_model = ROOT / "scripts/test_music_assistant_group_model.py"
+            music_ha_test = (
+                ROOT / "scripts/test_home_assistant_music_assistant.py"
+            )
+            music_provisioner = ROOT / "scripts/provision_music_assistant.sh"
+            music_path = self.directory / "music-transfer.json"
+            music = valid_music_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(music_package.read_bytes()).hexdigest(),
+                hashlib.sha256(music_checker.read_bytes()).hexdigest(),
+                hashlib.sha256(music_model.read_bytes()).hexdigest(),
+                hashlib.sha256(music_ha_test.read_bytes()).hexdigest(),
+                hashlib.sha256(music_provisioner.read_bytes()).hexdigest(),
+            )
+            music_path.write_text(json.dumps(music), encoding="utf-8")
+            music_hash = hashlib.sha256(music_path.read_bytes()).hexdigest()
+            record["gates"]["music_transfer_two_satellite"]["evidence"] = (
+                "music-transfer.json"
+                if unbound_music
+                else f"sha256:{music_hash} {music_path.name}"
+            )
+            if tamper_music:
+                music_path.write_text("{}\n", encoding="utf-8")
+            video_package = ROOT / "home-assistant/packages/muse_video_review.yaml"
+            video_dashboard = (
+                ROOT / "home-assistant/dashboards/muse-video-review.yaml"
+            )
+            video_provisioner = (
+                ROOT / "scripts/provision_video_review_dashboard.sh"
+            )
+            video_path = self.directory / "video-review.json"
+            video = valid_video_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(video_package.read_bytes()).hexdigest(),
+                hashlib.sha256(video_dashboard.read_bytes()).hexdigest(),
+                hashlib.sha256(video_provisioner.read_bytes()).hexdigest(),
+            )
+            video_path.write_text(json.dumps(video), encoding="utf-8")
+            video_hash = hashlib.sha256(video_path.read_bytes()).hexdigest()
+            record["gates"]["video_review_authenticated"]["evidence"] = (
+                "video-review.json"
+                if unbound_video
+                else f"sha256:{video_hash} {video_path.name}"
+            )
+            if tamper_video:
+                video_path.write_text("{}\n", encoding="utf-8")
+            family_package = (
+                ROOT / "home-assistant/packages/muse_family_messages.yaml"
+            )
+            family_base = ROOT / "home-assistant/packages/muse_luxe.yaml"
+            family_provisioner = ROOT / "scripts/provision_family_messages.sh"
+            family_path = self.directory / "family-message.json"
+            family = valid_family_message_evidence(
+                version,
+                self.digest,
+                hashlib.sha256(family_package.read_bytes()).hexdigest(),
+                hashlib.sha256(family_base.read_bytes()).hexdigest(),
+                hashlib.sha256(family_provisioner.read_bytes()).hexdigest(),
+            )
+            family_path.write_text(json.dumps(family), encoding="utf-8")
+            family_hash = hashlib.sha256(family_path.read_bytes()).hexdigest()
+            record["gates"]["family_message_delivery"]["evidence"] = (
+                "family-message.json"
+                if unbound_family_message
+                else f"sha256:{family_hash} {family_path.name}"
+            )
+            if tamper_family_message:
+                family_path.write_text("{}\n", encoding="utf-8")
+            summary_path = self.directory / "endurance.summary.json"
+            summary = valid_summary()
+            summary["device"]["project_version"] = version
+            write_summary(summary_path, summary)
+            summary_hash = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+            record["gates"]["idle_endurance_24h"]["evidence"] = (
+                f"sha256:{summary_hash} {summary_path.name}"
+            )
+            if tamper_endurance:
+                summary_path.write_text("{}\n", encoding="utf-8")
+        record_path.write_text(json.dumps(record), encoding="utf-8")
+        manifest_path.write_text(
+            json.dumps({"version": version, "channel": channel}),
+            encoding="utf-8",
+        )
+        return subprocess.run(
+            [
+                "python3",
+                str(SCRIPT),
+                "--record",
+                str(record_path),
+                "--manifest",
+                str(manifest_path),
+                "--artifact",
+                str(self.artifact),
+                "--channel",
+                channel,
+                "--source-commit",
+                COMMIT,
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+    def test_beta_record_passes(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(self.record("beta", version), "beta", version)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_stable_record_passes(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(self.record("stable", version), "stable", version)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_template_and_checker_cover_every_roadmap_gate(self) -> None:
+        template_gates = set(json.loads(TEMPLATE.read_text(encoding="utf-8"))["gates"])
+        self.assertEqual(template_gates, checker.STABLE_GATES)
+        self.assertTrue(checker.ROADMAP_FEATURE_GATES <= checker.STABLE_GATES)
+        self.assertTrue(checker.ROADMAP_FEATURE_GATES.isdisjoint(checker.BETA_GATES))
+
+    def test_missing_gate_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        record["gates"].pop("tts_cycles_100")
+        self.assertNotEqual(self.run_check(record, "beta", version).returncode, 0)
+
+    def test_stable_missing_timer_gate_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        record["gates"].pop("timer_multi_pause_reconnect")
+        self.assertNotEqual(self.run_check(record, "stable", version).returncode, 0)
+
+    def test_false_gate_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        record["gates"]["canary_ota"]["passed"] = False
+        self.assertNotEqual(self.run_check(record, "beta", version).returncode, 0)
+
+    def test_hash_mismatch_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        record["firmware_sha256"] = "0" * 64
+        self.assertNotEqual(self.run_check(record, "beta", version).returncode, 0)
+
+    def test_commit_mismatch_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        record["source_commit"] = "b" * 40
+        self.assertNotEqual(self.run_check(record, "beta", version).returncode, 0)
+
+    def test_stable_prerelease_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-rc.1"
+        record = self.record("stable", version)
+        self.assertNotEqual(self.run_check(record, "stable", version).returncode, 0)
+
+    def test_stable_open_gate_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        record["open_gates"] = ["physical gate remains"]
+        self.assertNotEqual(self.run_check(record, "stable", version).returncode, 0)
+
+    def test_stable_unbound_endurance_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        record["gates"]["idle_endurance_24h"]["evidence"] = "missing.json"
+        # Write the record directly so run_check cannot replace this fixture.
+        record_path = self.directory / "qualification.json"
+        manifest_path = self.directory / "manifest.json"
+        record_path.write_text(json.dumps(record), encoding="utf-8")
+        manifest_path.write_text(
+            json.dumps({"version": version, "channel": "stable"}), encoding="utf-8"
+        )
+        result = subprocess.run(
+            [
+                "python3",
+                str(SCRIPT),
+                "--record",
+                str(record_path),
+                "--manifest",
+                str(manifest_path),
+                "--artifact",
+                str(self.artifact),
+                "--channel",
+                "stable",
+                "--source-commit",
+                COMMIT,
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_stable_tampered_endurance_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record, "stable", version, tamper_endurance=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_modes_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        result = self.run_check(record, "beta", version, tamper_modes=True)
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_source_evidence_or_log_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        for option in ({"tamper_source": True}, {"tamper_source_log": True}):
+            with self.subTest(option=option):
+                result = self.run_check(
+                    self.record("beta", version), "beta", version, **option
+                )
+                self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_source_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version), "beta", version, unbound_source=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_split_source_gate_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version), "beta", version, split_source=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_canary_core_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version),
+            "beta",
+            version,
+            tamper_canary_core=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_canary_core_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version),
+            "beta",
+            version,
+            unbound_canary_core=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_canary_raw_log_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version),
+            "beta",
+            version,
+            tamper_canary_log=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_split_canary_core_gate_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        result = self.run_check(
+            self.record("beta", version),
+            "beta",
+            version,
+            split_canary_core=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_modes_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        record["gates"]["mode_api_transitions"]["evidence"] = "modes.json"
+        record_path = self.directory / "qualification.json"
+        manifest_path = self.directory / "manifest.json"
+        record_path.write_text(json.dumps(record), encoding="utf-8")
+        manifest_path.write_text(
+            json.dumps({"version": version, "channel": "beta"}), encoding="utf-8"
+        )
+        result = subprocess.run(
+            [
+                "python3", str(SCRIPT), "--record", str(record_path),
+                "--manifest", str(manifest_path), "--artifact", str(self.artifact),
+                "--channel", "beta", "--source-commit", COMMIT,
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_physical_controls_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        result = self.run_check(
+            record,
+            "beta",
+            version,
+            tamper_physical_controls=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_physical_controls_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10-beta.1"
+        record = self.record("beta", version)
+        result = self.run_check(
+            record,
+            "beta",
+            version,
+            unbound_physical_controls=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_night_led_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record,
+            "stable",
+            version,
+            tamper_night_led=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_night_led_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record,
+            "stable",
+            version,
+            unbound_night_led=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_timer_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record,
+            "stable",
+            version,
+            tamper_timer=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_timer_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        record = self.record("stable", version)
+        result = self.run_check(
+            record,
+            "stable",
+            version,
+            unbound_timer=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_offline_rescue_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_offline_rescue=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_offline_rescue_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_offline_rescue=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_split_offline_rescue_gate_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            split_offline_rescue_gates=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_interpreter_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_interpreter=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_interpreter_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_interpreter=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_acoustic_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_acoustic=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_acoustic_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_acoustic=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_video_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_video=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_video_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_video=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_family_message_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_family_message=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_family_message_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_family_message=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_announcement_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_announcement=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_announcement_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_announcement=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_house_intelligence_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_house_intelligence=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_house_intelligence_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_house_intelligence=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_routine_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_routine=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_routine_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_routine=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_video_alert_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_video_alert=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_video_alert_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_video_alert=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_intercom_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_intercom=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_intercom_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_intercom=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_tampered_music_transfer_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            tamper_music=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unbound_music_transfer_evidence_is_rejected(self) -> None:
+        version = "2026.1.0-hal.10"
+        result = self.run_check(
+            self.record("stable", version),
+            "stable",
+            version,
+            unbound_music=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+
+
+if __name__ == "__main__":
+    unittest.main()

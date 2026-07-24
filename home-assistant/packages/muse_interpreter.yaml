@@ -1,0 +1,382 @@
+input_boolean:
+  muse_interpreter_active:
+    name: Muse interpreter active
+    icon: mdi:translate-variant
+
+input_select:
+  muse_interpreter_direction:
+    name: Muse interpreter direction
+    options:
+      - inactive
+      - fr_to_en
+      - en_to_fr
+    icon: mdi:swap-horizontal
+
+input_text:
+  muse_interpreter_previous_pipeline:
+    name: Muse interpreter previous pipeline
+    max: 100
+    icon: mdi:backup-restore
+
+timer:
+  muse_interpreter_session:
+    name: Muse interpreter session
+    duration: "00:10:00"
+    restore: false
+    icon: mdi:timer-sand
+
+template:
+  - sensor:
+      - name: Muse interpreter status
+        unique_id: muse_interpreter_status
+        icon: mdi:account-voice
+        state: >-
+          {{ states('input_select.muse_interpreter_direction')
+             if is_state('input_boolean.muse_interpreter_active', 'on')
+             else 'inactive' }}
+        attributes:
+          active: "{{ is_state('input_boolean.muse_interpreter_active', 'on') }}"
+          direction: "{{ states('input_select.muse_interpreter_direction') }}"
+          remaining: "{{ state_attr('timer.muse_interpreter_session', 'remaining') }}"
+          pipeline: "{{ states('select.raspiaudio_muse_luxe_assistant') }}"
+          local_only: "{{ true }}"
+          tools_enabled: "{{ false }}"
+          history_previous_rounds: 1
+          context_cleared_on_exit: "{{ true }}"
+          maximum_session_seconds: 600
+          exit_controls: triple_click_privacy_or_timeout
+
+script:
+  muse_start_interpreter:
+    alias: Muse - start local interpreter
+    description: >-
+      Starts one of two tool-free local translation pipelines for at most ten
+      minutes and retains the previous Muse pipeline for deterministic restore.
+    icon: mdi:translate
+    mode: single
+    fields:
+      direction:
+        name: Direction
+        required: true
+        selector:
+          select:
+            options:
+              - fr_to_en
+              - en_to_fr
+      announce:
+        name: Announce transition
+        required: false
+        default: true
+        selector:
+          boolean:
+    variables:
+      requested_direction: "{{ direction | string }}"
+      requested_pipeline: >-
+        {% if requested_direction == 'fr_to_en' %}
+          Interprete - Francais vers anglais
+        {% elif requested_direction == 'en_to_fr' %}
+          Interprete - Anglais vers francais
+        {% else %}
+          invalid
+        {% endif %}
+      current_pipeline: "{{ states('select.raspiaudio_muse_luxe_assistant') }}"
+      interpreter_pipelines:
+        - Interprete - Francais vers anglais
+        - Interprete - Anglais vers francais
+      should_announce: "{{ announce | default(true) | bool }}"
+    sequence:
+      - if:
+          - condition: state
+            entity_id: switch.raspiaudio_muse_luxe_privacy_mode
+            state: "on"
+        then:
+          - stop: "Privacy mode blocks interpreter microphone sessions."
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ requested_direction not in ['fr_to_en', 'en_to_fr'] }}
+        then:
+          - stop: "Unsupported interpreter direction."
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ requested_pipeline not in
+                 state_attr('select.raspiaudio_muse_luxe_assistant', 'options')
+                 | default([], true)
+                 or requested_pipeline not in
+                 state_attr('select.raspiaudio_muse_luxe_assistant_2', 'options')
+                 | default([], true) }}
+        then:
+          - stop: "The local interpreter pipeline is unavailable."
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ is_state('input_boolean.muse_interpreter_active', 'off')
+                 and current_pipeline not in interpreter_pipelines }}
+        then:
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.muse_interpreter_previous_pipeline
+            data:
+              value: "{{ current_pipeline }}"
+      - if:
+          - condition: template
+            value_template: "{{ should_announce }}"
+        then:
+          - action: script.muse_announce
+            data:
+              message: >-
+                {% if requested_direction == 'fr_to_en' %}
+                  Interprète local activé, du français vers l'anglais.
+                {% else %}
+                  Interprète local activé, de l'anglais vers le français.
+                {% endif %}
+                Appuyez trois fois pour quitter. Arrêt automatique dans dix minutes.
+              targets:
+                - media_player.raspiaudio_muse_luxe
+              priority: normal
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_interpreter_direction
+        data:
+          option: "{{ requested_direction }}"
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.muse_interpreter_active
+      - action: select.select_option
+        target:
+          entity_id:
+            - select.raspiaudio_muse_luxe_assistant
+            - select.raspiaudio_muse_luxe_assistant_2
+        data:
+          option: "{{ requested_pipeline }}"
+      - action: switch.turn_on
+        target:
+          entity_id: switch.raspiaudio_muse_luxe_continuous_conversation
+      - action: timer.start
+        target:
+          entity_id: timer.muse_interpreter_session
+        data:
+          duration: "00:10:00"
+      - action: logbook.log
+        data:
+          name: Muse interpreter
+          message: >-
+            Started {{ requested_direction }} with tool-free local pipeline;
+            previous={{ states('input_text.muse_interpreter_previous_pipeline') }}.
+          entity_id: sensor.muse_interpreter_status
+
+  muse_swap_interpreter_direction:
+    alias: Muse - swap interpreter direction
+    description: Swaps between the two fixed local translation pipelines.
+    icon: mdi:swap-horizontal-bold
+    mode: single
+    fields:
+      announce:
+        name: Announce transition
+        required: false
+        default: true
+        selector:
+          boolean:
+    variables:
+      next_direction: >-
+        {{ 'en_to_fr'
+           if is_state('input_select.muse_interpreter_direction', 'fr_to_en')
+           else 'fr_to_en' }}
+      next_pipeline: >-
+        {{ 'Interprete - Anglais vers francais'
+           if next_direction == 'en_to_fr'
+           else 'Interprete - Francais vers anglais' }}
+      should_announce: "{{ announce | default(true) | bool }}"
+    sequence:
+      - condition: state
+        entity_id: input_boolean.muse_interpreter_active
+        state: "on"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_interpreter_direction
+        data:
+          option: "{{ next_direction }}"
+      - action: select.select_option
+        target:
+          entity_id:
+            - select.raspiaudio_muse_luxe_assistant
+            - select.raspiaudio_muse_luxe_assistant_2
+        data:
+          option: "{{ next_pipeline }}"
+      - action: timer.start
+        target:
+          entity_id: timer.muse_interpreter_session
+        data:
+          duration: "00:10:00"
+      - if:
+          - condition: template
+            value_template: "{{ should_announce }}"
+        then:
+          - action: script.muse_announce
+            data:
+              message: >-
+                {% if next_direction == 'fr_to_en' %}
+                  Sens français vers anglais.
+                {% else %}
+                  Sens anglais vers français.
+                {% endif %}
+              targets:
+                - media_player.raspiaudio_muse_luxe
+              priority: normal
+
+  muse_stop_interpreter:
+    alias: Muse - stop local interpreter
+    description: Stops continuous listening and restores the previous Muse pipeline.
+    icon: mdi:translate-off
+    mode: single
+    fields:
+      announce:
+        name: Announce transition
+        required: false
+        default: true
+        selector:
+          boolean:
+    variables:
+      was_active: "{{ is_state('input_boolean.muse_interpreter_active', 'on') }}"
+      stored_pipeline: >-
+        {{ states('input_text.muse_interpreter_previous_pipeline') }}
+      fallback_pipeline: Maison - LFM 1.2 actions
+      restore_pipeline: >-
+        {{ stored_pipeline
+           if stored_pipeline in
+              state_attr('select.raspiaudio_muse_luxe_assistant', 'options')
+              | default([], true)
+           else fallback_pipeline }}
+      should_announce: "{{ announce | default(true) | bool }}"
+    sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.muse_interpreter_active
+      - action: switch.turn_off
+        target:
+          entity_id: switch.raspiaudio_muse_luxe_continuous_conversation
+      - action: esphome.muse_luxe_clear_conversation_context
+      - action: select.select_option
+        target:
+          entity_id:
+            - select.raspiaudio_muse_luxe_assistant
+            - select.raspiaudio_muse_luxe_assistant_2
+        data:
+          option: "{{ restore_pipeline }}"
+      - action: timer.cancel
+        target:
+          entity_id: timer.muse_interpreter_session
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.muse_interpreter_direction
+        data:
+          option: inactive
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.muse_interpreter_previous_pipeline
+        data:
+          value: ""
+      - if:
+          - condition: template
+            value_template: "{{ was_active and should_announce }}"
+        then:
+          - action: script.muse_announce
+            data:
+              message: "Mode interprète arrêté. Assistant maison restauré."
+              targets:
+                - media_player.raspiaudio_muse_luxe
+              priority: normal
+      - action: logbook.log
+        data:
+          name: Muse interpreter
+          message: "Stopped interpreter; restored={{ restore_pipeline }}."
+          entity_id: sensor.muse_interpreter_status
+
+automation:
+  - id: muse_interpreter_exit_on_continuous_stop
+    alias: Muse - exit interpreter when continuous listening stops
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id: switch.raspiaudio_muse_luxe_continuous_conversation
+        to: "off"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_interpreter_active
+        state: "on"
+    actions:
+      - action: script.muse_stop_interpreter
+        data:
+          announce: false
+
+  - id: muse_interpreter_exit_on_privacy
+    alias: Muse - exit interpreter on privacy mode
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id: switch.raspiaudio_muse_luxe_privacy_mode
+        to: "on"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_interpreter_active
+        state: "on"
+    actions:
+      - action: script.muse_stop_interpreter
+        data:
+          announce: false
+
+  - id: muse_interpreter_exit_on_timeout
+    alias: Muse - exit interpreter after bounded timeout
+    mode: single
+    triggers:
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.muse_interpreter_session
+    actions:
+      - action: script.muse_stop_interpreter
+        data:
+          announce: false
+
+  - id: muse_interpreter_recover_after_ha_restart
+    alias: Muse - recover interpreter after Home Assistant restart
+    mode: single
+    triggers:
+      - trigger: homeassistant
+        event: start
+    conditions:
+      - condition: state
+        entity_id: input_boolean.muse_interpreter_active
+        state: "on"
+    actions:
+      - delay: "00:00:05"
+      - action: script.muse_stop_interpreter
+        data:
+          announce: false
+
+intent_script:
+  MuseInterpreterStart:
+    action:
+      - action: script.muse_start_interpreter
+        data:
+          direction: "{{ direction }}"
+          announce: false
+    speech:
+      text: >-
+        Mode interprète activé pour dix minutes. Appuyez trois fois pour quitter.
+  MuseInterpreterStop:
+    action:
+      - action: script.muse_stop_interpreter
+        data:
+          announce: false
+    speech:
+      text: "Mode interprète arrêté. Assistant maison restauré."
+  MuseInterpreterStatus:
+    speech:
+      text: >-
+        Le mode interprète est
+        {{ states('sensor.muse_interpreter_status') | replace('_', ' ') }}.

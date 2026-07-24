@@ -1,0 +1,44 @@
+title: Revue video Muse
+views:
+  - title: Revue
+    path: review
+    icon: mdi:image-lock-outline
+    badges: []
+    cards:
+      - type: entities
+        title: Fenetre de revue locale
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.muse_video_review_enabled
+          - entity: input_select.muse_video_review_destination
+          - entity: timer.muse_video_review_window
+          - entity: input_datetime.muse_video_review_event_at
+          - entity: input_text.muse_video_review_event_id
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_select.muse_video_review_camera
+            state: sonnette
+        card:
+          type: picture-entity
+          entity: image.sonnette_person
+          name: Derniere personne - sonnette
+          camera_view: auto
+          show_name: true
+          show_state: false
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: input_select.muse_video_review_camera
+            state: avant_jardin
+        card:
+          type: picture-entity
+          entity: image.avant_jardin_person
+          name: Derniere personne - avant jardin
+          camera_view: auto
+          show_name: true
+          show_state: false
+      - type: markdown
+        content: >-
+          Cette vue utilise seulement les entites image authentifiees de Home
+          Assistant. Elle n'identifie personne et ne confirme jamais une alerte.

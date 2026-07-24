@@ -1,0 +1,51 @@
+# Muse Luxe hardware package. Included by luxe_microWW.yaml.
+
+external_components:
+    - source:
+        type: local
+        path: components
+      components: [es8388, lean_diagnostics, offline_media]
+
+
+esp32:
+  board: esp-wrover-kit
+  cpu_frequency: 240MHz
+  flash_size: 4MB
+  partitions: luxe_partitions.csv
+  framework:
+    type: esp-idf
+    version: 5.4.2
+    sdkconfig_options:
+      CONFIG_ESP_CONSOLE_USB_CDC: "n"
+      CONFIG_ESP_CONSOLE_UART_DEFAULT: "y"
+      CONFIG_ESP_CONSOLE_UART_NUM: "0"
+      CONFIG_ESP_CONSOLE_UART_BAUDRATE: "115200"
+
+
+es8388:
+   id: my_es8388
+
+
+psram:
+  mode: quad
+  speed: 80MHz
+
+#######
+# Buses Configuration
+
+i2c:
+  sda: GPIO18
+  scl: GPIO23
+
+
+#####################
+# Internal Components
+
+output:
+  - platform: gpio
+    id: dac_mute
+    pin:
+      number: GPIO21
+      inverted: true
+      mode:
+        output: true

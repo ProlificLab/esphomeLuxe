@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "intercom_package_sha256": "REPLACE_WITH_INTERCOM_PACKAGE_SHA256",
+    "base_package_sha256": "REPLACE_WITH_BASE_PACKAGE_SHA256",
+    "sentences_sha256": "REPLACE_WITH_SENTENCES_SHA256",
+    "ui_package_sha256": "REPLACE_WITH_UI_PACKAGE_SHA256",
+    "recovery_package_sha256": "REPLACE_WITH_RECOVERY_PACKAGE_SHA256",
+    "safety_checker_sha256": "REPLACE_WITH_SAFETY_CHECKER_SHA256",
+    "model_test_sha256": "REPLACE_WITH_MODEL_TEST_SHA256",
+    "ha_test_sha256": "REPLACE_WITH_HA_TEST_SHA256"
+  },
+  "observer": "REPLACE_WITH_REVIEWER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "observed_players": [
+    "media_player.raspiaudio_muse_luxe",
+    "media_player.muse_luxe_cuisine"
+  ],
+  "observed_devices": ["muse-luxe", "muse-luxe-cuisine"],
+  "runtime": {
+    "room_players": {
+      "bureau": "media_player.raspiaudio_muse_luxe",
+      "cuisine": "media_player.muse_luxe_cuisine"
+    },
+    "device_rooms": {
+      "muse-luxe": "bureau",
+      "muse-luxe-cuisine": "cuisine"
+    },
+    "ring_timeout_seconds": 45,
+    "session_timeout_seconds": 300,
+    "maximum_transcript_characters": 240,
+    "relay_queue_capacity": 5,
+    "transport": "transcribed_push_to_talk",
+    "origin_policy": "explicit_room_or_trusted_device_event",
+    "single_click": "accept_or_manual_listen",
+    "double_click": "decline_or_hangup",
+    "raw_audio": false,
+    "duplex": false
+  },
+  "metrics": {
+    "calls_bureau_to_cuisine": 0,
+    "calls_cuisine_to_bureau": 0,
+    "accepted_calls": 0,
+    "declined_calls": 0,
+    "participant_hangups": 0,
+    "ring_timeouts": 0,
+    "session_timeouts": 0,
+    "relays_bureau_to_cuisine": 0,
+    "relays_cuisine_to_bureau": 0,
+    "button_actions": 0,
+    "session_mismatch_rejections": 0,
+    "unavailable_player_rejections": 0,
+    "audible_actions": 0,
+    "carillons_heard": 0,
+    "visible_led_signals": 0,
+    "relay_attempts": 0,
+    "recognition_errors": -1,
+    "recognition_error_rate": -1,
+    "p95_transcript_to_speech_latency_seconds": -1,
+    "max_transcript_to_speech_latency_seconds": -1,
+    "ghost_channels": -1,
+    "raw_audio_sessions": -1,
+    "transcript_artifacts": -1,
+    "external_deliveries": -1,
+    "music_restore_errors": -1,
+    "urgent_preemption_errors": -1
+  },
+  "final_state": {
+    "enabled": "REPLACE",
+    "status": "REPLACE",
+    "caller_room": "REPLACE",
+    "target_room": "REPLACE",
+    "session_id": "REPLACE",
+    "last_event": "REPLACE",
+    "ring_timer": "REPLACE",
+    "session_timer": "REPLACE",
+    "player_states": {
+      "media_player.raspiaudio_muse_luxe": "REPLACE",
+      "media_player.muse_luxe_cuisine": "REPLACE"
+    },
+    "voice_states": {
+      "muse-luxe": "REPLACE",
+      "muse-luxe-cuisine": "REPLACE"
+    },
+    "voice_health": {
+      "muse-luxe": "REPLACE",
+      "muse-luxe-cuisine": "REPLACE"
+    },
+    "music_restored": false,
+    "active_channel": true
+  },
+  "scenarios": {
+    "accept_button_is_target_only": {"passed": false, "evidence": "REPLACE"},
+    "acceptance_chime_precedes_connected_state": {"passed": false, "evidence": "REPLACE"},
+    "bureau_calls_cuisine_explicitly": {"passed": false, "evidence": "REPLACE"},
+    "bureau_reboot_leaves_no_channel": {"passed": false, "evidence": "REPLACE"},
+    "call_chime_and_led_precede_ringing_state": {"passed": false, "evidence": "REPLACE"},
+    "caller_button_cannot_accept": {"passed": false, "evidence": "REPLACE"},
+    "concurrent_call_is_rejected": {"passed": false, "evidence": "REPLACE"},
+    "connected_single_click_starts_manual_listen": {"passed": false, "evidence": "REPLACE"},
+    "cuisine_calls_bureau_explicitly": {"passed": false, "evidence": "REPLACE"},
+    "cuisine_reboot_leaves_no_channel": {"passed": false, "evidence": "REPLACE"},
+    "decline_button_is_target_only": {"passed": false, "evidence": "REPLACE"},
+    "disabled_opt_in_rejects_call": {"passed": false, "evidence": "REPLACE"},
+    "empty_transcript_is_rejected": {"passed": false, "evidence": "REPLACE"},
+    "ha_restart_leaves_no_channel": {"passed": false, "evidence": "REPLACE"},
+    "hangup_button_works_for_each_participant": {"passed": false, "evidence": "REPLACE"},
+    "logbook_omits_transcript_content": {"passed": false, "evidence": "REPLACE"},
+    "music_is_restored_after_intercom": {"passed": false, "evidence": "REPLACE"},
+    "notifications_and_backups_omit_transcripts": {"passed": false, "evidence": "REPLACE"},
+    "old_queued_relay_is_rejected_after_new_session": {"passed": false, "evidence": "REPLACE"},
+    "relay_bureau_to_cuisine_is_audible": {"passed": false, "evidence": "REPLACE"},
+    "relay_cuisine_to_bureau_is_audible": {"passed": false, "evidence": "REPLACE"},
+    "relay_refreshes_five_minute_timeout": {"passed": false, "evidence": "REPLACE"},
+    "ring_timeout_closes_after_45_seconds": {"passed": false, "evidence": "REPLACE"},
+    "same_room_call_is_rejected": {"passed": false, "evidence": "REPLACE"},
+    "session_timeout_closes_after_300_seconds": {"passed": false, "evidence": "REPLACE"},
+    "stale_accept_decline_and_hangup_are_rejected": {"passed": false, "evidence": "REPLACE"},
+    "transcript_241_characters_is_rejected": {"passed": false, "evidence": "REPLACE"},
+    "transcript_is_absent_from_helpers": {"passed": false, "evidence": "REPLACE"},
+    "unknown_player_is_rejected_without_mutation": {"passed": false, "evidence": "REPLACE"},
+    "unavailable_player_is_rejected_without_mutation": {"passed": false, "evidence": "REPLACE"},
+    "urgent_announcement_preempts_intercom_cleanly": {"passed": false, "evidence": "REPLACE"}
+  }
+}

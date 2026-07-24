@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "hardware": "Raspiaudio Muse Luxe ESP32",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "source_commit": "REPLACE_WITH_FULL_40_CHARACTER_COMMIT"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "started_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "finished_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "limits": {
+    "max_wifi_recovery_seconds": 10,
+    "max_ha_recovery_seconds": 10,
+    "max_reboot_recovery_seconds": 20
+  },
+  "logs": {
+    "canary_ota": "sha256:REPLACE canary-ota.log",
+    "reboot_recovery": "sha256:REPLACE reboot-recovery.log",
+    "wifi_recovery": "sha256:REPLACE wifi-recovery.log",
+    "ha_restart_recovery": "sha256:REPLACE ha-restart-recovery.log",
+    "privacy_reboot": "sha256:REPLACE privacy-reboot.log",
+    "tts_cycles": "sha256:REPLACE tts-cycles.log",
+    "rollback_artifact": "sha256:REPLACE rollback-artifact.log"
+  },
+  "tests": {
+    "canary_ota": {
+      "attempted": 0,
+      "completed": 0,
+      "installed_sha256_match": false,
+      "exact_version": false,
+      "final_state": "REPLACE",
+      "final_health": "REPLACE",
+      "final_error": "REPLACE",
+      "manual_interventions": -1
+    },
+    "reboot_recovery": {
+      "attempted": 0,
+      "completed": 0,
+      "max_recovery_seconds": -1,
+      "manual_interventions": -1,
+      "final_state": "REPLACE",
+      "final_health": "REPLACE",
+      "final_error": "REPLACE"
+    },
+    "wifi_recovery": {
+      "attempted": 0,
+      "completed": 0,
+      "max_recovery_seconds": -1,
+      "manual_interventions": -1,
+      "final_state": "REPLACE",
+      "final_health": "REPLACE",
+      "final_error": "REPLACE"
+    },
+    "ha_restart_recovery": {
+      "attempted": 0,
+      "completed": 0,
+      "max_recovery_seconds": -1,
+      "manual_interventions": -1,
+      "final_state": "REPLACE",
+      "final_health": "REPLACE",
+      "final_error": "REPLACE"
+    },
+    "privacy_reboot": {
+      "persisted": false,
+      "cleared": false,
+      "final_state": "REPLACE",
+      "final_health": "REPLACE",
+      "final_error": "REPLACE"
+    },
+    "tts_cycles": {
+      "requested": 0,
+      "completed": 0,
+      "heard": 0,
+      "failures": -1,
+      "ring_buffer_resets": -1,
+      "voice_errors": -1,
+      "final_state": "REPLACE",
+      "final_health": "REPLACE",
+      "final_error": "REPLACE"
+    },
+    "rollback_artifact": {
+      "version": "2025.3.1-hal.6",
+      "sha256": "REPLACE_WITH_HAL6_SHA256",
+      "md5": "REPLACE_WITH_HAL6_MD5",
+      "size_bytes": 0,
+      "stored_offline": false,
+      "verified": false
+    }
+  }
+}

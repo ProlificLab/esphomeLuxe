@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "base_package_sha256": "REPLACE_WITH_MUSE_LUXE_PACKAGE_SHA256",
+    "timer_package_sha256": "REPLACE_WITH_TIMER_COACH_PACKAGE_SHA256"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "metrics": {
+    "named_timers_created": 0,
+    "distinct_timer_names": ["REPLACE", "REPLACE"],
+    "day_checkpoint_counts": {"300": 0, "60": 0, "30": 0, "10": 0},
+    "night_checkpoint_counts": {"300": 0, "60": 0, "30": 0, "10": 0},
+    "replayed_checkpoints_after_reconnect": -1,
+    "local_completion_sounds_after_ha_disconnect": 0
+  },
+  "scenarios": {
+    "cancel_one_preserves_other": {"passed": false, "evidence": "REPLACE"},
+    "checkpoints_once_day": {"passed": false, "evidence": "REPLACE"},
+    "checkpoints_once_night": {"passed": false, "evidence": "REPLACE"},
+    "conversation_queue_drains_in_order": {"passed": false, "evidence": "REPLACE"},
+    "duration_change_preserved": {"passed": false, "evidence": "REPLACE"},
+    "ha_disconnect_local_completion_audio": {"passed": false, "evidence": "REPLACE"},
+    "ha_disconnect_local_countdown": {"passed": false, "evidence": "REPLACE"},
+    "music_queue_drains_in_order": {"passed": false, "evidence": "REPLACE"},
+    "pause_resume_each_timer": {"passed": false, "evidence": "REPLACE"},
+    "reconnect_no_checkpoint_replay": {"passed": false, "evidence": "REPLACE"},
+    "two_named_timers_visible": {"passed": false, "evidence": "REPLACE"},
+    "urgent_interrupt_preserves_completion": {"passed": false, "evidence": "REPLACE"}
+  }
+}

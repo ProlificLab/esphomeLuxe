@@ -1,0 +1,19 @@
+# Muse Luxe updates package. Included by luxe_microWW.yaml.
+
+ota:
+  - platform: esphome
+    id: ota_esphome
+    password: !secret ota_password
+  - platform: http_request
+    id: ota_http_request
+
+
+update:
+  - platform: http_request
+    id: update_http_request
+    name: Firmware
+#    source: https://raw.githubusercontent.com/RASPIAUDIO/raspiaudio.github.io/main/MuseRadio/Homeassistant/manifest_update.json
+    source: !secret update_manifest_url
+
+
+http_request:

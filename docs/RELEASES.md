@@ -1,0 +1,314 @@
+# Release channels
+
+- `development`: automatic clean CI artifact for one canary; never advertised
+  by the production updater.
+- `beta`: reviewed JSON qualification record, clean rebuild and private family
+  test channel.
+- `stable`: non-prerelease version, clean rebuild, all physical and endurance
+  gates, rollback test and reviewed JSON qualification record.
+
+## Qualification record
+
+Copy `docs/qualification-record.example.json` into the ignored `release/`
+directory. Never mark a gate passed until its `evidence` points to a reviewed
+CI run, baseline, machine log or physical test record. The checker binds the
+record to all of the following:
+
+- exact beta/stable channel and project version;
+- full 40-character source commit and a clean worktree;
+- SHA-256 of the freshly rebuilt production OTA artifact;
+- reviewer, timezone-aware review time no older than 30 days and canary ID;
+- exact hardware, Home Assistant, ESPHome and ESP-IDF compatibility matrix;
+- qualified feature scope, explicit beta open gates and no stable open gate;
+- 13 mandatory beta gates or all 33 stable gates.
+
+Beta includes reproducible build, CI, hard size limit, secrets audit, rollback
+artifact, canary OTA, ten reboot/Wi-Fi/HA recovery cycles, privacy reboot,
+version-bound API mode transitions, physical controls and 100 TTS cycles.
+Stable additionally requires the 93%
+size target, 24-hour idle, acoustic calibration, exercised rollback,
+second-person install and explicit gates for every `hal.9` family: routed
+announcements, timers, night LED, deferred messages, house facts, routine
+handoff, authenticated video review and the acoustic guardian, in addition to
+intercom, audio transfer, interpreter, camera alerts and offline rescue.
+
+Seven beta gates share one mandatory hash-bound
+`canary-core-VERSION.json`: `canary_ota`, `reboot_recovery_10`,
+`wifi_recovery_10`, `ha_restart_recovery_10`, `privacy_reboot`,
+`tts_cycles_100` and `rollback_artifact_verified`. The record binds the device,
+source commit, version and OTA SHA-256, enforces exact counts and strict
+recovery deadlines, and itself binds seven raw logs by SHA-256. All seven gate
+strings must be identical; prose, split records and modified logs are rejected.
+Follow `docs/CANARY_QUALIFICATION.md` for the closed physical order.
+`scripts/seal_canary_core_evidence.py` is the only supported way to turn the
+reviewed draft into a passing record. It recalculates identity and every hash,
+requires the clean source commit and passing endurance preflight, refuses
+overwrite, and atomically publishes the record only after full validation.
+
+Four beta source gates share one hash-bound `source-VERSION.json`:
+`build_reproducible`, `ci_passed`, `firmware_size_hard_limit` and
+`secrets_audit`; stable adds `firmware_size_target` to that same record. It
+requires two identical pinned builds, the exact successful-commit CI run,
+recomputed OTA size limits and five raw logs. The secret audit compares at
+least three real private values against every tracked file without writing
+those values to its report. Follow `docs/SOURCE_QUALIFICATION.md`; example
+credentials cannot pass.
+The source record must be published with
+`seal_source_qualification_evidence.py`: it derives every identity and metric
+from the clean commit, exact OTA and five raw logs, validates the complete
+record, refuses overwrite and exposes it through an atomic no-clobber link.
+`collect_source_qualification.sh` is the supported producer: it requires the
+YAML version, clean Git and three real private values, performs two pinned clean
+builds, rejects unequal hashes or leaked values in any retained log, enforces
+the flash budget and only then invokes the source sealer.
+The selected rotated secrets file is the exact read-only `/config/secrets.yaml`
+mount for both builds. An exact-commit CI preflight runs before compilation;
+auditing one file while compiling another is a release-blocking failure.
+Source evidence schema v2 binds the SHA-256 of that private file into both
+build logs and the sealed record. The rotation installer compares this binding
+with the new bundle before any confirmation or device write.
+The two builds also share `SOURCE_DATE_EPOCH` derived from the exact source
+commit and bind it in both logs and the record. This neutralizes ESPHome's
+embedded `__DATE__`/`__TIME__`; dependency pinning alone is not a bit-for-bit
+reproducibility guarantee.
+
+Prepare the post-endurance credential transition with
+`scripts/prepare_secret_rotation.py` and `docs/SECRET_ROTATION.md`. Preparation
+is offline, no-clobber and non-disclosing: it generates three independent
+credentials, keeps only the old OTA password in a private transition file and
+performs no device or network action. It now requires a fresh successful 24-hour
+summary for the exact candidate before generating anything, and binds its digest,
+version and finish time into rotation-manifest schema v2. Installation requires
+the same summary, so a premature or recycled bundle cannot pass.
+`install_rotated_canary_ota.sh` is the only supported transition path after
+endurance: old OTA upload and new encrypted-API verification are separate,
+ordered credentials. It additionally requires the exact schema-v2 source
+record proving the candidate was built with the bundle's new credentials.
+Local activation is atomic, resumable and occurs only after exact healthy boot;
+partial or unrelated active secret sets fail closed.
+
+Starting with `hal.9.0-alpha.4`, the 93% target is also a blocking source-CI
+gate. Any main OTA larger than 1,889,402 bytes must be optimized or explicitly
+reworked; it can no longer pass with a warning.
+
+To obtain the candidate hash before review, run the pinned clean build, then
+package locally without publishing:
+
+```bash
+source_epoch="$(scripts/source_date_epoch.sh)"
+docker run --rm -e SOURCE_DATE_EPOCH="$source_epoch" \
+  -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  clean luxe_microWW.yaml
+docker run --rm -v "$PWD":/config -w /config \
+  esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0 \
+  compile luxe_microWW.yaml
+ALLOW_BETA=1 CHANNEL=beta scripts/package_firmware.sh
+```
+
+Use `ALLOW_STABLE=1 CHANNEL=stable` only for a non-prerelease stable candidate.
+Fill the exact values from `release/build-metadata.json`, attach evidence and
+run `scripts/check_qualification_record.py` with the generated manifest and
+artifact before requesting review.
+
+Promote only from the same clean commit with:
+
+```bash
+PVE_HOST=user@proxmox-host scripts/promote_firmware_channel.sh \
+  beta release/qualification-VERSION.json
+```
+
+Promotion performs another pinned clean compile and requires the resulting
+SHA-256 to match the reviewed record. It uploads a versioned OTA, qualification
+record, changelog, dependency diff, build metadata and checksums first. The
+channel `manifest.json` is published last and is the only activation point, so
+a partial upload cannot redirect the channel to an incomplete release.
+
+The root `manifest_update.json` remains the `hal.6` rollback reference until a
+stable promotion is separately reviewed. Firmware binaries contain secrets and
+must stay in private HA storage, never a public GitHub release.
+
+## Canary publication
+
+`scripts/deploy_local_update.sh` is an endurance-gated publication step, not an
+OTA trigger. It requires a clean worktree, a versioned artifact, its development
+manifest, a passing 24-hour summary and the independently reviewed artifact
+SHA-256. The preflight recomputes SHA-256 and MD5, validates at least 1,400
+samples and every endurance threshold, and requires one identical version.
+
+Only after that preflight does it upload the artifact to
+`/local/muse-luxe/channels/development/firmware.ota.bin`, followed by
+`manifest.json` in the same private channel. The order is deliberate and the
+root `manifest_update.json` rollback pointer is never overwritten.
+
+Publication and installation remain separate operations. Once publication and
+the SHA review are complete, `scripts/install_canary_ota.sh` repeats the same
+endurance/artifact preflight and requires an exact interactive confirmation.
+It passes the reviewed OTA file directly to the pinned ESPHome `espota2`
+implementation, then requires the encrypted API to report the expected version,
+healthy voice state and no error. It never rebuilds, copies over the root
+manifest, or automatically installs a rollback image.
+All OTA entry points repeat their candidate checks after human confirmation;
+the `hal.6` rollback repeats its credential-domain check as well. The pinned
+uploader snapshots the mounted artifact inside its container, recomputes the
+reviewed SHA-256 and uploads only that immutable snapshot. Mutation between
+review, confirmation and container startup fails closed for normal canary,
+corrective canary and `hal.6` rollback paths.
+
+The one-shot `install_corrective_canary_ota.sh` path is not a promotion bypass.
+It accepts only the exact alpha.5-to-alpha.6 transition and requires a sealed
+24-hour raw incident with one no-text error, one recovery, zero timeout and no
+uptime regression, plus both reviewed firmware hashes and the exact successful
+source CI report. The historical hal.8 collector did not generate a summary;
+`seal_corrective_incident.py` derives a closed failed incident record instead
+of inventing one. The record cannot satisfy normal endurance validation. After
+the corrective boot, a new schema-v2 24-hour run is mandatory before any other
+installation, rotation or promotion.
+The same preflight validates `build-metadata.json` against the candidate bytes,
+exact source commit, commit-derived epoch, pinned container and ESP-IDF version.
+Metadata from another build or a wall-clock build is rejected before confirmation.
+The complete corrective binding is checked again after confirmation and before
+the uploader can receive the candidate.
+
+`scripts/rollback_hal6_ota.sh` is the separate recovery path. It accepts only a
+retained binary whose SHA-256 is supplied explicitly and whose MD5 and version
+match the immutable `hal.6` manifest. Before confirmation it also requires API,
+OTA and fallback-AP values to match the immutable `hal.6` credential domain.
+A second exact confirmation and post-boot API check are mandatory. Rotation
+therefore closes this OTA path; immutable `hal.6` then uses USB recovery only.
+The credential reference must be an explicit private `0600`
+`HAL6_REFERENCE_SECRETS` file; example values are rejected before contact.
+The USB image has a separate closed gate that requires the canonical factory
+SHA-256 and proves it embeds the exact retained OTA at `0x10000` with no extra
+payload. Its tracked provenance binds both historical commits, the pinned
+container, flash offsets and all three artifact hashes. A generic or merely
+rebuilt factory image is not accepted as `hal.6`.
+
+## Changelog and dependency evidence
+
+CI writes two files into every firmware artifact:
+
+- `release/CHANGELOG.md` lists commits and changed files by subsystem;
+- `release/dependency-diff.json` inventories the pinned ESPHome image, ESP-IDF,
+  minimum ESPHome versions, wake-word models and GitHub Actions, with additions
+  and removals since the base release.
+
+Pull requests are compared with their exact base commit. A tag build uses the
+previous reachable tag; before the first tag, the report compares with Git's
+empty tree. Generate the same evidence locally with:
+
+```bash
+python3 scripts/report_release_changes.py --base BASE_TAG --target HEAD
+python3 scripts/test_release_report.py
+```
+
+Review both files together with the firmware hashes, size report and JSON
+qualification record before promoting `beta` or `stable`.
+`promote_firmware_channel.sh` regenerates them automatically; set
+`RELEASE_BASE_REF` explicitly when the last qualified release is not the most
+recent reachable tag.
+
+## Endurance evidence
+
+`scripts/monitor_endurance.py` refuses to append to an existing evidence file
+unless `--overwrite` is explicit. In addition to JSONL samples, it writes an
+atomic `<output>.summary.json` containing the pass/fail result, thresholds,
+memory deltas, error deltas, maximum diagnostic age and uptime regressions.
+The summary also records the API host, node, hardware model and exact ESPHome
+project version reported by the tested device.
+For a stable record, `idle_endurance_24h.evidence` uses the form
+`sha256:DIGEST relative-summary.json`. The qualification checker binds the
+reviewed digest, loads the safe path relative to the record and verifies 24
+hours in monotonic and wall time, at least 1,400 samples, matching firmware
+version, fresh diagnostics, memory thresholds, zero reboot, zero voice error
+zero timeout and zero recovery. Schema v2 separately records exact
+`stt-no-text-recognized` sessions. At most three are accepted in 24 hours; the
+limit is closed in both collector and validator and does not relax any real
+error counter.
+The `uptime` heartbeat must remain fresher than 180 seconds by default, so a
+silent API disconnect cannot turn frozen values into apparently valid proof.
+
+`mode_api_transitions.evidence` uses the same `sha256:DIGEST relative-path`
+form. Promotion loads that exact JSON with
+`scripts/check_hal9_modes_evidence.py`, requires the candidate version, four
+ordered transitions, unchanged voice counters and a verified safe final state.
+This machine gate is additional to, not a replacement for, `physical_controls`.
+
+`physical_controls.evidence` must also be hash-bound. The release checker loads
+the exact human observation record with
+`scripts/check_physical_controls_evidence.py`, binds it to both candidate
+version and OTA SHA-256, and requires all ten button, timeout and microphone LED
+observations. Follow `docs/PHYSICAL_CONTROLS.md`; generic gate text is rejected.
+
+For stable, `night_led_profiles.evidence` is another hash-bound record. It must
+contain all nine exact day/night brightness pairs and six timer, HA-disconnect
+and safety-visibility scenarios. Promotion binds it to the OTA and recomputes
+the exact `muse_luxe.yaml` package hash from the candidate source.
+
+`timer_multi_pause_reconnect.evidence` is also mandatory and hash-bound for
+stable. It records twelve closed scenarios, two distinct timers, every allowed
+checkpoint exactly once at day and night levels, no reconnect replay and one
+local completion sound during HA loss. Promotion binds it to the OTA and
+recomputes both the base and timer-coach package hashes.
+
+`announcement_routing_queue.evidence` binds the OTA and exact base package. It
+requires fifteen closed routing, priority, queue, timeout, volume and failure
+scenarios, including restoration after both chime and TTS errors. Targets remain
+closed and external deliveries must stay at zero.
+
+`house_intelligence_freshness.evidence` binds the OTA, narrator package,
+OPNsense endpoint and ACL, Proxmox audit policy and Frigate read-only policy. It
+requires fresh, stale and recovered observations for all four domains, oldest
+required-source behavior, deterministic narration, exact read-only roles and
+zero infrastructure actions or external deliveries.
+
+`interactive_routine_handoff.evidence` binds the OTA, routine and narration
+packages, French intents, live test and fresh-house package. It requires two
+distinct available players, preserved session/kind/step across handoff, restart
+recovery, all local intents, stale Victron refusal, full reset and zero critical
+actions or external deliveries.
+
+`camera_alerts_deduplicated.evidence` binds the OTA, alert/base packages,
+safety checker, state model, MQTT provisioning and Frigate read-only policy. It
+requires both closed cameras, fresh-event boundaries, seven-ID persistent FIFO,
+cross-camera cooldown, night/privacy filters, audible count parity and zero
+control action, delivery error or external delivery.
+
+`intercom_two_satellite.evidence` binds the OTA, intercom/base packages, French
+sentences, firmware UI/recovery, safety checker, state model and HA lifecycle
+test. The common announcement queue revalidates the exact intercom session and
+status immediately before TTS. The gate requires 20 calls each way, trusted
+physical gestures, session-bound queued relays, timeout/reboot/music checks,
+bounded latency and recognition errors, audible/LED parity, zero transcript
+artifacts and an entirely empty final state.
+
+`music_transfer_two_satellite.evidence` binds the OTA, Music Assistant package,
+safety checker, lifecycle model, HA test and provisioner. It requires music,
+radio and podcast transfers in both directions, bounded position drift,
+preserved queue/state/relative volume, manual and expiry closure, restart and
+failure recovery, and zero automatic transfer, external delivery or ghost group.
+
+The two stable offline gates must reference one identical hash-bound
+`offline-rescue` record. It binds the OTA, rescue package, read-only FAT
+component and unchanged card manifest, then requires all six clips, fifteen
+physical/failure scenarios, one reboot and one HA disconnect/reconnect cycle.
+
+`interpreter_bilingual.evidence` is hash-bound to the OTA, interpreter package,
+pipeline configurator and local intent sentences. It pins Granite and both
+pipelines, requires five heard phrases in each direction below the latency
+limit, all exit/restoration paths and zero Home Assistant actions.
+
+`acoustic_guardian_physical.evidence` binds the OTA, HA package, guarded
+preparer, policy template and private candidate hash. It requires consent,
+all four classes, two hours per class, bounded false positives and CPU, one-day
+retention, disabled transcription and a verified rollback to audio disabled.
+
+`video_review_authenticated.evidence` binds the OTA, package, dashboard and
+provisioner. It requires accepted events for both closed cameras, every stale
+or unauthorized rejection, two five-minute expirations, HA restart cleanup,
+authenticated access and zero public tokens, URLs or external deliveries.
+
+`family_message_delivery.evidence` binds the OTA, queue/base packages and
+provisioner. It requires bounded three-slot behavior, FIFO reuse, expiry,
+restart quarantine, explicit retry/discard, two recipients, matching carillons,
+zero automatic duplicates and a fully empty final/legacy queue.

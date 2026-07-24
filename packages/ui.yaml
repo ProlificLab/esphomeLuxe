@@ -1,0 +1,176 @@
+# Muse Luxe ui package. Included by luxe_microWW.yaml.
+
+globals:
+  - id: muse_gesture_code
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+
+script:
+  - id: publish_muse_gesture
+    then:
+      - homeassistant.event:
+          event: esphome.muse_luxe_gesture
+          data:
+            device: ${name}
+            gesture: !lambda |-
+              switch (id(muse_gesture_code)) {
+                case 1: return std::string("single_click");
+                case 2: return std::string("double_click");
+                case 3: return std::string("triple_click");
+                case 4: return std::string("quadruple_click");
+                default: return std::string("invalid");
+              }
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO27
+      mode:
+        input: true
+        pullup: true
+    id: jack_detect
+    name: Jack Detect
+    internal: true
+    on_press:
+      - script.execute: jack_detect_high
+    on_release:
+      - script.execute: jack_detect_low
+  - platform: gpio
+    pin:
+      number: GPIO19
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: Volume Up
+    on_click:
+      - lambda: |-
+          id(Vol) = std::min(1.0f, id(Vol) + 0.05f);
+          if (fabsf(id(last_volume_cmd) - id(Vol)) > 0.005f) {
+            auto call = id(luxe_media_player).make_call();
+            call.set_volume(id(Vol));
+            call.perform();
+            id(last_volume_cmd) = id(Vol);
+          }
+
+  - platform: gpio
+    pin:
+      number: GPIO32
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: Volume Down
+    on_click:
+      - lambda: |-
+          id(Vol) = std::max(0.0f, id(Vol) - 0.05f);
+          if (fabsf(id(last_volume_cmd) - id(Vol)) > 0.005f) {
+            auto call = id(luxe_media_player).make_call();
+            call.set_volume(id(Vol));
+            call.perform();
+            id(last_volume_cmd) = id(Vol);
+          }
+
+  - platform: gpio
+    pin:
+      number: GPIO12
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: Mute
+    filters:
+      - delayed_on_off: 20ms
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at least 400ms
+        then:
+          - script.execute: toggle_rescue_mode
+          - lambda: id(muse_gesture_code) = 4;
+          - script.execute: publish_muse_gesture
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at least 400ms
+        then:
+          - if:
+              condition:
+                lambda: 'return id(rescue_mode);'
+              then:
+                - script.execute:
+                    id: play_rescue_clip
+                    clip: evacuation
+              else:
+                - if:
+                    condition:
+                      lambda: 'return id(continuous_conversation);'
+                    then:
+                      - script.execute: stop_continuous_conversation
+                    else:
+                      - script.execute: start_continuous_conversation
+          - lambda: id(muse_gesture_code) = 3;
+          - script.execute: publish_muse_gesture
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 350ms
+          - ON for at most 350ms
+          - OFF for at least 400ms
+        then:
+          - if:
+              condition:
+                lambda: 'return id(rescue_mode);'
+              then:
+                - script.execute: stop_rescue_audio
+              else:
+                - script.execute: stop_everything
+          - lambda: id(muse_gesture_code) = 2;
+          - script.execute: publish_muse_gesture
+      - timing:
+          - ON for at least 1s
+        then:
+          - script.execute: toggle_privacy
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 400ms
+        then:
+          - if:
+              condition:
+                lambda: 'return id(rescue_mode);'
+              then:
+                - script.execute: play_next_rescue_clip
+              else:
+                - script.execute: manual_listen
+          - lambda: id(muse_gesture_code) = 1;
+          - script.execute: publish_muse_gesture
+
+light:
+  - platform: esp32_rmt_led_strip
+    name: None
+    id: top_led
+    pin: GPIO22
+    chipset: WS2812
+    num_leds: 1
+    rgb_order: grb
+#    rmt_channel: 0
+    default_transition_length: 0s
+    gamma_correct: 2.8
+    effects:
+      - pulse:
+          name: pulse
+          transition_length: 250ms
+          update_interval: 250ms
+      - pulse:
+          name: slow_pulse
+          transition_length: 1s
+          update_interval: 2s

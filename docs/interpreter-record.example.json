@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "interpreter_package_sha256": "REPLACE_WITH_INTERPRETER_PACKAGE_SHA256",
+    "configure_script_sha256": "REPLACE_WITH_CONFIGURE_SCRIPT_SHA256",
+    "sentences_sha256": "REPLACE_WITH_SENTENCES_SHA256"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "runtime": {
+    "model": "granite4:3b",
+    "model_digest": "89962fcc75239ac434cdebceb6b7e0669397f92eaef9c487774b718bc36a3e5f",
+    "pipelines": ["Interprete - Anglais vers francais", "Interprete - Francais vers anglais"],
+    "local_only": true,
+    "tools_enabled": false
+  },
+  "metrics": {
+    "fr_to_en_phrases": 0,
+    "en_to_fr_phrases": 0,
+    "fr_to_en_max_latency_ms": 0,
+    "en_to_fr_max_latency_ms": 0,
+    "context_reset_counter_delta": 0,
+    "home_actions_triggered": -1
+  },
+  "scenarios": {
+    "command_phrase_translated_not_executed": {"passed": false, "evidence": "REPLACE"},
+    "context_reset_each_exit": {"passed": false, "evidence": "REPLACE"},
+    "continuous_listening_led_visible": {"passed": false, "evidence": "REPLACE"},
+    "direction_swap": {"passed": false, "evidence": "REPLACE"},
+    "english_piper_audible": {"passed": false, "evidence": "REPLACE"},
+    "en_to_fr_five_phrases": {"passed": false, "evidence": "REPLACE"},
+    "fr_to_en_five_phrases": {"passed": false, "evidence": "REPLACE"},
+    "french_piper_audible": {"passed": false, "evidence": "REPLACE"},
+    "ha_restart_exit": {"passed": false, "evidence": "REPLACE"},
+    "no_transcript_reachable_after_exit": {"passed": false, "evidence": "REPLACE"},
+    "previous_pipeline_restored_each_exit": {"passed": false, "evidence": "REPLACE"},
+    "privacy_exit": {"passed": false, "evidence": "REPLACE"},
+    "subsequent_house_query_has_no_translation_context": {"passed": false, "evidence": "REPLACE"},
+    "ten_minute_timeout_exit": {"passed": false, "evidence": "REPLACE"},
+    "triple_click_exit": {"passed": false, "evidence": "REPLACE"}
+  }
+}

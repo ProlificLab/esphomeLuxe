@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Raspiaudio community support
+    url: https://forum.raspiaudio.com/t/muse-luxe-voice-assistant-now-possible/726
+    about: General hardware and upstream firmware questions

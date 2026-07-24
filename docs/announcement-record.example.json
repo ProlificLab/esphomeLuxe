@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "ha_package_sha256": "REPLACE_WITH_MUSE_LUXE_PACKAGE_SHA256"
+  },
+  "observer": "REPLACE_WITH_REVIEWER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "runtime": {
+    "queue_capacity": 25,
+    "normal_wait_timeout_seconds": 600,
+    "day_volume": 0.6,
+    "night_volume": 0.25,
+    "urgent_volume": 0.75,
+    "default_targets": ["media_player.raspiaudio_muse_luxe"],
+    "whole_home_targets": ["media_player.raspiaudio_muse_luxe"]
+  },
+  "metrics": {
+    "successful_deliveries": 0,
+    "fifo_messages": 0,
+    "normal_wait_cases": 0,
+    "urgent_interruptions": 0,
+    "busy_timeouts": 0,
+    "tts_error_attempts": 0,
+    "chime_error_attempts": 0,
+    "volume_restore_checks": 0,
+    "external_deliveries": -1
+  },
+  "final_state": {
+    "player_state": "REPLACE",
+    "voice_state": "REPLACE",
+    "voice_health": "REPLACE",
+    "continuous_conversation": false,
+    "queue_drained": false
+  },
+  "scenarios": {
+    "busy_timeout_drops_stale_normal_announcement": {"passed": false, "evidence": "REPLACE"},
+    "chime_error_restores_volume": {"passed": false, "evidence": "REPLACE"},
+    "chime_false_is_silent_before_speech": {"passed": false, "evidence": "REPLACE"},
+    "chime_true_precedes_speech": {"passed": false, "evidence": "REPLACE"},
+    "day_volume_applied": {"passed": false, "evidence": "REPLACE"},
+    "default_route_targets_canary": {"passed": false, "evidence": "REPLACE"},
+    "fifo_queue_drains_in_order": {"passed": false, "evidence": "REPLACE"},
+    "night_volume_applied": {"passed": false, "evidence": "REPLACE"},
+    "normal_waits_for_continuous_conversation": {"passed": false, "evidence": "REPLACE"},
+    "normal_waits_for_listening_state": {"passed": false, "evidence": "REPLACE"},
+    "normal_waits_for_music": {"passed": false, "evidence": "REPLACE"},
+    "tts_error_restores_volume": {"passed": false, "evidence": "REPLACE"},
+    "urgent_preempts_busy_audio": {"passed": false, "evidence": "REPLACE"},
+    "urgent_volume_applied": {"passed": false, "evidence": "REPLACE"},
+    "whole_home_route_uses_closed_targets": {"passed": false, "evidence": "REPLACE"}
+  }
+}

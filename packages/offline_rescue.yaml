@@ -1,0 +1,158 @@
+# Fixed, local-only rescue audio for the verified Muse Luxe microSD SPI bus.
+
+offline_media:
+  id: rescue_media
+  speaker: luxe_speaker
+  cs_pin: 13
+  clk_pin: 14
+  mosi_pin: 15
+  miso_pin: 2
+  max_clip_seconds: 180
+
+binary_sensor:
+  - platform: template
+    name: Rescue Card Ready
+    id: rescue_card_ready
+    entity_category: diagnostic
+    lambda: return id(rescue_media).is_card_ready();
+text_sensor:
+  - platform: template
+    name: Rescue Media Status
+    id: rescue_media_status
+    entity_category: diagnostic
+    update_interval: 2s
+    lambda: return id(rescue_media).get_status();
+sensor:
+  - platform: template
+    name: Rescue Media Errors
+    id: rescue_media_errors
+    entity_category: diagnostic
+    state_class: total_increasing
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: return id(rescue_media).get_error_count();
+
+switch:
+  - platform: template
+    name: Rescue Mode
+    id: rescue_mode_switch
+    internal: true
+    icon: mdi:lifebuoy
+    lambda: return id(rescue_mode);
+    turn_on_action:
+      - script.execute: enter_rescue_mode
+    turn_off_action:
+      - script.execute: exit_rescue_mode
+
+script:
+  - id: enter_rescue_mode
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return id(privacy_mode);
+          then:
+            - logger.log:
+                level: WARN
+                format: "Privacy mode blocks rescue audio entry"
+          else:
+            - script.stop: voice_timeout
+            - script.stop: conversation_session_timeout
+            - voice_assistant.stop:
+            - micro_wake_word.stop:
+            - microphone.mute: luxe_mic
+            - media_player.stop: luxe_media_player
+            - lambda: |-
+                id(rescue_mode) = true;
+                id(continuous_conversation) = false;
+                id(audio_active) = false;
+                id(audio_started) = false;
+            - switch.template.publish:
+                id: rescue_mode_switch
+                state: ON
+            - switch.template.publish:
+                id: continuous_conversation_switch
+                state: OFF
+            - script.execute:
+                id: set_phase
+                new_phase: ${P_rescue}
+            - if:
+                condition:
+                  lambda: return !id(rescue_media).is_card_ready();
+                then:
+                  - lambda: id(rescue_media).mount_card();
+            - wait_until:
+                condition:
+                  speaker.is_stopped:
+                timeout: 2s
+            - lambda: |-
+                if (id(rescue_media).is_card_ready())
+                  id(rescue_media).play_clip("mode_ready");
+
+  - id: exit_rescue_mode
+    mode: restart
+    then:
+      - lambda: |-
+          id(rescue_mode) = false;
+          id(rescue_media).stop();
+      - switch.template.publish:
+          id: rescue_mode_switch
+          state: OFF
+      - delay: 150ms
+      - script.execute: enter_waiting
+
+  - id: toggle_rescue_mode
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return id(rescue_mode);
+          then:
+            - script.execute: exit_rescue_mode
+          else:
+            - script.execute: enter_rescue_mode
+
+  - id: play_rescue_clip
+    mode: restart
+    parameters:
+      clip: string
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(rescue_mode) &&
+                     (clip == "power_outage" ||
+                      clip == "checklist_outage" ||
+                      clip == "evacuation" ||
+                      clip == "checklist_evacuation" ||
+                      clip == "all_clear");
+          then:
+            - lambda: id(rescue_media).stop();
+            - wait_until:
+                condition:
+                  lambda: return !id(rescue_media).is_playing();
+                timeout: 2s
+            - lambda: id(rescue_media).play_clip(clip);
+          else:
+            - logger.log:
+                level: WARN
+                format: "Rejected rescue clip request outside fixed rescue mode"
+
+  - id: play_next_rescue_clip
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return id(rescue_mode);
+          then:
+            - lambda: id(rescue_media).stop();
+            - wait_until:
+                condition:
+                  lambda: return !id(rescue_media).is_playing();
+                timeout: 2s
+            - lambda: id(rescue_media).play_next();
+
+  - id: stop_rescue_audio
+    mode: restart
+    then:
+      - lambda: id(rescue_media).stop();

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "version": "2025.3.1-hal.6",
+  "source": {
+    "firmware_commit": "6f5b3a93320380a50a910376491d1c7381ba1fc8",
+    "ci_commit": "63c89e723f4175a2fc79fda922dcfd8eef5f2f7b",
+    "esphome_image": "esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0"
+  },
+  "layout": {
+    "bootloader_offset": 4096,
+    "partition_table_offset": 32768,
+    "ota_data_offset": 53248,
+    "app_offset": 65536
+  },
+  "artifacts": {
+    "ota": {
+      "bytes": 1948144,
+      "md5": "cedf966640caccbabba098bcf22f7645",
+      "sha256": "8a8350fa93293ef8421f4c84004c4804a2969ae6d50697a72e104ba85d4db0d6"
+    },
+    "prefix": {
+      "bytes": 65536,
+      "sha256": "845bf05b4e85a991d0f79f397172d10e538c1d903f76623bc1a17e74c4733656"
+    },
+    "factory": {
+      "bytes": 2013680,
+      "sha256": "16ad19ae504dae9e75d6be0cb72b6ada34bf932fae0f972a89b5230dc20c01ac"
+    }
+  }
+}

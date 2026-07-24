@@ -1,0 +1,46 @@
+language: fr
+intents:
+  MuseRoutineStart:
+    data:
+      - sentences:
+          - "(démarre|commence|lance) [la] routine {routine}"
+  MuseRoutineAdvance:
+    data:
+      - sentences:
+          - "confirme [l']étape [de la routine]"
+          - "passe à l'étape suivante de la routine"
+  MuseRoutinePause:
+    data:
+      - sentences:
+          - "mets [la] routine en pause"
+          - "pause [la] routine"
+  MuseRoutineResume:
+    data:
+      - sentences:
+          - "reprends [la] routine"
+          - "continue [la] routine"
+  MuseRoutineCancel:
+    data:
+      - sentences:
+          - "annule [la] routine"
+          - "arrête [la] routine"
+  MuseRoutineStatus:
+    data:
+      - sentences:
+          - "où en est [la] routine"
+          - "quel est l'état de la routine"
+lists:
+  routine:
+    values:
+      - in: "départ"
+        out: departure
+      - in: "coucher"
+        out: bedtime
+      - in: "arrêt (serveur|du serveur)"
+        out: server_shutdown
+      - in: "panne [de courant]"
+        out: power_outage
+      - in: "alarme"
+        out: alarm
+      - in: "évacuation"
+        out: evacuation

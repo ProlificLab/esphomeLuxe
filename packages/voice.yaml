@@ -1,0 +1,180 @@
+# Muse Luxe voice package. Included by luxe_microWW.yaml.
+
+micro_wake_word:
+  id: mww
+  microphone: luxe_mic
+  stop_after_detection: false
+  models:
+    - model: ${wake_word_model}
+      id: ${wake_word_id}
+  on_wake_word_detected:
+    - lambda: id(wake_word_count)++;
+    - sensor.template.publish:
+        id: wake_word_counter
+        state: !lambda return id(wake_word_count);
+    - voice_assistant.start:
+        wake_word: !lambda return wake_word;
+
+select:
+  - platform: template
+    name: "Wake word sensitivity"
+    optimistic: true
+    initial_option: Slightly sensitive
+    restore_value: true
+    entity_category: config
+    options:
+      - Slightly sensitive
+      - Moderately sensitive
+      - Very sensitive
+    on_value:
+      # Adjust model probability thresholds to tune wake word sensitivity
+      lambda: |-
+        if (x == "Slightly sensitive") {
+          id(${wake_word_id}).set_probability_cutoff(${wake_word_cutoff_slight});
+        } else if (x == "Moderately sensitive") {
+          id(${wake_word_id}).set_probability_cutoff(${wake_word_cutoff_moderate});
+        } else if (x == "Very sensitive") {
+          id(${wake_word_id}).set_probability_cutoff(${wake_word_cutoff_very});
+        }
+
+voice_assistant:
+  id: va
+  microphone: luxe_mic
+  media_player: luxe_media_player
+  micro_wake_word: mww
+  use_wake_word: false
+  noise_suppression_level: 2
+  auto_gain: 31dBFS
+  volume_multiplier: 2.0
+  conversation_timeout: 5min
+
+  on_client_connected:
+    - lambda: |-
+        id(voice_connected) = true;
+        if (id(ever_voice_connected)) {
+          id(voice_reconnect_count)++;
+          id(voice_reconnect_counter).publish_state(id(voice_reconnect_count));
+        } else {
+          id(ever_voice_connected) = true;
+        }
+    - if:
+        condition:
+          lambda: |-
+            return id(initialized) &&
+                   (id(phase) == ${P_starting} ||
+                    id(phase) == ${P_offline} ||
+                    id(phase) == ${P_error});
+        then:
+          - script.execute: enter_waiting
+
+  on_client_disconnected:
+    - lambda: id(voice_connected) = false;
+    - if:
+        condition:
+          lambda: 'return !id(rescue_mode);'
+        then:
+          - script.execute: enter_offline
+
+  on_listening:
+     - logger.log: "listening 3 => phase"
+     - lambda: id(voice_session_failed) = false;
+     - script.execute: voice_timeout
+     - micro_wake_word.stop:
+     - script.execute:
+         id: set_phase
+         new_phase: ${P_listening}
+
+  on_stt_end:
+     - light.turn_on:
+        id: top_led
+        blue: 60%
+        red: 20%
+        green: 20%
+        effect: pulse
+
+
+  on_tts_start:
+    - logger.log: "answering  4 => phase"
+    - micro_wake_word.stop:
+    - wait_until:
+        not:
+          micro_wake_word.is_running:
+    - microphone.mute: luxe_mic
+    - lambda: |-
+        id(audio_active) = true;
+        id(audio_started) = false;
+    - script.execute:
+        id: set_phase
+        new_phase: ${P_answering}
+
+  on_end:
+    - if:
+        condition:
+          lambda: 'return !id(voice_session_failed);'
+        then:
+          - lambda: |-
+              id(voice_success_count)++;
+              id(voice_success_counter).publish_state(id(voice_success_count));
+
+  on_error:
+    - lambda: |-
+        id(voice_timeout).stop();
+        id(conversation_session_timeout).stop();
+        id(audio_active) = false;
+        id(audio_started) = false;
+        id(voice_session_failed) = true;
+        id(continuous_conversation) = false;
+        id(continuous_conversation_switch).publish_state(false);
+        if (code == "stt-no-text-recognized") {
+          id(voice_no_speech_count)++;
+          id(voice_no_speech_counter).publish_state(id(voice_no_speech_count));
+          id(enter_waiting).execute();
+          return;
+        }
+        id(voice_error_count)++;
+        id(voice_error_counter).publish_state(id(voice_error_count));
+        id(last_voice_error).publish_state(code + ": " + message);
+        ESP_LOGW("voice", "Voice error: %s - %s", code.c_str(), message.c_str());
+        id(set_phase).execute(${P_error});
+        id(handle_voice_error).execute();
+
+  on_timer_started:
+    - script.execute: refresh_timer_status
+  on_timer_cancelled:
+    - script.execute: refresh_timer_status
+  on_timer_updated:
+    - script.execute: refresh_timer_status
+  on_timer_tick:
+    - script.execute: refresh_timer_status
+  on_timer_finished:
+    - script.execute: refresh_timer_status
+    - media_player.speaker.play_on_device_media_file:
+        media_file: little_sound
+        announcement: true
+
+switch:
+  - platform: template
+    id: privacy_mode_switch
+    name: Privacy Mode
+    icon: mdi:microphone-off
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - script.execute: enter_privacy
+    turn_off_action:
+      - lambda: id(privacy_mode) = false;
+      - script.execute: enter_waiting
+
+  - platform: template
+    id: continuous_conversation_switch
+    name: Continuous Conversation
+    icon: mdi:account-voice
+    lambda: return id(continuous_conversation);
+    turn_on_action:
+      - script.execute: start_continuous_conversation
+    turn_off_action:
+      - script.execute: stop_continuous_conversation
+
+
+#########
+# Scripts

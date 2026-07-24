@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "candidate": {
+    "device_name": "REPLACE_WITH_CANARY_DEVICE",
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "rescue_package_sha256": "REPLACE_WITH_OFFLINE_RESCUE_PACKAGE_SHA256",
+    "offline_component_sha256": "REPLACE_WITH_OFFLINE_MEDIA_COMPONENT_SHA256"
+  },
+  "observer": "REPLACE_WITH_OBSERVER",
+  "observed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "card": {
+    "volume_label": "MUSE_RESCUE",
+    "manifest_sha256_before": "REPLACE_WITH_CARD_MANIFEST_SHA256",
+    "manifest_sha256_after": "REPLACE_WITH_CARD_MANIFEST_SHA256_AFTER_TEST",
+    "files": ["ALLCLEAR.WAV", "EVAC.WAV", "EVACLIST.WAV", "POWER.WAV", "PWRLIST.WAV", "READY.WAV"]
+  },
+  "metrics": {
+    "clip_play_counts": {
+      "ALLCLEAR.WAV": 0,
+      "EVAC.WAV": 0,
+      "EVACLIST.WAV": 0,
+      "POWER.WAV": 0,
+      "PWRLIST.WAV": 0,
+      "READY.WAV": 0
+    },
+    "ha_disconnect_cycles": 0,
+    "ha_reconnect_cycles": 0,
+    "reboots_while_rescue": 0,
+    "unexpected_media_errors": -1
+  },
+  "scenarios": {
+    "all_six_files_play": {"passed": false, "evidence": "REPLACE"},
+    "card_insert_after_boot_mounts": {"passed": false, "evidence": "REPLACE"},
+    "card_manifest_unchanged_after_test": {"passed": false, "evidence": "REPLACE"},
+    "card_ready_diagnostic": {"passed": false, "evidence": "REPLACE"},
+    "enter_quadruple_press": {"passed": false, "evidence": "REPLACE"},
+    "evacuation_triple_press": {"passed": false, "evidence": "REPLACE"},
+    "exit_quadruple_press_to_waiting": {"passed": false, "evidence": "REPLACE"},
+    "fixed_sequence_wraps": {"passed": false, "evidence": "REPLACE"},
+    "ha_loss_playback_continues": {"passed": false, "evidence": "REPLACE"},
+    "ha_reconnect_does_not_exit": {"passed": false, "evidence": "REPLACE"},
+    "missing_card_error_visible": {"passed": false, "evidence": "REPLACE"},
+    "privacy_stops_and_blocks_entry": {"passed": false, "evidence": "REPLACE"},
+    "reboot_restores_rescue": {"passed": false, "evidence": "REPLACE"},
+    "stop_double_press": {"passed": false, "evidence": "REPLACE"},
+    "volume_buttons_during_playback": {"passed": false, "evidence": "REPLACE"}
+  }
+}

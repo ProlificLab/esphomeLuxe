@@ -1,0 +1,52 @@
+substitutions:
+  name: muse-luxe-diagnostic
+  friendly_name: Muse Luxe USB Diagnostic
+  P_starting: "0"
+  P_waiting: "1"
+  P_playing: "2"
+  P_listening: "3"
+  P_answering: "4"
+  P_offline: "5"
+  P_error: "6"
+  P_privacy: "7"
+  P_rescue: "8"
+  wake_word_model: https://raw.githubusercontent.com/TaterTotterson/Tater-Wake-Words/740bd31af8f28b1700daf49c36444d278715d298/microWakeWordsV2/okay_hal.json
+  wake_word_id: okay_hal
+  wake_word_cutoff_slight: "252"
+  wake_word_cutoff_moderate: "247"
+  wake_word_cutoff_very: "230"
+  logger_level: WARN
+
+packages:
+  hardware: !include packages/hardware.yaml
+  audio: !include packages/audio.yaml
+  voice: !include packages/voice.yaml
+  ui: !include packages/ui.yaml
+  recovery: !include packages/recovery.yaml
+  diagnostics: !include packages/diagnostics.yaml
+  offline_rescue: !include packages/offline_rescue.yaml
+
+ota:
+  - platform: esphome
+    id: ota_esphome
+    password: !secret ota_password
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2025.3.1
+  platformio_options:
+    board_build.flash_mode: dio
+    board_build.arduino.memory_type: qio_opi
+  project:
+    name: raspiaudio.voice-assistant
+    version: "2025.3.1-hal.9.0-alpha.6-diagnostic"
+  on_boot:
+    priority: -100.0
+    then:
+      - output.turn_on: dac_mute
+      - lambda: id(muteH) = true;
+      - script.execute:
+          id: set_phase
+          new_phase: ${P_starting}
+      - script.execute: initialize_device

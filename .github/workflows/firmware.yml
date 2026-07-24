@@ -1,0 +1,188 @@
+name: Firmware source validation
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Derive reproducible build epoch
+        run: echo "SOURCE_DATE_EPOCH=$(scripts/source_date_epoch.sh)" >> "$GITHUB_ENV"
+      - name: Prepare non-production secrets
+        run: |
+          cp secrets.example.yaml secrets.yaml
+          python3 scripts/audit_tracked_secrets.py --private-secrets secrets.yaml
+      - name: Compile firmware
+        run: >-
+          docker run --rm
+          -e SOURCE_DATE_EPOCH
+          -v "$PWD":/config
+          -w /config
+          esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0
+          compile luxe_microWW.yaml
+      - name: Validate calibration configuration
+        run: >-
+          docker run --rm
+          -e SOURCE_DATE_EPOCH
+          -v "$PWD":/config
+          -w /config
+          esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0
+          config luxe_microWW_nabu.yaml
+      - name: Validate verbose diagnostic configuration
+        run: >-
+          docker run --rm
+          -e SOURCE_DATE_EPOCH
+          -v "$PWD":/config
+          -w /config
+          esphome/esphome@sha256:def6336d7d587f9b056893e86d1cfedfe86db360188221e9f122804872d385b0
+          config luxe_microWW_diagnostic.yaml
+      - name: Enforce firmware size budget
+        run: |
+          scripts/check_firmware_size.sh
+          scripts/test_firmware_size.sh
+      - name: Report firmware memory use
+        run: scripts/report_firmware_symbols.sh
+      - name: Package firmware and manifest
+        run: scripts/package_firmware.sh
+      - name: Generate changelog and dependency diff
+        env:
+          RELEASE_BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: |
+          args=()
+          if [[ -n "$RELEASE_BASE_REF" ]]; then
+            args+=(--base "$RELEASE_BASE_REF")
+          fi
+          python3 scripts/report_release_changes.py "${args[@]}"
+          python3 scripts/test_release_report.py
+      - name: Verify release metadata and stable rollback guard
+        run: |
+          version="$(jq -r .version release/manifest-development.json)"
+          scripts/verify_release.sh \
+            release/manifest-development.json \
+            "release/muse-luxe-$version.ota.bin"
+          scripts/check_production_manifest.sh
+          scripts/check_routine_safety.sh
+          scripts/test_routine_safety.sh
+          python3 scripts/test_routine_evidence.py
+          scripts/check_house_intelligence_safety.sh
+          scripts/test_house_intelligence_safety.sh
+          python3 scripts/test_house_intelligence_evidence.py
+          python3 scripts/check_interpreter_safety.py
+          python3 scripts/test_interpreter_safety.py
+          python3 scripts/test_interpreter_evidence.py
+          python3 scripts/check_announcement_safety.py
+          python3 scripts/test_announcement_safety.py
+          python3 scripts/test_announcement_evidence.py
+          python3 scripts/check_intercom_safety.py
+          python3 scripts/test_intercom_safety.py
+          python3 scripts/test_intercom_model.py
+          python3 scripts/test_intercom_evidence.py
+          python3 scripts/check_promotion_safety.py
+          python3 scripts/test_promotion_safety.py
+          python3 scripts/test_qualification_record.py
+          python3 scripts/test_verify_release.py
+          python3 scripts/test_monitor_endurance.py
+          python3 scripts/test_endurance_summary.py
+          python3 scripts/check_voice_error_classification.py
+          python3 scripts/test_voice_error_classification.py
+          python3 scripts/test_corrective_canary.py
+          python3 scripts/test_canary_deploy_safety.py
+          python3 scripts/test_canary_install_safety.py
+          python3 scripts/test_hal6_credential_compatibility.py
+          python3 scripts/test_compose_hal6_usb_recovery.py
+          python3 scripts/test_hal6_recovery_manifest.py
+          python3 scripts/test_hal6_usb_flash_safety.py
+          python3 scripts/test_hal6_usb_recovery.py
+          python3 scripts/test_canary_core_evidence.py
+          python3 scripts/test_seal_canary_core_evidence.py
+          python3 scripts/test_audit_tracked_secrets.py
+          python3 scripts/test_source_qualification_evidence.py
+          python3 scripts/test_seal_source_qualification_evidence.py
+          python3 scripts/test_source_qualification_collection.py
+          python3 scripts/test_source_ci_preflight.py
+          python3 scripts/test_source_date_epoch.py
+          python3 scripts/test_build_metadata.py
+          python3 scripts/test_upload_exact_ota.py
+          python3 scripts/test_prepare_secret_rotation.py
+          python3 scripts/test_secret_rotation_bundle.py
+          python3 scripts/test_rotation_activation.py
+          python3 scripts/test_rotated_candidate_binding.py
+          python3 scripts/check_diagnostics_safety.py
+          python3 scripts/test_diagnostics_safety.py
+          python3 scripts/check_offline_rescue_safety.py
+          python3 scripts/test_offline_rescue_safety.py
+          python3 scripts/test_offline_rescue_evidence.py
+          python3 scripts/test_prepare_rescue_media.py
+          python3 scripts/test_proxmox_permissions.py
+          python3 scripts/check_opnsense_readonly.py \
+            opnsense/muse-readonly/controllers/OPNsense/Muse/Api/StatusController.php \
+            opnsense/muse-readonly/models/OPNsense/Muse/ACL/ACL.xml
+          python3 scripts/test_opnsense_readonly.py
+          python3 scripts/check_frigate_readonly.py
+          python3 scripts/check_acoustic_guardian_safety.py
+          python3 scripts/test_acoustic_guardian_safety.py
+          python3 scripts/test_acoustic_guardian_evidence.py
+          python3 scripts/check_video_alert_safety.py
+          python3 scripts/test_video_alert_safety.py
+          python3 scripts/test_video_alert_model.py
+          python3 scripts/test_video_alert_evidence.py
+          python3 scripts/check_video_review_safety.py
+          python3 scripts/test_video_review_safety.py
+          python3 scripts/test_video_review_evidence.py
+          python3 scripts/check_family_message_safety.py
+          python3 scripts/test_family_message_safety.py
+          python3 scripts/test_family_message_queue_model.py
+          python3 scripts/test_family_message_evidence.py
+          python3 scripts/check_timer_coach_safety.py
+          python3 scripts/test_timer_coach_safety.py
+          python3 scripts/test_timer_coach_model.py
+          python3 scripts/test_timer_evidence.py
+          python3 scripts/check_music_assistant_safety.py
+          python3 scripts/test_music_assistant_safety.py
+          python3 scripts/test_music_assistant_group_model.py
+          python3 scripts/test_music_transfer_evidence.py
+          python3 scripts/check_night_led_safety.py
+          python3 scripts/test_night_led_safety.py
+          python3 scripts/test_night_led_model.py
+          python3 scripts/test_night_led_evidence.py
+          python3 scripts/check_hal9_modes_safety.py
+          python3 scripts/test_hal9_modes_safety.py
+          python3 scripts/test_hal9_modes_evidence.py
+          python3 scripts/test_physical_controls_evidence.py
+          bash -n scripts/*.sh
+          python3 -m py_compile scripts/*.py frigate/*.py
+      - name: Upload test build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: muse-luxe-test-firmware
+          path: |
+            .esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.ota.bin
+            .esphome/build/muse-luxe/.pioenvs/muse-luxe/firmware.map
+            firmware-size.txt
+            release/**
+          retention-days: 7
+
+  release-source:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: compile
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Create source release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"

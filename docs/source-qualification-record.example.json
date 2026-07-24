@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "passed": false,
+  "candidate": {
+    "project_version": "REPLACE_WITH_EXACT_VERSION",
+    "firmware_sha256": "REPLACE_WITH_OTA_SHA256",
+    "source_commit": "REPLACE_WITH_FULL_40_CHARACTER_COMMIT"
+  },
+  "reviewer": "REPLACE_WITH_REVIEWER",
+  "reviewed_at": "REPLACE_WITH_ISO_8601_TIME_AND_TIMEZONE",
+  "logs": {
+    "ci": "sha256:REPLACE ci.log",
+    "build_first": "sha256:REPLACE build-first.log",
+    "build_second": "sha256:REPLACE build-second.log",
+    "firmware_size": "sha256:REPLACE firmware-size.log",
+    "secrets_audit": "sha256:REPLACE secrets-audit.log"
+  },
+  "ci": {
+    "repository": "ProlificLab/esphomeLuxe",
+    "workflow": "Firmware source validation",
+    "run_id": 0,
+    "job_id": 0,
+    "head_sha": "REPLACE_WITH_FULL_40_CHARACTER_COMMIT",
+    "conclusion": "REPLACE",
+    "event": "REPLACE",
+    "url": "REPLACE"
+  },
+  "build": {
+    "count": 0,
+    "first_sha256": "REPLACE",
+    "second_sha256": "REPLACE",
+    "reproducible": false,
+    "size_bytes": 0,
+    "partition_bytes": 2031616,
+    "usage_percent": -1,
+    "target_percent": 93,
+    "hard_percent": 97,
+    "hal6_baseline_bytes": 1948144,
+    "target_passed": false,
+    "hard_limit_passed": false,
+    "source_date_epoch": 0,
+    "container_image": "esphome/esphome@sha256:REPLACE",
+    "esp_idf": "REPLACE"
+  },
+  "credentials": {
+    "file_sha256": "REPLACE_WITH_PRIVATE_SECRETS_SHA256",
+    "mounted_path": "/config/secrets.yaml",
+    "read_only": true,
+    "builds_bound": 2
+  },
+  "secrets_audit": {
+    "tracked_file_count": 0,
+    "private_secret_keys_checked": 0,
+    "exact_secret_matches": 0,
+    "suspicious_pattern_matches": 0,
+    "prohibited_tracked_files": 0
+  }
+}

@@ -1,0 +1,576 @@
+input_select:
+  muse_message_slot_1_state:
+    name: Muse family message slot 1 state
+    options: [empty, pending, delivering, review]
+  muse_message_slot_2_state:
+    name: Muse family message slot 2 state
+    options: [empty, pending, delivering, review]
+  muse_message_slot_3_state:
+    name: Muse family message slot 3 state
+    options: [empty, pending, delivering, review]
+
+input_text:
+  muse_message_slot_1_id:
+    name: Muse family message slot 1 ID
+    max: 64
+  muse_message_slot_1_text:
+    name: Muse family message slot 1 text
+    max: 240
+  muse_message_slot_1_recipient:
+    name: Muse family message slot 1 recipient
+    max: 100
+  muse_message_slot_1_target:
+    name: Muse family message slot 1 target
+    max: 100
+  muse_message_slot_2_id:
+    name: Muse family message slot 2 ID
+    max: 64
+  muse_message_slot_2_text:
+    name: Muse family message slot 2 text
+    max: 240
+  muse_message_slot_2_recipient:
+    name: Muse family message slot 2 recipient
+    max: 100
+  muse_message_slot_2_target:
+    name: Muse family message slot 2 target
+    max: 100
+  muse_message_slot_3_id:
+    name: Muse family message slot 3 ID
+    max: 64
+  muse_message_slot_3_text:
+    name: Muse family message slot 3 text
+    max: 240
+  muse_message_slot_3_recipient:
+    name: Muse family message slot 3 recipient
+    max: 100
+  muse_message_slot_3_target:
+    name: Muse family message slot 3 target
+    max: 100
+
+input_datetime:
+  muse_message_slot_1_expiry:
+    name: Muse family message slot 1 expiry
+    has_date: true
+    has_time: true
+  muse_message_slot_1_claimed_at:
+    name: Muse family message slot 1 claimed at
+    has_date: true
+    has_time: true
+  muse_message_slot_2_expiry:
+    name: Muse family message slot 2 expiry
+    has_date: true
+    has_time: true
+  muse_message_slot_2_claimed_at:
+    name: Muse family message slot 2 claimed at
+    has_date: true
+    has_time: true
+  muse_message_slot_3_expiry:
+    name: Muse family message slot 3 expiry
+    has_date: true
+    has_time: true
+  muse_message_slot_3_claimed_at:
+    name: Muse family message slot 3 claimed at
+    has_date: true
+    has_time: true
+
+template:
+  - sensor:
+      - name: Muse family message queue
+        unique_id: muse_family_message_queue
+        icon: mdi:message-badge-outline
+        state: >-
+          {{ [states('input_select.muse_message_slot_1_state'),
+              states('input_select.muse_message_slot_2_state'),
+              states('input_select.muse_message_slot_3_state')]
+             | reject('eq', 'empty') | list | count }}
+        attributes:
+          capacity: 3
+          automatic_delivery: at_most_once_with_uncertain_quarantine
+          slot_1: "{{ states('input_select.muse_message_slot_1_state') }}"
+          slot_2: "{{ states('input_select.muse_message_slot_2_state') }}"
+          slot_3: "{{ states('input_select.muse_message_slot_3_state') }}"
+
+script:
+  muse_queue_family_message:
+    alias: Muse - queue family message
+    description: >-
+      Delivers immediately when the recipient is home, otherwise stores one of
+      three bounded transcripts. It never overwrites an occupied slot.
+    mode: queued
+    max: 10
+    fields:
+      recipient:
+        required: true
+        selector:
+          entity:
+            filter:
+              domain: person
+      message:
+        required: true
+        selector:
+          text:
+            multiline: true
+      target:
+        required: false
+        selector:
+          entity:
+            filter:
+              domain: media_player
+      expires_in_minutes:
+        required: false
+        default: 720
+        selector:
+          number:
+            min: 5
+            max: 1440
+            step: 5
+            unit_of_measurement: min
+    variables:
+      recipient_entity: "{{ recipient | string }}"
+      target_player: >-
+        {{ target | default('media_player.raspiaudio_muse_luxe', true) }}
+      bounded_message: "{{ message | string | trim }}"
+      expiry_minutes: "{{ expires_in_minutes | default(720) | int(720) }}"
+      free_slot: >-
+        {%- set ns = namespace(slot=0) -%}
+        {%- for number in [1, 2, 3] -%}
+          {%- if ns.slot == 0 and
+                 is_state('input_select.muse_message_slot_' ~ number ~ '_state', 'empty') -%}
+            {%- set ns.slot = number -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {{- ns.slot -}}
+      message_id: >-
+        {{ now().strftime('%Y%m%dT%H%M%S%f') ~ '-' ~
+           recipient_entity.split('.', 1)[-1][:24] }}
+    sequence:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ recipient_entity not in states.person
+                 | map(attribute='entity_id') | list }}
+        then:
+          - stop: The requested message recipient does not exist
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ target_player not in states.media_player
+                 | map(attribute='entity_id') | list }}
+        then:
+          - stop: The requested message target does not exist
+            error: true
+      - if:
+          - condition: template
+            value_template: >-
+              {{ bounded_message | length == 0 or bounded_message | length > 240 }}
+        then:
+          - stop: Family messages must contain between 1 and 240 characters
+            error: true
+      - if:
+          - condition: template
+            value_template: "{{ expiry_minutes < 5 or expiry_minutes > 1440 }}"
+        then:
+          - stop: Family message expiry must be between 5 and 1440 minutes
+            error: true
+      - if:
+          - condition: template
+            value_template: "{{ is_state(recipient_entity, 'home') }}"
+        then:
+          - action: script.muse_intercom_message
+            data:
+              message: "{{ bounded_message }}"
+              target: "{{ target_player }}"
+        else:
+          - if:
+              - condition: template
+                value_template: "{{ free_slot | int(0) not in [1, 2, 3] }}"
+            then:
+              - stop: The three-slot family message queue is full
+                error: true
+          - action: input_text.set_value
+            target:
+              entity_id: "input_text.muse_message_slot_{{ free_slot }}_id"
+            data:
+              value: "{{ message_id[:64] }}"
+          - action: input_text.set_value
+            target:
+              entity_id: "input_text.muse_message_slot_{{ free_slot }}_text"
+            data:
+              value: "{{ bounded_message }}"
+          - action: input_text.set_value
+            target:
+              entity_id: "input_text.muse_message_slot_{{ free_slot }}_recipient"
+            data:
+              value: "{{ recipient_entity }}"
+          - action: input_text.set_value
+            target:
+              entity_id: "input_text.muse_message_slot_{{ free_slot }}_target"
+            data:
+              value: "{{ target_player }}"
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "input_datetime.muse_message_slot_{{ free_slot }}_expiry"
+            data:
+              timestamp: >-
+                {{ (now() + timedelta(minutes=expiry_minutes)).timestamp() | int }}
+          - action: script.muse_set_message_slot_state
+            data:
+              slot: "{{ free_slot }}"
+              state: pending
+          - action: persistent_notification.create
+            data:
+              notification_id: "muse_family_message_{{ free_slot }}"
+              title: Message familial en attente
+              message: >-
+                Slot {{ free_slot }}, identifiant {{ message_id[:32] }}, pour
+                {{ state_attr(recipient_entity, 'friendly_name') or recipient_entity }}.
+
+  muse_set_message_slot_state:
+    alias: Muse - set bounded family message slot state
+    mode: queued
+    max: 10
+    fields:
+      slot:
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 3
+      state:
+        required: true
+        selector:
+          select:
+            options: [empty, pending, delivering, review]
+    variables:
+      slot_number: "{{ slot | int(0) }}"
+      requested_state: "{{ state | string }}"
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ slot_number in [1, 2, 3] and
+             requested_state in ['empty', 'pending', 'delivering', 'review'] }}
+      - action: input_select.select_option
+        target:
+          entity_id: "input_select.muse_message_slot_{{ slot_number }}_state"
+        data:
+          option: "{{ requested_state }}"
+
+  muse_process_family_message_slot:
+    alias: Muse - process one family message slot
+    mode: queued
+    max: 3
+    fields:
+      slot:
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 3
+      force:
+        required: false
+        default: false
+        selector:
+          boolean:
+    variables:
+      slot_number: "{{ slot | int(0) }}"
+      force_delivery: "{{ force | default(false) | bool }}"
+      state_entity: "input_select.muse_message_slot_{{ slot_number }}_state"
+      text_entity: "input_text.muse_message_slot_{{ slot_number }}_text"
+      recipient_entity: >-
+        {{ states('input_text.muse_message_slot_' ~ slot_number ~ '_recipient') }}
+      target_player: >-
+        {{ states('input_text.muse_message_slot_' ~ slot_number ~ '_target') }}
+      pending_text: "{{ states(text_entity) }}"
+      expiry: >-
+        {{ as_timestamp(states('input_datetime.muse_message_slot_' ~
+                               slot_number ~ '_expiry'), 0) }}
+    sequence:
+      - condition: template
+        value_template: "{{ slot_number in [1, 2, 3] }}"
+      - condition: template
+        value_template: >-
+          {{ is_state(state_entity, 'pending') or
+             (force_delivery and is_state(state_entity, 'review')) }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ now().timestamp() >= expiry }}"
+            sequence:
+              - action: persistent_notification.create
+                data:
+                  notification_id: "muse_family_message_expired_{{ slot_number }}"
+                  title: Message familial expire
+                  message: >-
+                    Le slot {{ slot_number }} pour {{ recipient_entity }} a expire
+                    sans diffusion automatique.
+              - action: script.muse_clear_family_message_slot
+                data:
+                  slot: "{{ slot_number }}"
+              - stop: Expired family message cleared
+      - condition: template
+        value_template: >-
+          {{ force_delivery or is_state(recipient_entity, 'home') }}
+      - action: script.muse_set_message_slot_state
+        data:
+          slot: "{{ slot_number }}"
+          state: delivering
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: "input_datetime.muse_message_slot_{{ slot_number }}_claimed_at"
+        data:
+          timestamp: "{{ now().timestamp() | int }}"
+      - action: script.muse_intercom_message
+        data:
+          message: "{{ pending_text }}"
+          target: "{{ target_player }}"
+      - action: script.muse_clear_family_message_slot
+        data:
+          slot: "{{ slot_number }}"
+
+  muse_clear_family_message_slot:
+    alias: Muse - clear one family message slot
+    mode: queued
+    max: 10
+    fields:
+      slot:
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 3
+    variables:
+      slot_number: "{{ slot | int(0) }}"
+    sequence:
+      - condition: template
+        value_template: "{{ slot_number in [1, 2, 3] }}"
+      - action: input_text.set_value
+        target:
+          entity_id:
+            - "input_text.muse_message_slot_{{ slot_number }}_id"
+            - "input_text.muse_message_slot_{{ slot_number }}_text"
+            - "input_text.muse_message_slot_{{ slot_number }}_recipient"
+            - "input_text.muse_message_slot_{{ slot_number }}_target"
+        data:
+          value: ""
+      - action: script.muse_set_message_slot_state
+        data:
+          slot: "{{ slot_number }}"
+          state: empty
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: "muse_family_message_{{ slot_number }}"
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: "muse_family_message_review_{{ slot_number }}"
+
+  muse_retry_family_message_slot:
+    alias: Muse - explicitly retry uncertain family message
+    mode: queued
+    max: 3
+    fields:
+      slot:
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 3
+    variables:
+      slot_number: "{{ slot | int(0) }}"
+      state_entity: "input_select.muse_message_slot_{{ slot_number }}_state"
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ slot_number in [1, 2, 3] and is_state(state_entity, 'review') }}
+      - action: script.muse_set_message_slot_state
+        data:
+          slot: "{{ slot_number }}"
+          state: pending
+      - action: script.muse_process_family_message_slot
+        data:
+          slot: "{{ slot_number }}"
+          force: true
+
+  muse_discard_family_message_slot:
+    alias: Muse - explicitly discard family message
+    mode: queued
+    max: 3
+    fields:
+      slot:
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 3
+    variables:
+      slot_number: "{{ slot | int(0) }}"
+      state_entity: "input_select.muse_message_slot_{{ slot_number }}_state"
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ slot_number in [1, 2, 3] and
+             states(state_entity) in ['pending', 'review'] }}
+      - action: script.muse_set_message_slot_state
+        data:
+          slot: "{{ slot_number }}"
+          state: delivering
+      - action: script.muse_clear_family_message_slot
+        data:
+          slot: "{{ slot_number }}"
+
+  muse_deliver_pending_message:
+    alias: Muse - compatibility delivery for family message slot
+    mode: single
+    fields:
+      slot:
+        required: false
+        default: 1
+        selector:
+          number:
+            min: 1
+            max: 3
+      force:
+        required: false
+        default: false
+        selector:
+          boolean:
+    sequence:
+      - action: script.muse_process_family_message_slot
+        data:
+          slot: "{{ slot | default(1) | int(1) }}"
+          force: "{{ force | default(false) | bool }}"
+
+  muse_clear_pending_message:
+    alias: Muse - compatibility clear for family message slot
+    mode: single
+    fields:
+      slot:
+        required: false
+        default: 1
+        selector:
+          number:
+            min: 1
+            max: 3
+    sequence:
+      - action: script.muse_discard_family_message_slot
+        data:
+          slot: "{{ slot | default(1) | int(1) }}"
+
+  muse_clear_legacy_pending_message:
+    alias: Muse - clear migrated legacy family message
+    mode: single
+    sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.muse_pending_message
+      - action: input_text.set_value
+        target:
+          entity_id:
+            - input_text.muse_pending_message_text
+            - input_text.muse_pending_recipient
+            - input_text.muse_pending_target
+        data:
+          value: ""
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: muse_pending_family_message
+
+automation:
+  - id: muse_family_message_legacy_migration
+    alias: Muse - migrate one-slot family message
+    triggers:
+      - trigger: homeassistant
+        event: start
+    actions:
+      - delay: "00:00:02"
+      - condition: state
+        entity_id: input_boolean.muse_pending_message
+        state: "on"
+      - variables:
+          legacy_expiry: >-
+            {{ as_timestamp(states('input_datetime.muse_pending_expiry'), 0) }}
+          legacy_expiry_minutes: >-
+            {{ [5, ((legacy_expiry - now().timestamp()) / 60) | int] | max }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ legacy_expiry <= now().timestamp() }}"
+            sequence:
+              - action: persistent_notification.create
+                data:
+                  notification_id: muse_legacy_family_message_expired
+                  title: Ancien message familial expire
+                  message: >-
+                    Le message mono-slot existant etait deja expire et n'a pas
+                    ete transfere dans la nouvelle file.
+        default:
+          - action: script.muse_queue_family_message
+            data:
+              recipient: "{{ states('input_text.muse_pending_recipient') }}"
+              message: "{{ states('input_text.muse_pending_message_text') }}"
+              target: "{{ states('input_text.muse_pending_target') }}"
+              expires_in_minutes: "{{ [legacy_expiry_minutes, 1440] | min }}"
+      - action: script.muse_clear_legacy_pending_message
+    mode: single
+
+  - id: muse_family_message_dispatch
+    alias: Muse - dispatch bounded family message queue
+    triggers:
+      - trigger: time_pattern
+        minutes: "/1"
+        id: periodic
+      - trigger: homeassistant
+        event: start
+        id: startup
+    actions:
+      - delay: "00:00:05"
+      - repeat:
+          for_each: [1, 2, 3]
+          sequence:
+            - variables:
+                slot_number: "{{ repeat.item | int }}"
+                slot_state: >-
+                  {{ states('input_select.muse_message_slot_' ~
+                            slot_number ~ '_state') }}
+                claimed_at: >-
+                  {{ as_timestamp(states('input_datetime.muse_message_slot_' ~
+                                         slot_number ~ '_claimed_at'), 0) }}
+            - if:
+                - condition: template
+                  value_template: >-
+                    {{ slot_state == 'delivering' and
+                       (trigger.id == 'startup' or
+                        now().timestamp() - claimed_at >= 360) }}
+              then:
+                - action: script.muse_set_message_slot_state
+                  data:
+                    slot: "{{ slot_number }}"
+                    state: review
+                - action: persistent_notification.create
+                  data:
+                    notification_id: "muse_family_message_review_{{ slot_number }}"
+                    title: Livraison de message a verifier
+                    message: >-
+                      Le slot {{ slot_number }} etait en cours de diffusion.
+                      Choisissez explicitement retry ou discard; aucun rejeu
+                      automatique ne sera tente.
+      - variables:
+          pending_slots: >-
+            {%- set ns = namespace(items=[]) -%}
+            {%- for number in [1, 2, 3] -%}
+              {%- if is_state('input_select.muse_message_slot_' ~ number ~ '_state',
+                              'pending') -%}
+                {%- set identifier = states('input_text.muse_message_slot_' ~
+                                            number ~ '_id') -%}
+                {%- set ns.items = ns.items + [[identifier, number]] -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {{- ns.items | sort -}}
+      - repeat:
+          for_each: "{{ pending_slots }}"
+          sequence:
+            - action: script.muse_process_family_message_slot
+              data:
+                slot: "{{ repeat.item[1] | int }}"
+                force: false
+    mode: single
