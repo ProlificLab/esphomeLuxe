@@ -49,7 +49,7 @@ def main() -> None:
     entry = next((item for item in entries if item["domain"] == "frigate"), None)
     if not entry:
         raise RuntimeError("The official Frigate config entry is missing")
-    if entry["data"].get("url") != "http://192.168.1.20:8971":
+    if entry["data"].get("url") != "http://10.10.30.20:8971":
         raise RuntimeError("Frigate does not use the authenticated port 8971")
     if entry["data"].get("username") != "homeassistant_muse":
         raise RuntimeError("Frigate does not use the dedicated viewer identity")

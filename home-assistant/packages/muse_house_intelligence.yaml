@@ -22,7 +22,7 @@ input_number:
     icon: mdi:battery-alert
 
 rest:
-  - resource: "https://192.168.1.1/api/muse/status/gateways"
+  - resource: "https://10.10.30.1/api/muse/status/gateways"
     method: GET
     authentication: basic
     username: !secret opnsense_muse_api_key

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 import urllib.parse
 import urllib.request
 
@@ -89,12 +90,17 @@ def main() -> None:
     ]
     if buttons:
         asyncio.run(disable_buttons(access_token(), buttons))
-    remaining = [
-        item["entity_id"]
-        for item in registry_entities()
-        if item["entity_id"].startswith("button.")
-        and item.get("disabled_by") != "user"
-    ]
+    deadline = time.monotonic() + 10
+    while True:
+        remaining = [
+            item["entity_id"]
+            for item in registry_entities()
+            if item["entity_id"].startswith("button.")
+            and item.get("disabled_by") != "user"
+        ]
+        if not remaining or time.monotonic() >= deadline:
+            break
+        time.sleep(0.5)
     if remaining:
         raise RuntimeError(f"Proxmox buttons remain enabled: {remaining}")
     print(

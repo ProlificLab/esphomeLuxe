@@ -60,7 +60,7 @@ def existing_entry() -> dict | None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--url", default="http://192.168.1.20:8971")
+    parser.add_argument("--url", default="http://10.10.30.20:8971")
     parser.add_argument("--username", default="homeassistant_muse")
     parser.add_argument("--password-file", type=Path, required=True)
     args = parser.parse_args()
